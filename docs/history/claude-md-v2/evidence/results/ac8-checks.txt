@@ -1,0 +1,9 @@
+backup CLAUDE.md == pre-install: OK
+backup settings == pre-install: OK
+installed CLAUDE.md == deliverable: OK
+hooks events: ['PostToolUse', 'PreToolUse', 'UserPromptExpansion'] | merge hook present: True
+old skill moved intact: OK
+bundle == staging: OK
+SPEC/REVIEW-NOTE untouched: OK
+init skills: github-issue-lifecycle in = True | issue-spec-driven-workflow in = False
+post-restore == pre-install for every pre-existing file; extra files are only the init-check session's own .claude.json/projects/sessions: OK

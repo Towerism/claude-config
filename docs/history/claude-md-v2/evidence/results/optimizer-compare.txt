@@ -1,0 +1,12 @@
+  Line 32: Phrase repeated from line 24
+    Found: "post the review"
+  ... and 6 more issues
+
+💡 SUGGESTIONS
+  1. Add explicit output format: "Respond in JSON with keys: ..."
+  2. Consider adding 2-3 few-shot examples for consistent outputs
+  3. Improve clarity: replace vague terms with specific instructions
+  4. Consider adding role context: "You are an expert..."
+  5. Add explicit output format specification (e.g., "Respond in JSON with keys: ...")
+
+==================================================

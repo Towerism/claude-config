@@ -1,0 +1,30 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "eval/hook_harness.py": "f0d2746bbbed24c16325b29af4310cc8f784295f80b7b49353537f0b9390b966"
+  },
+  "inputs": {
+    "config/hooks/merge_confirm.py": "05cae6d830fc01de797f62a501200ab556cba411cf6a3eb89b5813ee67a3a6bc",
+    "config/settings.fragment.json#/hooks/PreToolUse": "37dc746be140458dac07f895f75176212005506abdb8c7226ce05f58223f415d"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-16T22:09:16Z",
+  "result": {
+    "cases": [
+      {
+        "id": "hook",
+        "result": "pass"
+      },
+      {
+        "id": "control",
+        "result": "pass"
+      }
+    ],
+    "pass": true,
+    "rerunsUsed": 1
+  },
+  "suite": "hook-merge"
+}

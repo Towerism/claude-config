@@ -1,6 +1,10 @@
 # AI Tells Checklist
 
-A comprehensive reference for detecting AI-generated or AI-assisted writing patterns. Use this during Mode 1 (Detect) to audit content before editing.
+> Adapted for `plain-prose` from claude-code-skills (`marketing-skill/skills/content-humanizer/references/ai-tells-checklist.md`, commit `19392f7`, MIT licence; see `../../LICENSE-vendored.md` and `../../VENDORED.json`). The changes from upstream: technical senses of flagged words are allowed, and the brand-voice and marketing remedies are removed, because issues, commits and docs need clarity for a cold reader rather than personality. The rhythm and structure advice is kept.
+
+A reference for spotting patterns that mark writing as AI-generated. Use it when `prose_check.py` reports a tell and you need the detail, or to audit a draft before editing.
+
+**Technical senses are fine.** A flagged word used in its exact technical meaning isn't a tell: "ensure" for a real guarantee, "framework" naming an actual framework, "robust" with the property stated ("retries three times on a timeout"), "dynamic" for dynamic typing or linking. Flag the word when it's decoration.
 
 **Last validated:** 2026-06 against then-current frontier models. AI-tell vocabularies age fast — the "delve"-era list below reflects 2023-2025 model output; newer models exhibit different tells. Re-validate this list every ~6 months against fresh model output and date the revision here.
 
@@ -71,10 +75,10 @@ Humans hedge. AI hedges compulsively. The difference is frequency and context.
 **Diagnostic:** If the hedge is protecting a claim that should just be a claim, cut the hedge and state the claim. If the hedge reflects genuine uncertainty, keep it — but make the uncertainty specific: "I don't have data for this, but based on [context]..."
 
 ### Vague authority claims (replace with specifics)
-- "Studies show..." → "A 2023 McKinsey study of 400 SaaS companies showed..."
-- "Research suggests..." → same — name the research
-- "Many companies..." → "HubSpot, Slack, and several bootstrapped SaaS founders we've talked to..."
-- "Experts agree..." → name one expert
+- "Studies show..." → name the benchmark, issue or measurement: "the 2026-10-15 eval run scored 19 of 19"
+- "Research suggests..." → link the source
+- "Many users..." → say how many, or which report
+- "Best practice is..." → name whose practice, or give the reason
 - "It has been shown that..." → by whom, when, where
 
 ---
@@ -85,7 +89,7 @@ Humans hedge. AI hedges compulsively. The difference is frequency and context.
 Pattern: Statement → Explanation → Example → Bridge to next topic
 When every paragraph follows this exact structure, the writing reads like a machine assembled it. Because it was.
 
-**Fix:** Mix in fragments. Questions. Short paragraphs. Asides. Let sections breathe differently.
+**Fix:** Vary the shape. Lead some paragraphs with the point and give the reason after; let a short one stand alone; cut the bridge sentence when the next heading already does that job.
 
 ### Parallelism overload
 AI loves parallel structure. Three-item lists. Four-item lists. Everything in threes. Alliteration sometimes.
@@ -97,7 +101,7 @@ Occasional parallelism is powerful. Three consecutive bulleted lists of three it
 ### The summary conclusion
 AI conclusions restate the introduction. Paragraph by paragraph. "In this guide, we covered X, Y, and Z. By applying these strategies, you can achieve [thing from the intro]."
 
-Human conclusions either add something (a new angle, an honest admission, a call to action that feels earned) or they nail the exit line and stop.
+A useful ending adds something (the next step, an open risk, what is still unknown) or simply stops after the last point.
 
 ### Symmetric section lengths
 Every H2 section is roughly the same length. ~300 words. Every one. That's a machine maintaining consistency. Humans have opinions — some things deserve more space, some less.
@@ -130,7 +134,7 @@ Bold should be used sparingly — for the one thing that matters most in a secti
 "We trust that you've found valuable insights in..."
 "It's our sincere hope that these strategies will empower you to..."
 
-No one talks like this. It's the corporate newsletter voice. Cut it.
+No one talks like this. Cut it; in an issue or PR, the closing line says what happens next, if anything.
 
 ### Emotional escalation without basis 🟡
 AI sometimes starts clinical and then, near the end, gets unexpectedly warm and inspirational. "Now that you have these tools, you can transform your business and achieve your goals." The warmth wasn't earned by the preceding content.
@@ -154,6 +158,6 @@ For a 1,000-word piece, count:
 | Instances of false warmth | | >1 = 🟡 |
 
 **Scoring:**
-- 0-5 total flags: Light edit (Mode 2 quick pass)
-- 6-12 total flags: Full humanize pass (Mode 2 complete)
-- 12+ total flags: Full rewrite recommended (Mode 1 audit → complete Mode 2 → Mode 3)
+- 0-5 total flags: light edit of the flagged passages
+- 6-12 total flags: revise the whole text for a cold reader
+- 12+ total flags: rewrite it, starting from what the reader needs to know

@@ -38,11 +38,11 @@ from typing import Any
 if __package__ in (None, ""):  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from eval import hook_harness, run_eval  # noqa: E402
+from eval import hook_harness, run_eval, skill_evals  # noqa: E402
 from tools.cfg import eval_records as er  # noqa: E402
 
 SuiteRunner = Callable[[run_eval.Context, er.Suite], dict[str, Any]]
-SUMMARY_KEYS = ("regressions", "newRuleFailures", "scores", "p95Ms", "rerunsUsed")
+SUMMARY_KEYS = ("regressions", "newRuleFailures", "scores", "p95Ms", "accuracy", "rerunsUsed")
 
 
 def claude_version() -> str:
@@ -110,6 +110,8 @@ RUNNERS: dict[str, SuiteRunner] = {
     "hook-overlay": lambda ctx, suite: hook_harness.run_overlay(ctx),
     "hook-merge": lambda ctx, suite: hook_harness.run_merge(ctx),
     "script": run_script_suite,
+    "trigger": skill_evals.run_trigger,
+    "cold-reader": skill_evals.run_cold_reader,
 }
 
 

@@ -26,7 +26,9 @@ from typing import Any
 
 GATES_PATH = "eval/gates.json"
 RECORDS_DIR = "eval/records"
-RUNNERS = {"scenario", "rubric", "hook-overlay", "hook-merge", "script"}
+RUNNERS = {"scenario", "rubric", "hook-overlay", "hook-merge", "script", "trigger", "cold-reader"}
+# Runners from eval/skill_evals.py, which need the skill under test and its case file.
+SKILL_RUNNERS = {"trigger", "cold-reader"}
 SKILL_PARTS = {"description", "body"}
 
 
@@ -53,6 +55,8 @@ class Suite:
     selectors: tuple[dict[str, str], ...] = ()
     compare_base: bool = False
     script: str | None = None
+    skill: str | None = None
+    cases: str | None = None
 
 
 def git(repo: Path, *args: str) -> str:
@@ -143,6 +147,9 @@ def parse_gates(text: str) -> dict[str, Suite]:
         script = spec.get("script")
         if runner == "script" and not isinstance(script, str):
             raise GatesError(f"{what} needs a script")
+        skill, cases = spec.get("skill"), spec.get("cases")
+        if runner in SKILL_RUNNERS and not (isinstance(skill, str) and isinstance(cases, str)):
+            raise GatesError(f"{what} needs a skill and a cases file")
         compare_base = spec.get("compareBase", False)
         if not isinstance(compare_base, bool):
             raise GatesError(f"{what}: compareBase must be true or false")
@@ -153,6 +160,8 @@ def parse_gates(text: str) -> dict[str, Suite]:
             selectors=_selectors(spec.get("selectors", []), f"{what} selectors"),
             compare_base=compare_base,
             script=script if isinstance(script, str) else None,
+            skill=skill if isinstance(skill, str) else None,
+            cases=cases if isinstance(cases, str) else None,
         )
     return suites
 

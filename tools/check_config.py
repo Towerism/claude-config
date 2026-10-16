@@ -82,11 +82,14 @@ class Skill:
     """A resolved skill.
 
     Either a directory on disk, or (offline) a plugin skill known only from
-    the lock, with the files the lock recorded for it, if any.
+    the lock, with its plugin id, its name and the files the lock recorded
+    for it, if any.
     """
 
     path: Path | None = None
     files: frozenset[str] | None = None
+    plugin: str | None = None
+    name: str | None = None
 
     def has(self, rel: str) -> bool:
         if self.path is not None:
@@ -190,7 +193,7 @@ def resolve_offline(name: str, lock: Lock, home: Path, roots: list[Path]) -> Ski
         bundle, short = name.split(":", 1)
         for pid, entry in plugins.items():
             if pid.split("@", 1)[0] == bundle and short in entry["skills"]:
-                return _lock_skill(entry, short)
+                return _lock_skill(pid, entry, short)
         return None
     user = home / "skills" / name
     if (user / "SKILL.md").is_file():
@@ -198,13 +201,13 @@ def resolve_offline(name: str, lock: Lock, home: Path, roots: list[Path]) -> Ski
     on_disk = resolve_repo_skill(name, roots)
     if on_disk is not None:
         return Skill(path=on_disk)
-    hits = [entry for entry in plugins.values() if name in entry["skills"]]
-    return _lock_skill(hits[0], name) if len(hits) == 1 else None
+    hits = [(pid, entry) for pid, entry in plugins.items() if name in entry["skills"]]
+    return _lock_skill(*hits[0], name) if len(hits) == 1 else None
 
 
-def _lock_skill(entry: dict[str, Any], short: str) -> Skill:
+def _lock_skill(pid: str, entry: dict[str, Any], short: str) -> Skill:
     files = entry.get("files", {}).get(short)
-    return Skill(files=frozenset(files) if files is not None else None)
+    return Skill(files=frozenset(files) if files is not None else None, plugin=pid, name=short)
 
 
 @dataclass(frozen=True)
@@ -310,7 +313,7 @@ class Scope:
     def _plugin_skill(self, pid: str, short: str) -> Skill | None:
         if self.lock is not None:
             entry = self.lock["plugins"].get(pid)
-            return _lock_skill(entry, short) if entry and short in entry["skills"] else None
+            return _lock_skill(pid, entry, short) if entry and short in entry["skills"] else None
         for inst in installed_plugins(self.home).get(pid) or []:
             d = Path(inst.get("installPath", "")) / "skills" / short
             if (d / "SKILL.md").is_file():

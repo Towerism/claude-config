@@ -45,3 +45,5 @@ python_version = "3.13"
 strict = true
 files = ["tools"]
 exclude = ["^tools/vendor/"]
+# tools/ has no __init__.py; name its modules from the repo root (tools.check_config).
+explicit_package_bases = true

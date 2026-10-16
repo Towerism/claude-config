@@ -272,3 +272,17 @@ def run_merge(ctx: run_eval.Context) -> dict[str, Any]:
             cases.append({"id": name, "result": "pass" if ok else "fail"})
     return {"pass": all(c["result"] == "pass" for c in cases), "rerunsUsed": reruns,
             "cases": cases}  # fmt: skip
+
+
+def main(argv: list[str] | None = None) -> int:
+    from tools.cfg import eval as eval_cmd
+
+    args = sys.argv[1:] if argv is None else argv
+    if args not in (["overlay"], ["merge"]):
+        print("usage: hook_harness.py overlay|merge", file=sys.stderr)
+        return 2
+    return eval_cmd.main(["--suite", f"hook-{args[0]}", "--no-record"])
+
+
+if __name__ == "__main__":
+    sys.exit(main())

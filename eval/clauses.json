@@ -544,5 +544,12 @@
   "disposition": "claude-md",
   "mustAppear": "the note in `REVIEW-NOTE.md` beside it",
   "reason": null
+ },
+ {
+  "id": "C-79",
+  "text": "Load the plain-prose skill before writing prose for people, so a reader with no context understands it (the owner's decision, ADR-0010, 2026-10-16; not in the v1 CLAUDE.md)",
+  "disposition": "claude-md",
+  "mustAppear": "load `plain-prose` once per session before the first human-facing text",
+  "reason": null
  }
 ]

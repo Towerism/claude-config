@@ -3,7 +3,7 @@
   "claudeMd": "config/CLAUDE.global.md",
   "overlays": "all",
   "hooks": ["skill_overlay.py", "merge_confirm.py"],
-  "skills": ["github-issue-lifecycle", "linux-troubleshooting"],
+  "skills": ["github-issue-lifecycle", "linux-troubleshooting", "plain-prose"],
   "plugins": [
     "engineering-skills@claude-code-skills",
     "engineering-advanced-skills@claude-code-skills",

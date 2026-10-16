@@ -1,0 +1,228 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/skill_evals.py": "d05b28908231da72b76bccc21e454e46ea49c36bbf9a865f752ed7ed0d1cc847"
+  },
+  "inputs": {
+    "config/skills/plain-prose/SKILL.md#body": "b8b31c79b02cf958a87489faa663158a3c8b7483a3b0135a96ffa61132c40aec",
+    "config/skills/plain-prose/evals/behaviour-evals.json": "23547bd49994b5b2ce5725b7f273a352ba38ade5b65a1cb72a72b8a0646a9357",
+    "config/skills/plain-prose/references/vendored/ai-tells-checklist.md": "5e4742b119057a01b0a659eeffde08fd6b7cb817645291c48887e6484b6a615e",
+    "config/skills/plain-prose/references/vendored/plain-english-alternatives.md": "491c34b011de82617613a558ce609ff7ba8fd92554ac90b4c5b4db2ab0aef62e",
+    "config/skills/plain-prose/scripts/prose_check.py": "ca6b23d5e5823167bd92e4d3675f5e4ab5bcaa4d298a2996b5b5ba8833f00d8d",
+    "config/skills/plain-prose/scripts/vendored/ai_content_detector.py": "2c8a4cfdf527089f2d6b7548575a8e879ef7bf906ccee3596db8aca31fda626b",
+    "config/skills/plain-prose/scripts/vendored/readability_scorer.py": "4a43bc05dabe7e9acd28fdf0c151a158b3d57a2a633eb09675a3c4a67d16b0ce"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-16T23:07:20Z",
+  "result": {
+    "cases": [
+      {
+        "baseline": {
+          "aiSounding": true,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 46.2,
+            "per_1000_words": {
+              "ai_tells": 97.6,
+              "cold_reader": 0.0,
+              "readability": 0.0
+            }
+          },
+          "lost": [],
+          "quote": "Great question! Choosing a database is a multifaceted decision, and there are many factors at play. Let's dive in. ... In conclusion, SQLite was the optimal choice for our needs. I hope this helps!"
+        },
+        "id": "rewrite-chat-reply",
+        "reason": "",
+        "result": "pass",
+        "skill": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 32.5,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 0.0,
+              "readability": 0.0
+            }
+          },
+          "lost": [],
+          "quote": ""
+        }
+      },
+      {
+        "baseline": {
+          "aiSounding": true,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 46.3,
+            "per_1000_words": {
+              "ai_tells": 166.7,
+              "cold_reader": 0.0,
+              "readability": 11.9
+            }
+          },
+          "lost": [],
+          "quote": "In today's fast-paced data landscape, robust backups are crucial. It's worth noting that our nightly backup job \u2014 which plays a pivotal role in our disaster-recovery strategy \u2014 currently exhibits some"
+        },
+        "id": "rewrite-issue-body",
+        "reason": "",
+        "result": "pass",
+        "skill": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 32.5,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 0.0,
+              "readability": 0.0
+            }
+          },
+          "lost": [],
+          "quote": ""
+        }
+      },
+      {
+        "baseline": {
+          "aiSounding": true,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 4.0,
+            "per_1000_words": {
+              "ai_tells": 53.8,
+              "cold_reader": 0.0,
+              "readability": 38.5
+            }
+          },
+          "lost": [
+            "The export endpoint needs a rate limit."
+          ],
+          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved: ... could perhaps be revisited ... It "
+        },
+        "id": "rewrite-review-note",
+        "reason": "",
+        "result": "pass",
+        "skill": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 17.9,
+            "per_1000_words": {
+              "ai_tells": 6.0,
+              "cold_reader": 0.0,
+              "readability": 12.0
+            }
+          },
+          "lost": [],
+          "quote": ""
+        }
+      },
+      {
+        "baseline": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 32.5,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 37.7,
+              "readability": 18.9
+            }
+          },
+          "lost": [],
+          "quote": ""
+        },
+        "id": "write-commit-message",
+        "reason": "",
+        "result": "pass",
+        "skill": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 25.7,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 29.9,
+              "readability": 0.0
+            }
+          },
+          "lost": [],
+          "quote": ""
+        }
+      },
+      {
+        "baseline": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 15.4,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 17.2,
+              "readability": 51.7
+            }
+          },
+          "lost": [],
+          "quote": ""
+        },
+        "id": "write-issue-comment",
+        "reason": "",
+        "result": "pass",
+        "skill": {
+          "aiSounding": false,
+          "correct": 3,
+          "diagnostics": {
+            "detectability": 12.2,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 12.7,
+              "readability": 38.0
+            }
+          },
+          "lost": [],
+          "quote": ""
+        }
+      },
+      {
+        "baseline": {
+          "aiSounding": false,
+          "correct": 4,
+          "diagnostics": {
+            "detectability": 16.4,
+            "per_1000_words": {
+              "ai_tells": 8.8,
+              "cold_reader": 8.8,
+              "readability": 8.8
+            }
+          },
+          "lost": [],
+          "quote": ""
+        },
+        "id": "write-pr-description",
+        "reason": "",
+        "result": "pass",
+        "skill": {
+          "aiSounding": false,
+          "correct": 4,
+          "diagnostics": {
+            "detectability": 22.0,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 9.8,
+              "readability": 0.0
+            }
+          },
+          "lost": [],
+          "quote": "\ud83e\udd16 Generated with [Claude Code](https://claude.com/claude-code)"
+        }
+      }
+    ],
+    "pass": true,
+    "rerunsUsed": 0
+  },
+  "suite": "plain-prose-behaviour"
+}

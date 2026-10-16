@@ -1,0 +1,84 @@
+[
+  {
+    "query": "here's the diff for the retry fix in the uploader (it stops after 3 tries now instead of looping forever, and logs the row id). can you write the PR description?",
+    "should_trigger": true
+  },
+  {
+    "query": "write the commit message for the staged change \u2014 it renames the export column 'ts' to 'created_at' so the CSV matches the API",
+    "should_trigger": true
+  },
+  {
+    "query": "post a comment on issue 214 saying the timezone bug is fixed in 2.3.1 and asking the reporter to confirm on their side",
+    "should_trigger": true
+  },
+  {
+    "query": "draft the bug report for this: the nightly backup job silently skips any table bigger than 2 GB, found it while restoring staging yesterday",
+    "should_trigger": true
+  },
+  {
+    "query": "I need release notes for v4.2 from these merged PRs: faster CSV import, a fix for duplicate invoices, and dropping Python 3.9 support",
+    "should_trigger": true
+  },
+  {
+    "query": "write up the review findings for this PR as a comment: the cache key ignores the user id, and the new endpoint has no rate limit",
+    "should_trigger": true
+  },
+  {
+    "query": "my teammate asked why we chose SQLite over Postgres for the desktop app. draft a reply I can send them in Slack",
+    "should_trigger": true
+  },
+  {
+    "query": "the README's setup section is a wall of text and nobody can follow it, rewrite it so a new contributor can get the app running",
+    "should_trigger": true
+  },
+  {
+    "query": "Use a subagent to write the PR description for the change that makes the importer skip blank rows instead of failing; don't write it yourself, just delegate it.",
+    "should_trigger": true,
+    "delegated": true
+  },
+  {
+    "query": "Delegate this to a general-purpose subagent: draft the GitHub issue explaining that the export page times out for accounts with over 10k rows.",
+    "should_trigger": true,
+    "delegated": true
+  },
+  {
+    "query": "rename the variable `tmp` to `pending_rows` in importer.py and update every place that uses it",
+    "should_trigger": false
+  },
+  {
+    "query": "add a regex to the validator that accepts ISO dates like 2026-10-16 and rejects 2026-13-01",
+    "should_trigger": false
+  },
+  {
+    "query": "update ~/.claude/CLAUDE.md so the git section also says to delete merged branches",
+    "should_trigger": false
+  },
+  {
+    "query": "edit the SKILL.md of my deploy skill so its description mentions staging as well as production",
+    "should_trigger": false
+  },
+  {
+    "query": "write the prompt for a subagent that will search the repo for every call to the old auth helper and list the files",
+    "should_trigger": false
+  },
+  {
+    "query": "bump the retry count in config.yaml from 3 to 5 and the timeout to 30 seconds",
+    "should_trigger": false
+  },
+  {
+    "query": "fix the failing test in test_export.py, it expects the header row but the function now skips it",
+    "should_trigger": false
+  },
+  {
+    "query": "convert this JSON settings file to TOML, keeping the same keys",
+    "should_trigger": false
+  },
+  {
+    "query": "add type hints to every function in utils/dates.py and make mypy pass",
+    "should_trigger": false
+  },
+  {
+    "query": "write a bash one-liner that counts lines of Python code in src/ excluding tests",
+    "should_trigger": false
+  }
+]

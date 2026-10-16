@@ -108,3 +108,45 @@ def make_lock(
     lock = {"lockVersion": version, "plugins": entries, "synced": sorted(synced)}
     path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
     return path
+
+
+GOOD_GLOBAL_MD = (
+    "# Global rules\n"
+    "- Test plans: `engineering-skills:senior-qa`.\n"
+    "- Start work with `s1`.\n"
+    "- IMPORTANT: merge only with the user's authorization.\n"
+)
+
+
+def make_repo(root: Path, **profile: Any) -> Path:
+    """Build a repo with one host profile, hosts/a.json, and return the profile's path.
+
+    The default profile lists repo skill s1, hook h.py, all overlays and the
+    plugin engineering-skills@mkt. Keyword arguments override profile keys;
+    a value of None removes the key.
+    """
+    (root / "hosts").mkdir(parents=True)
+    (root / "config" / "skill-overlays").mkdir(parents=True)
+    (root / "config" / "hooks").mkdir()
+    (root / "config" / "hooks" / "h.py").write_text("")
+    (root / "config" / "CLAUDE.global.md").write_text(GOOD_GLOBAL_MD)
+    s1 = root / "config" / "skills" / "s1"
+    s1.mkdir(parents=True)
+    (s1 / "SKILL.md").write_text("---\nname: s1\n---\nspec lives in the issue body\n")
+    data: dict[str, Any] = {
+        "name": "a",
+        "claudeMd": "config/CLAUDE.global.md",
+        "overlays": "all",
+        "hooks": ["h.py"],
+        "skills": ["s1"],
+        "plugins": ["engineering-skills@mkt"],
+        "defaultLifecycle": "s1",
+    }
+    for key, value in profile.items():
+        if value is None:
+            data.pop(key, None)
+        else:
+            data[key] = value
+    path = root / "hosts" / "a.json"
+    path.write_text(json.dumps(data))
+    return path

@@ -3,11 +3,19 @@
 python3 -I tools/check_config.py --claude-md <path> --overlays <dir> [--claude-home <dir>]
     [--skill-root <dir>]... [--clauses eval/clauses.json] [--lifecycle-skill <name>]
     [--repo-name <name>]... [--plugin-index plugins.lock.json] [--json]
+python3 -I tools/check_config.py --host hosts/<name>.json [--claude-home <dir>]
+    [--clauses eval/clauses.json] [--repo-name <name>]... [--plugin-index plugins.lock.json]
+    [--json]
 exit 0 = pass, 1 = findings, 2 = usage error
 
 With --plugin-index, plugin and synced skills resolve from the plugin lock
 instead of the plugin cache, so the check runs where no plugins are installed,
 such as CI. tools/cfg/lock.py writes the lock.
+
+With --host, the CLAUDE.md, overlays, repo skills and lifecycle skill come
+from a host profile, and only the skills and plugins the profile lists
+resolve. The checker also reports anything the profile lists that the repo
+or the plugins don't have.
 """
 
 from __future__ import annotations
@@ -189,17 +197,171 @@ def _lock_skill(entry: dict[str, Any], short: str) -> Skill:
     return Skill(files=frozenset(files) if files is not None else None)
 
 
+@dataclass(frozen=True)
+class Profile:
+    """A host profile (hosts/<name>.json), with paths resolved against the repo root."""
+
+    root: Path
+    claude_md: Path
+    overlays: list[str] | None  # None selects every overlay
+    skills: list[str]
+    hooks: list[str]
+    plugins: list[str]
+    default_lifecycle: str
+
+    @property
+    def overlay_dir(self) -> Path:
+        return self.root / "config" / "skill-overlays"
+
+    def skill_path(self, name: str) -> Path:
+        return self.root / "config" / "skills" / name
+
+
+def load_profile(path: Path) -> Profile:
+    """Read and shape-check a host profile; raise UsageError if it can't be used."""
+    try:
+        data = json.loads(path.read_text())
+    except OSError as e:
+        raise UsageError(f"cannot read host profile {path}: {e.strerror}") from e
+    except ValueError as e:
+        raise UsageError(f"host profile {path} is not valid JSON: {e}") from e
+    if not isinstance(data, dict):
+        raise UsageError(f"host profile {path} is not a JSON object")
+    for key in ("claudeMd", "defaultLifecycle"):
+        if not isinstance(data.get(key), str):
+            raise UsageError(f"host profile {path} needs a string {key}")
+    for key in ("skills", "hooks", "plugins"):
+        if not _str_list(data.get(key)):
+            raise UsageError(f"host profile {path} needs a list of strings in {key}")
+    overlays = data.get("overlays")
+    if overlays != "all" and not _str_list(overlays):
+        raise UsageError(f'host profile {path} needs overlays to be "all" or a list of names')
+    root = path.resolve().parent.parent
+    claude_md = root / data["claudeMd"]
+    if not claude_md.is_file():
+        raise UsageError(f"host profile {path}: claudeMd {data['claudeMd']} not found")
+    return Profile(
+        root=root,
+        claude_md=claude_md,
+        overlays=None if overlays == "all" else overlays,
+        skills=data["skills"],
+        hooks=data["hooks"],
+        plugins=data["plugins"],
+        default_lifecycle=data["defaultLifecycle"],
+    )
+
+
+def installed_plugins(home: Path) -> dict[str, list[dict[str, Any]]]:
+    """The plugins section of installed_plugins.json, or {} if it can't be read."""
+    try:
+        installed = json.loads((home / "plugins" / "installed_plugins.json").read_text())
+        plugins = installed.get("plugins") or {}
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return plugins if isinstance(plugins, dict) else {}
+
+
+@dataclass(frozen=True)
+class Scope:
+    """Where skill names resolve from: live or from a lock, and limited by a profile or not."""
+
+    home: Path
+    roots: list[Path]
+    lock: Lock | None = None
+    profile: Profile | None = None
+
+    def find(self, name: str) -> Skill | None:
+        if self.profile is not None:
+            return self._find_for_host(name, self.profile)
+        if self.lock is not None:
+            return resolve_offline(name, self.lock, self.home, self.roots)
+        found = resolve(name, self.home, self.roots)
+        return Skill(path=found) if found is not None else None
+
+    def _find_for_host(self, name: str, profile: Profile) -> Skill | None:
+        if name.startswith(SYNCED_PREFIX):
+            if self.lock is not None:
+                return resolve_offline(name, self.lock, self.home, [])
+            found = resolve(name, self.home, [])
+            return Skill(path=found) if found is not None else None
+        if ":" in name:
+            bundle, short = name.split(":", 1)
+            for pid in profile.plugins:
+                if pid.split("@", 1)[0] == bundle:
+                    hit = self._plugin_skill(pid, short)
+                    if hit is not None:
+                        return hit
+            return None
+        if name in profile.skills and (profile.skill_path(name) / "SKILL.md").is_file():
+            return Skill(path=profile.skill_path(name))
+        hits = [h for pid in profile.plugins if (h := self._plugin_skill(pid, name)) is not None]
+        return hits[0] if len(hits) == 1 else None
+
+    def _plugin_skill(self, pid: str, short: str) -> Skill | None:
+        if self.lock is not None:
+            entry = self.lock["plugins"].get(pid)
+            return _lock_skill(entry, short) if entry and short in entry["skills"] else None
+        for inst in installed_plugins(self.home).get(pid) or []:
+            d = Path(inst.get("installPath", "")) / "skills" / short
+            if (d / "SKILL.md").is_file():
+                return Skill(path=d)
+        return None
+
+    def has_plugin(self, pid: str) -> bool:
+        if self.lock is not None:
+            return pid in self.lock["plugins"]
+        return bool(installed_plugins(self.home).get(pid))
+
+
+def profile_problems(profile: Profile, scope: Scope) -> list[dict[str, str]]:
+    problems = [
+        {"kind": "skill", "item": s}
+        for s in profile.skills
+        if not (profile.skill_path(s) / "SKILL.md").is_file()
+    ]
+    problems += [
+        {"kind": "hook", "item": h}
+        for h in profile.hooks
+        if not (profile.root / "config" / "hooks" / h).is_file()
+    ]
+    problems += [
+        {"kind": "overlay", "item": o}
+        for o in profile.overlays or []
+        if not (profile.overlay_dir / f"{o}.md").is_file()
+    ]
+    if profile.default_lifecycle not in profile.skills:
+        problems.append({"kind": "default-lifecycle", "item": profile.default_lifecycle})
+    problems += [{"kind": "plugin", "item": p} for p in profile.plugins if not scope.has_plugin(p)]
+    return problems
+
+
+def read_overlays(ov_dir: Path, only: list[str] | None) -> dict[str, str]:
+    if not ov_dir.is_dir():
+        return {}
+    files = sorted(ov_dir.glob("*.md"))
+    if only is not None:
+        files = [f for f in files if f.name[:-3] in only]
+    return {f.name[:-3]: f.read_text() for f in files}
+
+
 def bundle_text(d: Path) -> str:
     return "\n".join(p.read_text(errors="replace") for p in sorted(d.rglob("*.md")))
 
 
-def check(args: argparse.Namespace, lock: Lock | None = None) -> Report:
+def check(
+    args: argparse.Namespace, lock: Lock | None = None, profile: Profile | None = None
+) -> Report:
     home, roots = Path(args.claude_home), [Path(r) for r in args.skill_root]
-    md_path, ov_dir = Path(args.claude_md), Path(args.overlays)
+    scope = Scope(home=home, roots=roots, lock=lock, profile=profile)
+    if profile is not None:
+        md_path = profile.claude_md
+        overlays = read_overlays(profile.overlay_dir, profile.overlays)
+        lifecycle_name: str | None = profile.default_lifecycle
+    else:
+        md_path = Path(args.claude_md)
+        overlays = read_overlays(Path(args.overlays), None)
+        lifecycle_name = args.lifecycle_skill
     md = md_path.read_text()
-    overlays = (
-        {p.name[:-3]: p.read_text() for p in sorted(ov_dir.glob("*.md"))} if ov_dir.is_dir() else {}
-    )
     rep: Report = {
         "ok": True,
         "unresolvedSkills": [],
@@ -207,13 +369,9 @@ def check(args: argparse.Namespace, lock: Lock | None = None) -> Report:
         "clauseProblems": [],
         "forbiddenContent": [],
         "tokenCounts": [],
+        "profileProblems": profile_problems(profile, scope) if profile is not None else [],
     }
-
-    def find(name: str) -> Skill | None:
-        if lock is not None:
-            return resolve_offline(name, lock, home, roots)
-        found = resolve(name, home, roots)
-        return Skill(path=found) if found is not None else None
+    find = scope.find
 
     names = sorted({t for t in SKILL_TOKEN.findall(md) if is_skill_token(t)} | set(overlays))
     skills = {n: find(n) for n in names}
@@ -259,7 +417,7 @@ def check(args: argparse.Namespace, lock: Lock | None = None) -> Report:
         )
 
     if args.clauses:
-        lifecycle = find(args.lifecycle_skill) if args.lifecycle_skill else None
+        lifecycle = find(lifecycle_name) if lifecycle_name else None
         lifecycle_text = bundle_text(lifecycle.path) if lifecycle and lifecycle.path else ""
         texts = {"claude-md": md, "lifecycle-skill": lifecycle_text}
         texts.update({f"overlay:{s}": b for s, b in overlays.items()})
@@ -286,15 +444,17 @@ def check(args: argparse.Namespace, lock: Lock | None = None) -> Report:
         or rep["missingPaths"]
         or rep["clauseProblems"]
         or rep["forbiddenContent"]
+        or rep["profileProblems"]
         or over
     )
     return rep
 
 
-def main() -> int:
+def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--claude-md", required=True)
-    ap.add_argument("--overlays", required=True)
+    ap.add_argument("--host", help="host profile to take the inputs from")
+    ap.add_argument("--claude-md")
+    ap.add_argument("--overlays")
     ap.add_argument("--claude-home", default=str(Path.home() / ".claude"))
     ap.add_argument("--skill-root", action="append", default=[])
     ap.add_argument("--clauses")
@@ -302,17 +462,44 @@ def main() -> int:
     ap.add_argument("--repo-name", action="append")
     ap.add_argument("--plugin-index", help="plugin lock to resolve plugin skills from, offline")
     ap.add_argument("--json", action="store_true")
-    args = ap.parse_args()
-    for f in [args.claude_md] + ([args.clauses] if args.clauses else []):
+    return ap.parse_args(argv)
+
+
+def validate(args: argparse.Namespace) -> tuple[Lock | None, Profile | None]:
+    """Check the flags and load the lock and profile; raise UsageError on a problem."""
+    if args.host:
+        clash = [
+            flag
+            for flag, value in [
+                ("--claude-md", args.claude_md),
+                ("--overlays", args.overlays),
+                ("--skill-root", args.skill_root),
+                ("--lifecycle-skill", args.lifecycle_skill),
+            ]
+            if value
+        ]
+        if clash:
+            raise UsageError(f"--host takes its inputs from the profile; drop {', '.join(clash)}")
+    elif not (args.claude_md and args.overlays):
+        raise UsageError("give --host, or both --claude-md and --overlays")
+    for f in ([args.claude_md] if args.claude_md else []) + (
+        [args.clauses] if args.clauses else []
+    ):
         if not Path(f).is_file():
-            print(json.dumps({"error": f"file not found: {f}"}))
-            return 2
+            raise UsageError(f"file not found: {f}")
+    lock = load_lock(Path(args.plugin_index)) if args.plugin_index else None
+    profile = load_profile(Path(args.host)) if args.host else None
+    return lock, profile
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     try:
-        lock = load_lock(Path(args.plugin_index)) if args.plugin_index else None
+        lock, profile = validate(args)
     except UsageError as e:
         print(json.dumps({"error": str(e)}))
         return 2
-    rep = check(args, lock)
+    rep = check(args, lock, profile)
     print(json.dumps(rep, indent=None if args.json else 2))
     return 0 if rep["ok"] else 1
 

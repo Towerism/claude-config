@@ -1,0 +1,13 @@
+{
+  "name": "personal",
+  "claudeMd": "config/CLAUDE.global.md",
+  "overlays": "all",
+  "hooks": ["skill_overlay.py", "merge_confirm.py"],
+  "skills": ["github-issue-lifecycle", "linux-troubleshooting"],
+  "plugins": [
+    "engineering-skills@claude-code-skills",
+    "engineering-advanced-skills@claude-code-skills",
+    "claude-md-management@claude-plugins-official"
+  ],
+  "defaultLifecycle": "github-issue-lifecycle"
+}

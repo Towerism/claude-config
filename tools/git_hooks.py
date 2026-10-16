@@ -47,6 +47,8 @@ ALLOWED_EMAILS = frozenset({"noreply@anthropic.com"})
 ALLOWED_EMAIL_SUFFIXES = ("@users.noreply.github.com",)
 # Reserved for documentation by RFC 2606, so they can't be anyone's real address.
 ALLOWED_EMAIL_DOMAINS = frozenset({"example.com", "example.org", "example.net"})
+# RFC 2606 also reserves these top-level domains; nothing under them can receive mail.
+ALLOWED_EMAIL_TLDS = frozenset({"test", "example", "invalid", "localhost"})
 
 # The never-versioned parts of ~/.claude, plus common secret files.
 DENY_BASENAMES = (
@@ -133,7 +135,8 @@ def email_allowed(address: str) -> bool:
     lowered = address.lower()
     if lowered in ALLOWED_EMAILS or lowered.endswith(ALLOWED_EMAIL_SUFFIXES):
         return True
-    return lowered.rpartition("@")[2] in ALLOWED_EMAIL_DOMAINS
+    domain = lowered.rpartition("@")[2]
+    return domain in ALLOWED_EMAIL_DOMAINS or domain.rpartition(".")[2] in ALLOWED_EMAIL_TLDS
 
 
 def scan_text(text: str) -> list[tuple[str, int]]:

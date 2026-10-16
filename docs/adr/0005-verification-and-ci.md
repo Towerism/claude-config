@@ -1,6 +1,6 @@
 # ADR-0005: Verification and CI (free GitHub Actions for deterministic checks; local model evals with hash-bound committed records)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). This pipeline plan was written after loading the `engineering-advanced-skills:ci-cd-pipeline-builder` skill, reading its `pipeline-design-notes.md`, `deployment-gates.md` and `github-actions-templates.md`, and running its `stack_detector.py`. The owner's rules require loading the skill again before any workflow YAML is written (plan issue 10).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). This pipeline plan was written after loading the `engineering-advanced-skills:ci-cd-pipeline-builder` skill, reading its `pipeline-design-notes.md`, `deployment-gates.md` and `github-actions-templates.md`, and running its `stack_detector.py`. The owner's rules require loading the skill again before any workflow YAML is written (plan issue 10). Amended 2026-10-16 by #2 (approved by the owner): `config/` is excluded from ruff until #20.
 
 GitHub Actions runs every check that needs no model: tests, lint, the config checker, the spec validator, secret scanning and schema checks. The model evals run only on the owner's machine. Each run writes an eval record: a small committed file holding the result and the sha256 of every input. CI checks that the records match the files being merged, without running a model itself. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -96,6 +96,8 @@ There is one workflow, `.github/workflows/ci.yml`, triggered by `pull_request` a
 | `test` | `lint` | `code` | `python -I -m pytest -q --cov=tools --cov=config/hooks --cov-branch` for the repo tests, plus each `config/skills/*/` suite. The hooks need 100% branch coverage. |
 | `config` | `test` | `code` | `check_config.py --plugin-index plugins.lock.json --clauses eval/clauses.json` for each host profile; `spec_validator.py --strict` on every `config/skills/*/SPEC.md`; `jsonschema` checks of the fragment against both schemas; and an AST rule that limits the hooks to standard-library imports and bans `socket`, `urllib`, `http` and `subprocess` |
 | `eval-record` | `changes` | `eval_suites` not empty | `python -I tools/cfg/eval_records.py verify --base $BASE` |
+
+Until #20 lands, `pyproject.toml` excludes `config/` from ruff, so the `lint` job's `ruff check .` and `ruff format --check .` don't reach the payload yet. #2 imported the live payload byte for byte, because adoption ([ADR-0004](0004-drift-and-adoption.md)) compares it with the live files by sha256. The imported hooks had 1 ruff finding, 2 files that `ruff format` would rewrite and 4 `mypy --strict` errors, and the lifecycle skill had 167 more ruff findings. #20 makes the hooks pass ruff, ruff format and `mypy --strict` after adoption and before CI, then narrows the exclusion. The rest of this design is unchanged.
 
 The pipeline-plan checklist below is required by the owner's overlay for the ci-cd-pipeline-builder skill, and every row stays:
 

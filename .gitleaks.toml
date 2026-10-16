@@ -49,12 +49,14 @@ description = "Email address (the owner's address must stay out of the repo)"
 regex = '''[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}'''
 keywords = ["@"]
 
-# Allowed: Claude's commit trailer address, GitHub noreply addresses, and the
-# RFC 2606 documentation domains.
+# Allowed: Claude's commit trailer address, GitHub noreply addresses, the
+# RFC 2606 documentation domains, and any domain under an RFC 2606 reserved
+# top-level domain.
 [[rules.allowlists]]
 regexTarget = "match"
 regexes = [
   '''(?i)^noreply@anthropic\.com$''',
   '''(?i)@users\.noreply\.github\.com$''',
   '''(?i)@example\.(?:com|org|net)$''',
+  '''(?i)\.(?:test|example|invalid|localhost)$''',
 ]

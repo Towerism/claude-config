@@ -1,0 +1,49 @@
+{
+  "enabledPlugins": {
+    "engineering-skills@claude-code-skills": true,
+    "engineering-advanced-skills@claude-code-skills": true,
+    "claude-md-management@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-skills": {
+      "source": {
+        "source": "github",
+        "repo": "alirezarezvani/claude-skills"
+      }
+    }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I {claude_home}/hooks/skill_overlay.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I {claude_home}/hooks/skill_overlay.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I {claude_home}/hooks/merge_confirm.py"
+          }
+        ]
+      }
+    ]
+  }
+}

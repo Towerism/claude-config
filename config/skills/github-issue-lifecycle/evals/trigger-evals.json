@@ -1,0 +1,22 @@
+[
+  {"query": "pick up #57 in play-pokemon-attendance, it's the one about the export dropping the BOM", "should_trigger": true},
+  {"query": "start on the issue about DST drift in the tournament scheduler, I think it's open somewhere in the genie repo", "should_trigger": true},
+  {"query": "ok I've finished the roster change locally, open the PR for this and link the issue so it closes when merged", "should_trigger": true},
+  {"query": "file a bug for the BOM problem we just hit in the CSV export, don't start on it, just log it", "should_trigger": true},
+  {"query": "hotfix the login 500 on prod, users can't sign in since the last deploy", "should_trigger": true},
+  {"query": "work on GH-112", "should_trigger": true},
+  {"query": "https://github.com/Towerism/selfhost-kit/issues/31 can you take this one", "should_trigger": true},
+  {"query": "let's do the litestream backup retention issue next, grab it and set up a branch", "should_trigger": true},
+  {"query": "the spec for #88 is approved now, go ahead and create the branch and worktree and get started", "should_trigger": true},
+  {"query": "add CSV export to the roster page — there's probably no issue for it yet so make one and work it", "should_trigger": true},
+  {"query": "write a spec for a CSV export feature, just a markdown doc I can share with my friend, no repo involved", "should_trigger": false},
+  {"query": "review PR #12 in selfhost-kit and tell me if the caching change is safe", "should_trigger": false},
+  {"query": "what's in the changelog for selfhost-kit 1.0.0? summarise the breaking changes", "should_trigger": false},
+  {"query": "create a Jira ticket for the payments timeout in the WEB project", "should_trigger": false},
+  {"query": "explain conventional commits to me, and how semantic-release picks the version from them", "should_trigger": false},
+  {"query": "my arch box won't boot after the kernel update, stuck at loading initial ramdisk", "should_trigger": false},
+  {"query": "set up a github actions workflow that runs vitest and playwright on every PR for the nuxt app", "should_trigger": false},
+  {"query": "rebase my branch onto main and fix the conflicts in server/api/roster.get.ts", "should_trigger": false},
+  {"query": "how many open issues does the genie repo have and which are the oldest? just a quick report", "should_trigger": false},
+  {"query": "write a commit message for these staged changes to the drizzle schema", "should_trigger": false}
+]

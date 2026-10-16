@@ -1,30 +1,63 @@
-import json, os, subprocess, sys
+"""Factories and fixtures for the config checker tests.
+
+Each test builds its own Claude home under tmp_path and runs the checker as a
+subprocess with HOME and CLAUDE_HOME inside it, so no test reads the real
+~/.claude.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
+
 import pytest
 
-IMPL = Path(__file__).resolve().parent.parent
-HOOKS = IMPL / "deliverable" / "hooks"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+HOOKS = REPO_ROOT / "config" / "hooks"
 
 
-def run_script(script: Path, payload, env_home: Path, args=()):
-    """Run a hook/checker script as a subprocess, the way the harness does."""
+def run_script(
+    script: Path, payload: Any, env_home: Path, args: Iterable[str] = ()
+) -> subprocess.CompletedProcess[str]:
+    """Run a hook or checker script as a subprocess, the way the harness does."""
     env = {"PATH": os.environ["PATH"], "CLAUDE_HOME": str(env_home), "HOME": str(env_home.parent)}
     data = payload if isinstance(payload, str) else json.dumps(payload)
-    return subprocess.run([sys.executable, "-I", str(script), *args], input=data,
-                          capture_output=True, text=True, env=env, timeout=30)
+    return subprocess.run(
+        [sys.executable, "-I", str(script), *args],
+        input=data,
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=30,
+    )
 
 
 @pytest.fixture
-def claude_home(tmp_path):
+def claude_home(tmp_path: Path) -> Path:
     home = tmp_path / ".claude"
     (home / "plugins").mkdir(parents=True)
     (home / "skill-overlays").mkdir()
     (home / "skills").mkdir()
-    (home / "plugins" / "installed_plugins.json").write_text(json.dumps({"version": 2, "plugins": {}}))
+    (home / "plugins" / "installed_plugins.json").write_text(
+        json.dumps({"version": 2, "plugins": {}})
+    )
     return home
 
 
-def make_skill(home: Path, bundle, version, name, files=(), active=True, marketplace="mkt"):
+def make_skill(
+    home: Path,
+    bundle: str | None,
+    version: str,
+    name: str,
+    files: Iterable[str] = (),
+    active: bool = True,
+    marketplace: str = "mkt",
+) -> Path:
     """Create a plugin skill (bundle given) or a user skill (bundle=None)."""
     if bundle is None:
         root = home / "skills" / name
@@ -34,7 +67,9 @@ def make_skill(home: Path, bundle, version, name, files=(), active=True, marketp
         if active:
             ip = home / "plugins" / "installed_plugins.json"
             d = json.loads(ip.read_text())
-            d["plugins"][f"{bundle}@{marketplace}"] = [{"scope": "user", "installPath": str(install), "version": version}]
+            d["plugins"][f"{bundle}@{marketplace}"] = [
+                {"scope": "user", "installPath": str(install), "version": version}
+            ]
             ip.write_text(json.dumps(d))
     root.mkdir(parents=True, exist_ok=True)
     (root / "SKILL.md").write_text(f"---\nname: {name}\n---\n")
@@ -45,22 +80,7 @@ def make_skill(home: Path, bundle, version, name, files=(), active=True, marketp
     return root
 
 
-def make_overlay(home: Path, skill, body):
+def make_overlay(home: Path, skill: str, body: str) -> Path:
     p = home / "skill-overlays" / f"{skill}.md"
     p.write_text(body)
     return p
-
-
-def hook_payload(kind, **kw):
-    if kind == "tool":
-        return {"hook_event_name": "PostToolUse", "tool_name": "Skill",
-                "tool_input": {"skill": kw["skill"]}, "tool_response": {"success": True}}
-    if kind == "expansion":
-        return {"hook_event_name": "UserPromptExpansion", "expansion_type": "slash_command",
-                "command_name": kw["skill"], "command_args": kw.get("args", ""),
-                "prompt": f"/{kw['skill']} {kw.get('args', '')}"}
-    if kind == "submit":
-        return {"hook_event_name": "UserPromptSubmit", "prompt": kw["prompt"]}
-    if kind == "bash":
-        return {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": kw["command"]}}
-    raise ValueError(kind)

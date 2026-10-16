@@ -1,9 +1,12 @@
-import json
-from pathlib import Path
-import pytest
-from conftest import IMPL, run_script, make_skill, make_overlay
+"""The config checker, run as a subprocess against temp Claude homes."""
 
-SCRIPT = IMPL / "check_config.py"
+import json
+
+import pytest
+
+from tests.checker_helpers import REPO_ROOT, make_overlay, make_skill, run_script
+
+SCRIPT = REPO_ROOT / "tools" / "check_config.py"
 QA = "engineering-skills:senior-qa"
 GOOD_MD = (
     "# Global rules\n"
@@ -15,19 +18,39 @@ GOOD_MD = (
 
 @pytest.fixture
 def setup(claude_home, tmp_path):
-    make_skill(claude_home, "engineering-skills", "2.9.0", "senior-qa", ["references/testing_strategies.md"])
+    make_skill(
+        claude_home,
+        "engineering-skills",
+        "2.9.0",
+        "senior-qa",
+        ["references/testing_strategies.md"],
+    )
     staging = tmp_path / "staging"
     (staging / "my-lifecycle").mkdir(parents=True)
-    (staging / "my-lifecycle" / "SKILL.md").write_text("---\nname: my-lifecycle\n---\nspec lives in the issue body\n")
+    (staging / "my-lifecycle" / "SKILL.md").write_text(
+        "---\nname: my-lifecycle\n---\nspec lives in the issue body\n"
+    )
     md = tmp_path / "CLAUDE.md"
     md.write_text(GOOD_MD)
-    make_overlay(claude_home, QA, "Read `references/testing_strategies.md`. Pyramid placement per AC.")
+    make_overlay(
+        claude_home, QA, "Read `references/testing_strategies.md`. Pyramid placement per AC."
+    )
     return claude_home, staging, md
 
 
 def check(home, staging, md, *extra, overlays=None):
-    args = ["--claude-md", str(md), "--overlays", str(overlays or home / "skill-overlays"),
-            "--claude-home", str(home), "--skill-root", str(staging), "--json", *extra]
+    args = [
+        "--claude-md",
+        str(md),
+        "--overlays",
+        str(overlays or home / "skill-overlays"),
+        "--claude-home",
+        str(home),
+        "--skill-root",
+        str(staging),
+        "--json",
+        *extra,
+    ]
     r = run_script(SCRIPT, "", home, args)
     return r, (json.loads(r.stdout) if r.stdout.strip().startswith("{") else None)
 
@@ -56,7 +79,9 @@ def test_overlay_path_missing_under_active_install_fails(setup):
     home, staging, md = setup
     make_overlay(home, QA, "Read `references/nope.md`.")
     r, rep = check(home, staging, md)
-    assert r.returncode == 1 and rep["missingPaths"] == [{"skill": QA, "path": "references/nope.md"}]
+    assert r.returncode == 1 and rep["missingPaths"] == [
+        {"skill": QA, "path": "references/nope.md"}
+    ]
 
 
 def test_synced_anthropic_skill_resolves(setup):
@@ -77,11 +102,14 @@ def test_repo_name_email_and_token_are_forbidden(setup):
     assert r.returncode == 1 and kinds == ["email", "repo-name", "token"]
 
 
-@pytest.mark.parametrize("body", [
-    "# x\n- merge only with authorization.\n",                                   # no emphasis
-    GOOD_MD + "- IMPORTANT: always run tests.\n",                                  # two emphasised lines
-    "# x\n- IMPORTANT: always run tests.\n",                                      # wrong rule emphasised
-])
+@pytest.mark.parametrize(
+    "body",
+    [
+        "# x\n- merge only with authorization.\n",  # no emphasis
+        GOOD_MD + "- IMPORTANT: always run tests.\n",  # two emphasised lines
+        "# x\n- IMPORTANT: always run tests.\n",  # wrong rule emphasised
+    ],
+)
 def test_emphasis_must_be_exactly_the_merge_line(setup, body):
     home, staging, md = setup
     md.write_text(body)
@@ -97,7 +125,11 @@ def test_token_and_line_limits(setup):
     assert r.returncode == 1 and t["tokens"] > t["limit"] == 1800
     md.write_text(GOOD_MD + "x\n" * 201)
     r, rep = check(home, staging, md)
-    assert r.returncode == 1 and any(x["file"].endswith("CLAUDE.md (lines)") for x in rep["tokenCounts"] if x["tokens"] > x["limit"])
+    assert r.returncode == 1 and any(
+        x["file"].endswith("CLAUDE.md (lines)")
+        for x in rep["tokenCounts"]
+        if x["tokens"] > x["limit"]
+    )
 
 
 def test_overlay_token_limit(setup):
@@ -116,38 +148,131 @@ def clauses(tmp_path, rows):
 def test_clauses_all_good(setup, tmp_path):
     home, staging, md = setup
     rows = [
-        {"id": "C-01", "text": "t", "disposition": "claude-md", "mustAppear": "merge only with", "reason": None},
-        {"id": "C-02", "text": "t", "disposition": f"overlay:{QA}", "mustAppear": "Pyramid placement", "reason": None},
-        {"id": "C-03", "text": "t", "disposition": "lifecycle-skill", "mustAppear": "issue body", "reason": None},
-        {"id": "C-04", "text": "t", "disposition": "superseded-by:FR-7", "mustAppear": None, "reason": "D-4"},
-        {"id": "C-05", "text": "t", "disposition": "dropped", "mustAppear": None, "reason": "restates skill"},
+        {
+            "id": "C-01",
+            "text": "t",
+            "disposition": "claude-md",
+            "mustAppear": "merge only with",
+            "reason": None,
+        },
+        {
+            "id": "C-02",
+            "text": "t",
+            "disposition": f"overlay:{QA}",
+            "mustAppear": "Pyramid placement",
+            "reason": None,
+        },
+        {
+            "id": "C-03",
+            "text": "t",
+            "disposition": "lifecycle-skill",
+            "mustAppear": "issue body",
+            "reason": None,
+        },
+        {
+            "id": "C-04",
+            "text": "t",
+            "disposition": "superseded-by:FR-7",
+            "mustAppear": None,
+            "reason": "D-4",
+        },
+        {
+            "id": "C-05",
+            "text": "t",
+            "disposition": "dropped",
+            "mustAppear": None,
+            "reason": "restates skill",
+        },
     ]
-    r, rep = check(home, staging, md, "--clauses", str(clauses(tmp_path, rows)), "--lifecycle-skill", "my-lifecycle")
+    r, rep = check(
+        home,
+        staging,
+        md,
+        "--clauses",
+        str(clauses(tmp_path, rows)),
+        "--lifecycle-skill",
+        "my-lifecycle",
+    )
     assert r.returncode == 0, rep
 
 
-@pytest.mark.parametrize("row,problem", [
-    ({"id": "C-01", "text": "t", "disposition": None, "mustAppear": None, "reason": None}, "no-disposition"),
-    ({"id": "C-01", "text": "t", "disposition": "claude-md", "mustAppear": "absent phrase", "reason": None}, "phrase-missing"),
-    ({"id": "C-01", "text": "t", "disposition": "dropped", "mustAppear": None, "reason": ""}, "no-reason"),
-    ({"id": "C-01", "text": "t", "disposition": f"overlay:{QA}", "mustAppear": "merge only with", "reason": None}, "phrase-missing"),
-])
+@pytest.mark.parametrize(
+    "row,problem",
+    [
+        (
+            {"id": "C-01", "text": "t", "disposition": None, "mustAppear": None, "reason": None},
+            "no-disposition",
+        ),
+        (
+            {
+                "id": "C-01",
+                "text": "t",
+                "disposition": "claude-md",
+                "mustAppear": "absent phrase",
+                "reason": None,
+            },
+            "phrase-missing",
+        ),
+        (
+            {"id": "C-01", "text": "t", "disposition": "dropped", "mustAppear": None, "reason": ""},
+            "no-reason",
+        ),
+        (
+            {
+                "id": "C-01",
+                "text": "t",
+                "disposition": f"overlay:{QA}",
+                "mustAppear": "merge only with",
+                "reason": None,
+            },
+            "phrase-missing",
+        ),
+    ],
+)
 def test_clause_problems(setup, tmp_path, row, problem):
     home, staging, md = setup
-    r, rep = check(home, staging, md, "--clauses", str(clauses(tmp_path, [row])), "--lifecycle-skill", "my-lifecycle")
+    r, rep = check(
+        home,
+        staging,
+        md,
+        "--clauses",
+        str(clauses(tmp_path, [row])),
+        "--lifecycle-skill",
+        "my-lifecycle",
+    )
     assert r.returncode == 1 and rep["clauseProblems"] == [{"id": "C-01", "problem": problem}]
 
 
 def test_duplicate_clause_ids(setup, tmp_path):
     home, staging, md = setup
-    row = {"id": "C-01", "text": "t", "disposition": "claude-md", "mustAppear": "merge only with", "reason": None}
-    r, rep = check(home, staging, md, "--clauses", str(clauses(tmp_path, [row, row])), "--lifecycle-skill", "my-lifecycle")
+    row = {
+        "id": "C-01",
+        "text": "t",
+        "disposition": "claude-md",
+        "mustAppear": "merge only with",
+        "reason": None,
+    }
+    r, rep = check(
+        home,
+        staging,
+        md,
+        "--clauses",
+        str(clauses(tmp_path, [row, row])),
+        "--lifecycle-skill",
+        "my-lifecycle",
+    )
     assert r.returncode == 1 and {"id": "C-01", "problem": "duplicate"} in rep["clauseProblems"]
 
 
 def test_phrase_match_ignores_case_and_whitespace(setup, tmp_path):
     home, staging, md = setup
-    row = {"id": "C-01", "text": "t", "disposition": "claude-md", "mustAppear": "MERGE   only\nwith", "reason": None}
+    row = {
+        "id": "C-01",
+        "text": "t",
+        "disposition": "claude-md",
+        "mustAppear": "MERGE   only\nwith",
+        "reason": None,
+    }
     r, rep = check(home, staging, md, "--clauses", str(clauses(tmp_path, [row])))
     assert r.returncode == 0, rep
 

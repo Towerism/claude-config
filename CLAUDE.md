@@ -15,6 +15,9 @@ Work here is tracked in GitHub (`Towerism/claude-config`) with `github-issue-lif
 - Lint: `.venv/bin/ruff check .` and `.venv/bin/ruff format --check .`
 - Types: `.venv/bin/mypy`
 - Before every push: `.venv/bin/python -I tools/git_hooks.py check-range origin/main` (covers rebase, cherry-pick and `--no-verify` commits, which run no hooks)
+- Config check, offline as CI runs it: `.venv/bin/python -I tools/check_config.py --host hosts/personal.json --plugin-index plugins.lock.json --path-rule report`. Drop `--plugin-index` to check against the live plugins. The path rule stays `report` until #4 removes the lifecycle skill's scratch paths; #4 switches it to `fail`.
+- Plugin lock: `python3 -I tools/cfg/lock.py` rewrites `plugins.lock.json` from the installed plugins; `python3 -I tools/cfg/lock.py --check` only compares, and also reports vendored files whose upstream copy changed. A lock change is its own `chore(deps)` PR (ADR-0005).
+- Spec validator: `python3 -I tools/vendor/claude-skills/spec_validator.py --file <SPEC.md> --strict`. Never edit `tools/vendor/`; its hashes are in `VENDORED.json`.
 - Dependencies: edit `requirements-dev.in`, then regenerate `requirements-dev.txt` with `pip-compile --generate-hashes --allow-unsafe --strip-extras`
 
 ## Gates (ADR-0006)

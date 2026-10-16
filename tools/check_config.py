@@ -2,10 +2,10 @@
 
 python3 -I tools/check_config.py --claude-md <path> --overlays <dir> [--claude-home <dir>]
     [--skill-root <dir>]... [--clauses eval/clauses.json] [--lifecycle-skill <name>]
-    [--repo-name <name>]... [--plugin-index plugins.lock.json] [--json]
+    [--repo-name <name>]... [--plugin-index plugins.lock.json] [--path-rule report|fail] [--json]
 python3 -I tools/check_config.py --host hosts/<name>.json [--claude-home <dir>]
     [--clauses eval/clauses.json] [--repo-name <name>]... [--plugin-index plugins.lock.json]
-    [--json]
+    [--path-rule report|fail] [--json]
 exit 0 = pass, 1 = findings, 2 = usage error
 
 With --plugin-index, plugin and synced skills resolve from the plugin lock
@@ -16,6 +16,12 @@ With --host, the CLAUDE.md, overlays, repo skills and lifecycle skill come
 from a host profile, and only the skills and plugins the profile lists
 resolve. The checker also reports anything the profile lists that the repo
 or the plugins don't have.
+
+--path-rule lists every line under tools/, config/ and eval/ that holds a
+home-directory or scratch path, which would break on another machine
+(ADR-0008). In report mode the findings don't fail the run; in fail mode
+they do. The rule is report-only until #4 removes the lifecycle skill's
+paths.
 """
 
 from __future__ import annotations
@@ -34,6 +40,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK_FILE = REPO_ROOT / "config" / "hooks" / "skill_overlay.py"
 LOCK_VERSION = 1
 SYNCED_PREFIX = "anthropic-skills:"
+PATH_RULE_DIRS = ("tools", "config", "eval")
+PATH_RULE_SKIP = {".venv", "__pycache__", ".pytest_cache"}
+# Built from parts so this file doesn't trip the rule it defines.
+PATH_RULE_NEEDLES = (b"/" + b"home" + b"/", b"dev" + b"/" + b"scratch")
 
 
 def _load_hook() -> ModuleType:
@@ -344,6 +354,27 @@ def read_overlays(ov_dir: Path, only: list[str] | None) -> dict[str, str]:
     return {f.name[:-3]: f.read_text() for f in files}
 
 
+def scan_paths(root: Path) -> list[dict[str, Any]]:
+    """Every line under the path-rule directories that holds a home or scratch path.
+
+    Files are read as bytes, so binary files are scanned too; symlinks are
+    skipped, so nothing outside the repo is read.
+    """
+    found: list[dict[str, Any]] = []
+    for top in PATH_RULE_DIRS:
+        for path in sorted((root / top).rglob("*")):
+            rel = path.relative_to(root)
+            if PATH_RULE_SKIP & set(rel.parts) or path.is_symlink() or not path.is_file():
+                continue
+            for number, line in enumerate(path.read_bytes().split(b"\n"), start=1):
+                found += [
+                    {"file": rel.as_posix(), "line": number, "match": needle.decode()}
+                    for needle in PATH_RULE_NEEDLES
+                    if needle in line
+                ]
+    return sorted(found, key=lambda f: (f["file"], f["line"], f["match"]))
+
+
 def bundle_text(d: Path) -> str:
     return "\n".join(p.read_text(errors="replace") for p in sorted(d.rglob("*.md")))
 
@@ -370,7 +401,10 @@ def check(
         "forbiddenContent": [],
         "tokenCounts": [],
         "profileProblems": profile_problems(profile, scope) if profile is not None else [],
+        "pathProblems": [],
     }
+    if args.path_rule:
+        rep["pathProblems"] = scan_paths(profile.root if profile is not None else REPO_ROOT)
     find = scope.find
 
     names = sorted({t for t in SKILL_TOKEN.findall(md) if is_skill_token(t)} | set(overlays))
@@ -445,6 +479,7 @@ def check(
         or rep["clauseProblems"]
         or rep["forbiddenContent"]
         or rep["profileProblems"]
+        or (args.path_rule == "fail" and rep["pathProblems"])
         or over
     )
     return rep
@@ -461,6 +496,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap.add_argument("--lifecycle-skill")
     ap.add_argument("--repo-name", action="append")
     ap.add_argument("--plugin-index", help="plugin lock to resolve plugin skills from, offline")
+    ap.add_argument(
+        "--path-rule",
+        choices=["report", "fail"],
+        help="scan tools/, config/ and eval/ for home and scratch paths; fail decides the run",
+    )
     ap.add_argument("--json", action="store_true")
     return ap.parse_args(argv)
 

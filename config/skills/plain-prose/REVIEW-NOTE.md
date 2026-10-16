@@ -33,29 +33,33 @@ Before writing findings, the reviewer checked two assumptions against real `clau
 | FR-32 | ADR-0005's ruff note is amended too | FR-31 makes the old note false |
 | FR-13 | The tell lists live in `prose_check.py` | Removes an ambiguity about the checker's source of truth |
 
-# Second review: the narrowed scope (2026-10-16)
+# Second review: the scope the owner set after the first live run (2026-10-16)
 
-This section records the single adversarial review of one change to the approved spec. The first live `plain-prose-trigger` run scored 0.7. Six of its ten near misses (a regex, a subagent prompt, a config bump, a failing-test fix, JSON to TOML, a bash one-liner) loaded the skill, because the description put chat replies in scope and every coding task ends in a chat reply. The owner then decided: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent". The spec went back to draft, and only this change was reviewed.
+This section records the single adversarial review of the change to the approved spec. The first live `plain-prose-trigger` run scored 0.7: six of its ten near misses loaded the skill, among them a failing-test fix, a regex and a config bump. The owner then set the scope in three statements the same day:
 
-**What changed:** chat replies and questions to the user leave the description (FR-2) and the CLAUDE.md line (FR-15); code comments and docstrings stay in. FR-25 rebuilds the trigger cases around that line, with a `kind` on each case so AC-17 can check the mix. FR-28 calls the third rewrite case a reply drafted for the owner to send. New FR-33 amends ADR-0010 and the plan's Q-9, which both say chat replies are covered.
+1. "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent"
+2. "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope."
+3. "This includes text that is rendered by a CLI or a web page eventually"
 
-**Verdict:** no critical finding. Two warnings, both fixed; three notes, listed below.
+An intermediate draft (commit 04def1a) followed only the first statement and treated those coding tasks as near misses. Its review was posted on #12, but the second statement replaced that reading before the owner approved anything. That review is superseded, and this one covers the current text.
 
-## Warnings
+**What changed:** in scope is now any text a person will read later, including what a CLI or web page will eventually show; out of scope are the chat reply itself and text written for Claude. That changes the description (FR-2), the body's load-once rule (FR-3), the CLAUDE.md line and its clause phrase (FR-15, FR-16), the `config/SPEC.md` wording (FR-20), and the trigger cases (FR-25), which now treat coding tasks as triggers and use text written for Claude and chat-only questions as near misses, with a `kind` per case that AC-17 checks. FR-28 calls the third rewrite case a reply drafted for the owner to send. New FR-33 amends ADR-0010 and the plan's Q-9.
 
-**Fixed: one example near miss wasn't a near miss under the new rule.** FR-25 listed "a regex" as a coding task with no text for people. Adding a regex to a validator is exactly where a careful coder writes a comment, which the owner kept in scope, so the case would punish correct behaviour. FR-25 now limits these near misses to tasks whose output can't reasonably include a comment (a config value, a format conversion, a rename, a one-off shell command) and says new logic such as a regex is left out.
+**Verdict:** no critical finding. One warning, fixed; four notes.
 
-**Fixed: the skill body could still claim chat replies.** FR-2 narrowed the description, but FR-3 said nothing about the body, and the body written for the first version says the rules cover "chat replies, code comments, commits and PR text". FR-3 now says the load-once rule names the same scope as the description, and AC-1 checks that the body doesn't claim chat replies.
+## Warning
+
+**Fixed: ADR-0010 would still have said the skill must not trigger on code.** FR-33 first named only ADR-0010's opening summary and scope list. Its eval section also says `plain-prose` "must trigger on prose tasks, and not on code or CLAUDE.md edits", which the owner's second statement reverses. FR-33 now names that section too.
 
 ## Notes
 
-- **Every suite reruns.** The CLAUDE.md line, the `SKILL.md` description and body, and both case files all change, so the committed `scenario`, `rubric` and `plain-prose-behaviour` records go stale and `plain-prose-trigger` has none yet. The gates already require all four; no spec change is needed.
-- **The rewrite case needs new wording.** The behaviour case `rewrite-chat-reply` has to be renamed and reworded as a reply the owner will send, to match FR-28. That's an implementation step.
-- **The live CLAUDE.md still says chat replies are included.** This PR doesn't touch `~/.claude`, so the owner's live line and the repo's differ until a deploy or a manual edit. The spec's Context section says so.
+- **Every suite reruns.** The CLAUDE.md line, the description, the body and both case files change, so the `scenario`, `rubric` and `plain-prose-behaviour` records go stale, and `plain-prose-trigger` has none yet. The gates already require all four.
+- **Implementation steps follow from the spec:** the trigger cases get new near misses and `kind` fields, the case `rewrite-chat-reply` is renamed and reworded as a reply the owner will send, the package test checks the new description and body wording, and ADR-0010, the plan's Q-9, `config/SPEC.md` and the CLAUDE.md line are edited.
+- **The live CLAUDE.md and the live prototype skill still say chat replies are included.** This PR doesn't touch `~/.claude`, so they stay different from the repo until a deploy (#7 and #8, held behind #6) or a manual edit.
+- **The behaviour-case fix is accepted.** The owner said "the behaviour-case fix in 22b959d is fine" about the reworded `rewrite-review-note` draft.
 
-## Spec changes made because of this review
+## Spec change made because of this review
 
 | Where | Change | Why |
 |---|---|---|
-| FR-25 | Coding-only near misses limited to tasks that can't reasonably include a comment; a regex is left out | A careful coder may comment new logic, which is in scope |
-| FR-3, AC-1 | The body's load-once rule names the description's scope and never claims chat replies | Otherwise the body contradicts the narrowed description |
+| FR-33 | Also amends ADR-0010's eval section | It says the skill must not trigger on code, which the owner's second statement reverses |

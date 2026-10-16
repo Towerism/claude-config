@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-16
-**Status:** Draft again. The owner approved the first version on 2026-10-16 ("approve"). It came back to draft after the first live trigger run, when the owner narrowed the scope: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent". Approval mode: manual review with adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial."). Only the owner's explicit words approve it.
+**Status:** Draft again. The owner approved the first version on 2026-10-16 ("approve"). It came back to draft after the first live trigger run, when the owner set the scope in three statements the same day: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent", then "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope.", and "This includes text that is rendered by a CLI or a web page eventually". Approval mode: manual review with adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial."). Only the owner's explicit words approve it.
 **Issue:** [#12](https://github.com/Towerism/claude-config/issues/12)
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Decided by:** [ADR-0010](../../../docs/adr/0010-prose-for-people.md) (where the guidance lives, the vendoring, the evals), [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) (eval gates and records), [ADR-0002](../../../docs/adr/0002-repo-layout.md) (where specs live)
@@ -21,7 +21,14 @@ This spec covers more than the skill itself. The issue also adds a line to the g
 
 The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-docs` doesn't exist in the repo until #13. So this PR adds the `plain-prose` half of the owner's wording (FR-15), and #13 extends it to the full live line. The ADR-0010 draft wording ("Before writing prose for people …, load `plain-prose`") is replaced by the owner's newer wording, because the owner wrote it later.
 
-**Scope narrowed after the first live run (2026-10-16).** The first approved version followed the live line above and covered chat replies. The trigger suite then showed the consequence: every coding task ends in a chat reply, so the skill loaded for a bare regex or a config bump. The owner decided: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent". So chat replies and questions to the user are out of scope. Code comments and docstrings stay in. A coding task should therefore load the skill when it writes or changes comments or docstrings, or other text for people such as a commit message. It shouldn't when it produces only code, data or configuration. The live `~/.claude/CLAUDE.md` still says "chat replies and questions included"; this PR doesn't touch `~/.claude` (OS-5), so that line stays different from the repo's until a deploy or until the owner edits it.
+**Scope set after the first live run (2026-10-16).** The first approved version followed the live line above and covered chat replies. The first trigger run then loaded the skill for six coding tasks that were meant as near misses, among them a failing-test fix, a regex and a config bump. The owner answered in three statements: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent", and then "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope.", and "This includes text that is rendered by a CLI or a web page eventually".
+
+This spec reads them together:
+
+- **In scope:** any text a person will read at some later time, including text a CLI or web page will eventually show. Examples: code comments and docstrings; assertion, error and log messages; CLI help, usage text and output; UI labels, page copy and templates; user-facing errors kept in data files; commit messages, issue and PR text, docs, review notes, and messages drafted for the owner to send.
+- **Out of scope:** the chat reply itself, which is read once and gone, and text written for Claude (CLAUDE.md, `SKILL.md`, overlays, memory, subagent prompts).
+
+A coding task is in scope whenever it may produce such text, so loading the skill for a failing-test fix or a regex is correct, not a false trigger. The live `~/.claude/CLAUDE.md` still says "chat replies and questions included"; this PR doesn't touch `~/.claude` (OS-5), so that line stays different from the repo's until a deploy or until the owner edits it.
 
 **Vendored material.** Four files come from the claude-code-skills marketplace at commit `19392f7a08264ed00486a251f5b2098321771f94` (MIT). They come from the `marketing-skills` plugin, which isn't installed ([ADR-0010](../../../docs/adr/0010-prose-for-people.md) explains why). The owner's local clone of that marketplace, `~/.claude/plugins/marketplaces/claude-code-skills/`, is at that commit. The prototype changed all four files, even the two scripts it says are "unmodified except for this header". This build takes them from upstream again.
 
@@ -48,10 +55,10 @@ The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-do
 - FR-1: The skill MUST live in `config/skills/plain-prose/` with this layout: `SKILL.md`, `SPEC.md`, `REVIEW-NOTE.md`, `VENDORED.json`, `LICENSE-vendored.md`, `scripts/prose_check.py`, `scripts/vendored/{readability_scorer.py, ai_content_detector.py}`, `references/vendored/{ai-tells-checklist.md, plain-english-alternatives.md}`, `evals/{trigger-evals.json, behaviour-evals.json}` and `tests/`.
 - FR-2: `SKILL.md` MUST have frontmatter with `name: plain-prose` and a `description` that:
   - says what the skill does;
-  - lists the human-facing texts it covers: issue, PR and commit text, code comments and docstrings Claude writes or changes, review notes, docs, artifact pages, release notes and messages drafted for the user to send;
-  - says a coding task needs it only when the task writes or changes comments, docstrings or other text for people;
+  - says it covers any text a person will read later, and lists examples: code comments, docstrings, assertion, error and log messages, text a CLI or web page will show (help and usage text, CLI output, UI labels, page copy, templates), commit messages, issue and PR text, review notes, docs, artifact pages, release notes and messages drafted for the user to send;
+  - says a coding task needs it whenever the task may write or change such text, for example a test fix that touches assertion messages;
   - says to load it once per session, and not again while its instructions are in context;
-  - excludes chat replies and questions to the user, code itself, identifiers, machine-read formats, and files written for Claude.
+  - excludes the chat reply itself, code itself, identifiers, machine-read formats, and files written for Claude.
 - FR-3: The `SKILL.md` body MUST hold these parts, in this order:
   1. the goal: a cold reader understands the text on the first read, and AI tells cost comprehension;
   2. the load-once rule, naming the same scope as the description, so the body never claims chat replies are covered;
@@ -94,8 +101,8 @@ The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-do
 ### D. Wiring into the global configuration
 
 - FR-15: `config/CLAUDE.global.md` MUST gain this line after the pipeline list, unemphasised:
-  > Prose, alongside every step: load `plain-prose` once per session before the first human-facing text you write (issue, PR or commit text, code comments and docstrings, review notes, docs; not chat replies). Its rules then cover every later such text. Never re-invoke it while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
-- FR-16: `eval/clauses.json` MUST gain one `claude-md` row for that line. Its `text` cites the owner's decision (ADR-0010, 2026-10-16), and its `mustAppear` is "load `plain-prose` once per session before the first human-facing text".
+  > Prose, alongside every step: load `plain-prose` once per session before the first text a person will read later: code comments, docstrings, assertion and error messages, CLI and UI text, commits, issue and PR text, docs and review notes (not the chat reply itself, and not text written for Claude). Its rules then cover every later such text. Never re-invoke it while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
+- FR-16: `eval/clauses.json` MUST gain one `claude-md` row for that line. Its `text` cites the owner's decision (ADR-0010, 2026-10-16), and its `mustAppear` is "load `plain-prose` once per session before the first text a person will read later".
 - FR-17: `eval/scenarios.json` MUST gain four scenarios, each tagged `new-rule-only` because the merge-base CLAUDE.md has no prose rule:
   1. "write the PR description for this diff": the answer loads `plain-prose` before writing.
   2. "write the commit message for this change": the answer loads `plain-prose` before writing.
@@ -103,7 +110,7 @@ The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-do
   4. "comment on #12 that the fix is merged", with `plain-prose` already loaded (`loadsSkills: ["plain-prose"]`): the answer writes the comment without loading `plain-prose` again.
 - FR-18: `config/skill-overlays/engineering-skills:adversarial-reviewer.md` MUST gain one line: review notes and the findings written into PR descriptions follow `plain-prose`.
 - FR-19: `hosts/personal.json` MUST list `plain-prose` in `skills`.
-- FR-20: In the same PR, `config/SPEC.md` MUST gain a requirement for the prose line, filed under its global CLAUDE.md section, that the new scenarios cite in `covers`. That requirement says the line covers issue, PR and commit text, code comments and docstrings, review notes and docs, and not chat replies. Its `adversarial-reviewer` overlay requirement MUST gain the new line, and its amendment line MUST name #12.
+- FR-20: In the same PR, `config/SPEC.md` MUST gain a requirement for the prose line, filed under its global CLAUDE.md section, that the new scenarios cite in `covers`. That requirement says the line covers any text a person will read later, including comments, docstrings, assertion or error messages and text a CLI or web page will show, and not the chat reply itself or text written for Claude. Its `adversarial-reviewer` overlay requirement MUST gain the new line, and its amendment line MUST name #12.
 
 ### E. Evals
 
@@ -128,8 +135,8 @@ The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-do
   - A query triggers when two of its three runs trigger.
   - The suite passes when at least 90% of queries match `should_trigger`, no should-not-trigger query triggers, and every delegated case triggers.
 - FR-25: `trigger-evals.json` MUST hold 20 queries.
-  - Ten should trigger. Two of them are delegated: the user asks for a subagent to write the prose, as [ADR-0010](../../../docs/adr/0010-prose-for-people.md) requires. At least two are coding tasks that write or change code comments or docstrings, because the owner kept those in scope.
-  - Ten are near misses that shouldn't trigger. At least four are text written for Claude: a CLAUDE.md edit, a `SKILL.md` edit, a subagent prompt, and an overlay or memory note. At least four are coding tasks whose output can't reasonably include a comment, docstring or other text for people, such as a config value change, a JSON-to-TOML conversion, a variable rename or a one-off shell command. A task that adds new logic, such as a regex in a validator, is left out, because a careful coder may well comment it. Because chat replies are out of scope, the reply that ends such a task doesn't count as text for people.
+  - Ten should trigger. Two of them are delegated: the user asks for a subagent to write the prose, as [ADR-0010](../../../docs/adr/0010-prose-for-people.md) requires. At least three are coding tasks that may write or change text a person reads later, such as a failing-test fix that may touch assertion messages, new validation with an error message, or a function that needs a docstring. At least one edits text a CLI or web page shows, such as `--help` text or a button label.
+  - Ten are near misses that shouldn't trigger. At least five are text written for Claude: a CLAUDE.md edit, a `SKILL.md` edit, a subagent prompt, an overlay edit and a memory note. At least three are questions the user wants answered in chat only, with no file, commit or post, because the chat reply itself is out of scope. No near miss touches code comments or any string a person will see.
 - FR-26: The `cold-reader` runner MUST grade each case in `behaviour-evals.json` by cold-reader comprehension:
   - **Write cases** give a writing task and its facts. The with-skill arm gets the skill, the instruction to load it, `--tools "Skill,Read,Bash"` and a pre-approval for running `prose_check.py` only. The baseline arm has no skill and no tools. Both must reply with only the text.
   - **Rewrite cases** give a draft full of AI tells. The baseline is the draft itself.
@@ -154,7 +161,7 @@ The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-do
 - FR-32: The repo's `CLAUDE.md` MUST give the command for the skill's tests with coverage. [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) MUST change in two places, both recorded on its amendment line naming #12:
   - its gates table gains the extra paths from FR-21 that require `plain-prose-behaviour`;
   - its note that `config/` is excluded from ruff until #20 says instead that only the hooks, the lifecycle skill and vendored files stay excluded, as FR-31 sets.
-- FR-33: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record the owner's 2026-10-16 decision that chat replies are out of scope while code comments stay in, quoting it ("chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent"), in its opening summary and its scope list. The plan's resolved question Q-9 in `docs/architecture/plan.md`, which says `plain-prose` covers chat replies, MUST be updated the same way.
+- FR-33: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record the owner's three 2026-10-16 statements, quoted, and the scope they set: any text a person will read later, including text a CLI or web page will eventually show, is in scope, and the chat reply itself and text written for Claude are not. It records this in its opening summary and its scope list, which today say chat replies are covered, and in its eval section, which today says the skill must not trigger on code. The plan's resolved question Q-9 in `docs/architecture/plan.md`, which says `plain-prose` covers chat replies, MUST be updated the same way.
 
 ## Non-Functional Requirements
 
@@ -187,7 +194,7 @@ The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-do
 ### AC-1: The package has the files and frontmatter it needs (FR-1, FR-2, FR-3, FR-4, NFR-P1)
 Given the skill directory at HEAD
 When the package test runs
-Then every file named in FR-1 exists, and the frontmatter parses with `name: plain-prose`. The description names code comments, commits and review notes, and its exclusions name chat replies, `CLAUDE.md` and `SKILL.md`. The body doesn't say chat replies are covered, links both vendored references, names the checker command in the form FR-4 gives, and is at most 800 estimated tokens. Whether the body's parts follow FR-3's order is a review check.
+Then every file named in FR-1 exists, and the frontmatter parses with `name: plain-prose`. The description names code comments, assertion messages, CLI or web page text, commits and review notes, and its exclusions name the chat reply, `CLAUDE.md` and `SKILL.md`. The body doesn't say chat replies are covered, links both vendored references, names the checker command in the form FR-4 gives, and is at most 800 estimated tokens. Whether the body's parts follow FR-3's order is a review check.
 
 ### AC-2: Vendored files match their record (FR-5, FR-6, FR-8, FR-9)
 Given `VENDORED.json`
@@ -267,7 +274,7 @@ Then the record holds the score and rates for that text, and the case still pass
 ### AC-17: Case files are well formed (FR-25, FR-28, NFR-S3)
 Given the two case files
 When the eval-data test runs
-Then the trigger file has 20 queries, each with a `kind`: 10 should trigger, 2 of those delegated and at least 2 of kind `code-comments`; of the 10 that shouldn't, at least 4 are of kind `for-claude` and at least 4 of kind `code-only`. The behaviour file has at least three write cases and three rewrite cases, each with facts, questions and `mustKeep`.
+Then the trigger file has 20 queries, each with a `kind`: 10 should trigger, 2 of those delegated, at least 3 of kind `code` and at least 1 of kind `cli-ui`; of the 10 that shouldn't, at least 5 are of kind `for-claude` and at least 3 of kind `chat-only`. The behaviour file has at least three write cases and three rewrite cases, each with facts, questions and `mustKeep`.
 
 ### AC-18: Upstream changes are reported (FR-30)
 Given a temporary home whose marketplace clone has one vendored file changed, one missing and one unchanged
@@ -371,7 +378,7 @@ function run_cold_reader(ctx: Context, suite: Suite): SuiteResult;  // pass, rer
 | `query` | string | A realistic user prompt |
 | `should_trigger` | boolean | |
 | `delegated` | boolean | Optional; true only with `should_trigger` |
-| `kind` | `"prose"` \| `"code-comments"` \| `"for-claude"` \| `"code-only"` | The first two should trigger, the last two shouldn't. The runner ignores it; AC-17 checks the mix |
+| `kind` | `"prose"` \| `"code"` \| `"cli-ui"` \| `"for-claude"` \| `"chat-only"` | The first three should trigger, the last two shouldn't. The runner ignores it; AC-17 checks the mix |
 
 ### Behaviour case (`evals/behaviour-evals.json`, a list)
 

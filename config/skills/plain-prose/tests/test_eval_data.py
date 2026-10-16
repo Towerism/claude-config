@@ -7,17 +7,24 @@ from pathlib import Path
 EVALS = Path(__file__).resolve().parents[1] / "evals"
 
 
-def test_the_trigger_file_has_twenty_queries_ten_positive_two_delegated():
+SHOULD_KINDS = {"prose", "code", "cli-ui"}
+NEAR_KINDS = {"for-claude", "chat-only"}
+
+
+def test_the_trigger_file_has_fifteen_positives_and_ten_near_misses_of_the_right_kinds():
     cases = json.loads((EVALS / "trigger-evals.json").read_text())
-    assert len(cases) == 20
-    assert all(set(c) <= {"query", "should_trigger", "delegated"} for c in cases)
-    assert all(isinstance(c["query"], str) and c["query"].strip() for c in cases)
-    positive = [c for c in cases if c["should_trigger"]]
-    assert len(positive) == 10
+    assert len(cases) == 25
+    assert len({c["query"] for c in cases}) == 25
+    for c in cases:
+        assert set(c) <= {"query", "should_trigger", "delegated", "kind"}, c
+        assert isinstance(c["query"], str) and c["query"].strip()
+        assert c["kind"] in (SHOULD_KINDS if c["should_trigger"] else NEAR_KINDS), c
+    kinds = [c["kind"] for c in cases]
+    assert sum(c["should_trigger"] for c in cases) == 15
     delegated = [c for c in cases if c.get("delegated")]
-    assert len(delegated) == 2
-    assert all(c["should_trigger"] for c in delegated)
-    assert len({c["query"] for c in cases}) == 20
+    assert len(delegated) == 2 and all(c["should_trigger"] for c in delegated)
+    assert kinds.count("code") >= 3 and kinds.count("cli-ui") >= 1
+    assert kinds.count("for-claude") >= 5 and kinds.count("chat-only") >= 3
 
 
 def test_the_behaviour_file_has_three_write_and_three_rewrite_cases():

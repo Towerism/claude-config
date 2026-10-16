@@ -435,3 +435,12 @@ def test_only_skill_calls_for_the_skill_are_counted_and_stray_lines_are_ignored(
     evs = se.events("\n".join(lines))
     assert len(evs) == 1
     assert se.skill_calls(evs, SKILL) == [None]
+
+
+def test_an_isolation_failure_cancels_the_runs_still_queued(make_ctx):
+    fake = TriggerFake({f"q{i}": ["top"] * 3 for i in range(20)}, dup=True)
+    ctx = make_ctx(fake, trigger=[trig(f"q{i}", True) for i in range(20)])
+    ctx.workers = 1
+    with pytest.raises(re_.IsolationError):
+        se.run_trigger(ctx, suite("trigger"))
+    assert len(fake.calls) < 60

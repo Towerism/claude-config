@@ -57,7 +57,7 @@ def test_code_tables_front_matter_and_html_produce_no_findings():
     text = (
         "---\ntitle: leverage\n---\n"
         "```\nWe leverage it as discussed.\n```\n"
-        "| leverage | FR-1 |\n|---|---|\n"
+        "| leverage | W2 |\n|---|---|\n"
         "<div>leverage as discussed</div>\n"
         "Use `leverage` here.\n"
         "We leverage the cache.\n"

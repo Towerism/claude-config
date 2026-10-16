@@ -42,7 +42,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -56,8 +56,8 @@ from eval import hook_harness, run_eval  # noqa: E402
 
 TRIGGER_RUNS = 3
 TRIGGER_NEEDED = 2
-# Each class gets its own rule (spec FR-24): recall over the queries that should load the
-# skill, and no near miss at all. Overall accuracy is reported but never decides.
+# Each class gets its own rule: recall over the queries that should load the skill, and
+# no near miss at all. Overall accuracy is reported but never decides.
 TRIGGER_RECALL = 0.85
 TRIGGER_TOOLS = "Skill,Read,Agent"
 TRIGGER_MAX_TURNS = "4"
@@ -170,6 +170,18 @@ def stream_run(
     return evs
 
 
+def run_all(ctx: run_eval.Context, fn: Callable[[Any], Any], jobs: list[Any]) -> list[Any]:
+    """`fn` over `jobs` in parallel; an isolation failure cancels the runs still queued."""
+    with ThreadPoolExecutor(ctx.workers) as ex:
+        futures = [ex.submit(fn, job) for job in jobs]
+        try:
+            return [f.result() for f in futures]
+        except run_eval.IsolationError:
+            for f in futures:
+                f.cancel()
+            raise
+
+
 def _write_out(ctx: run_eval.Context, name: str, data: Any) -> None:
     ctx.out.mkdir(parents=True, exist_ok=True)
     (ctx.out / name).write_text(json.dumps(data, indent=1))
@@ -202,8 +214,7 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             return index, "triggered" if calls else "quiet"
 
         jobs = [(i, a) for i in range(len(cases)) for a in range(TRIGGER_RUNS)]
-        with ThreadPoolExecutor(ctx.workers) as ex:
-            outcomes = sorted(ex.map(one, jobs))
+        outcomes = sorted(run_all(ctx, one, jobs))
     results = []
     for index, case in enumerate(cases):
         runs = [o for i, o in outcomes if i == index]
@@ -418,8 +429,7 @@ def run_cold_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
                 return first, 0
             return attempt(ctx, arms, case), 1
 
-        with ThreadPoolExecutor(ctx.workers) as ex:
-            done = list(ex.map(one, cases))
+        done = run_all(ctx, one, cases)
     results = sorted((r for r, _ in done), key=lambda r: str(r["id"]))
     _write_out(ctx, "cold-reader-results.json", results)
     for r in results:

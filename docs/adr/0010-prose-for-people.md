@@ -1,8 +1,8 @@
 # ADR-0010: Prose a cold reader understands (a `plain-prose` skill for all human-facing text, and a `writing-docs` skill for documentation)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Amended 2026-10-16 by #12, after its first live trigger run: the scope is text a person will read later, not chat replies (see "The scope, as the owner set it after the first eval run").
 
-Everything Claude writes for people should be easy to follow for a reader with no context, and free of the patterns that mark text as AI-written. A small `plain-prose` skill holds those rules for every kind of prose, from commit messages to chat replies. A second skill, `writing-docs`, adds the steps specific to documentation. One line in the global CLAUDE.md says when to load `plain-prose`, and the lifecycle skill and `writing-docs` call it at the points where they produce prose.
+Everything Claude writes for people should be easy to follow for a reader with no context, and free of the patterns that mark text as AI-written. A small `plain-prose` skill holds those rules for any text a person will read later, from code comments and error messages to commit messages and docs. A second skill, `writing-docs`, adds the steps specific to documentation. One line in the global CLAUDE.md says when to load `plain-prose`, and the lifecycle skill and `writing-docs` call it at the points where they produce prose.
 
 Prototypes of both skills were installed in `~/.claude/skills/` on 2026-10-16 so they could be used before this repo exists. The skills built in plan issues 12 and 13 will replace them.
 
@@ -61,9 +61,20 @@ Its scope is any text Claude writes for a person to read:
 - review notes and adversarial-review write-ups;
 - documentation, artifact pages and release notes;
 - messages drafted for the owner to send;
-- chat replies to the owner. The owner decided this on 2026-10-16, expecting it to save tokens over time, because tighter replies cost less to read and to carry forward in context.
+- code comments and docstrings; assertion, error and log messages; and text a CLI or web page will eventually show, such as help and usage text, CLI output, UI labels and page copy.
 
-It doesn't cover text written for Claude (`CLAUDE.md`, `SKILL.md`, overlays, memory, subagent prompts), which follows its own style rules (v2 spec FR-16). Nor does it cover code, identifiers or machine-read formats.
+It doesn't cover text written for Claude (`CLAUDE.md`, `SKILL.md`, overlays, memory, subagent prompts), which follows its own style rules (v2 spec FR-16). Nor does it cover code itself, identifiers or machine-read formats, or the chat reply itself.
+
+#### The scope, as the owner set it after the first eval run
+
+This ADR first put chat replies in scope too. The owner had decided that on 2026-10-16, expecting tighter replies to save tokens. Then the first live run of `plain-prose-trigger` (#12) showed the cost: every coding task ends in a chat reply, so the skill loaded for a regex or a config change. The owner set the scope in four statements the same day:
+
+1. "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent"
+2. "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope."
+3. "This includes text that is rendered by a CLI or a web page eventually"
+4. "yes, keep chat replies out of scope"
+
+So the test is whether a person will read the text at some later time. A coding task is in scope whenever it may write such text, and loading the skill for a failing-test fix is correct. The chat reply itself, read once and gone, is out.
 
 `SKILL.md` stays short and states the goal, the rules below and a three-step procedure. Write for a reader with no context. Run `scripts/prose_check.py` on anything longer than a few sentences. Fix the findings that make the text harder to understand, and leave the rest. Short texts, such as commit subjects and PR titles, get the rules without the script.
 
@@ -152,7 +163,7 @@ The main grade is comprehension by a cold reader. A fresh-context grader stands 
 
 `prose_check.py`'s counts (findings per 1,000 words in each category) and the detectability score go into the eval record as diagnostics only, so trends stay visible.
 
-`plain-prose` also gets its own trigger and behaviour suites. It must trigger on prose tasks, and not on code or CLAUDE.md edits. Its rewrites must keep or raise cold-reader comprehension, keep every fact, and draw fewer AI-sounding flags. Fewer findings with worse comprehension doesn't count as a pass. `writing-docs` gets trigger and behaviour suites graded by a fresh-context reader against the nine steps above. The lifecycle skill's behaviour suite re-runs, because its `SKILL.md` changes in plan issue 4.
+`plain-prose` also gets its own trigger and behaviour suites. It must trigger on any task that may write text a person reads later, coding tasks included, and not on text written for Claude or on questions answered only in chat. Its rewrites must keep or raise cold-reader comprehension, keep every fact, and draw fewer AI-sounding flags. Fewer findings with worse comprehension doesn't count as a pass. `writing-docs` gets trigger and behaviour suites graded by a fresh-context reader against the nine steps above. The lifecycle skill's behaviour suite re-runs, because its `SKILL.md` changes in plan issue 4.
 
 ## Consequences
 

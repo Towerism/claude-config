@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 
@@ -88,6 +90,63 @@ def test_allow_listed_emails_pass(allowed: str) -> None:
 def test_lookalike_allow_list_domains_are_still_found() -> None:
     assert gh.scan_text("x" + "@example.com.evil.io") == [("email", 1)]
     assert gh.scan_text("x" + "@notexample.com") == [("email", 1)]
+
+
+# RFC 2606 reserves these top-level domains, so no real mailbox can sit under them.
+RESERVED_TLD_ADDRESSES = [
+    "test" + "@example.invalid",
+    "a" + "@b.test",
+    "x" + "@foo.example",
+    "y" + "@mail.localhost",
+    "Z" + "@EXAMPLE.INVALID",
+]
+# Each looks like a reserved address but routes to a real domain.
+RESERVED_TLD_LOOKALIKES = [
+    "x" + "@example.invalid.evil.io",
+    "x" + "@invalid.com",
+    "x" + "@testing.io",
+    "x" + "@mail.notinvalid",
+]
+
+
+@pytest.mark.parametrize("allowed", RESERVED_TLD_ADDRESSES)
+def test_addresses_under_reserved_top_level_domains_pass(allowed: str) -> None:
+    assert gh.scan_text("GIT_AUTHOR_EMAIL=" + allowed) == []
+
+
+@pytest.mark.parametrize("lookalike", RESERVED_TLD_LOOKALIKES)
+def test_lookalikes_of_reserved_top_level_domains_are_still_found(lookalike: str) -> None:
+    assert gh.scan_text("x " + lookalike) == [("email", 1)]
+
+
+def _gitleaks_email_rule() -> dict[str, object]:
+    config = tomllib.loads((Path(__file__).parent.parent / ".gitleaks.toml").read_text())
+    rules = [r for r in config["rules"] if r["id"] == "claude-config-email-address"]
+    assert len(rules) == 1
+    rule: dict[str, object] = rules[0]
+    return rule
+
+
+def _gitleaks_allows(address: str) -> bool:
+    allowlists = _gitleaks_email_rule()["allowlists"]
+    assert isinstance(allowlists, list)
+    return any(
+        re.search(pattern, address) for allowlist in allowlists for pattern in allowlist["regexes"]
+    )
+
+
+def test_gitleaks_email_rule_matches_the_hook_pattern() -> None:
+    assert _gitleaks_email_rule()["regex"] == gh.EMAIL_RE.pattern
+
+
+@pytest.mark.parametrize("allowed", RESERVED_TLD_ADDRESSES)
+def test_gitleaks_allows_reserved_top_level_domains(allowed: str) -> None:
+    assert _gitleaks_allows(allowed)
+
+
+@pytest.mark.parametrize("lookalike", RESERVED_TLD_LOOKALIKES)
+def test_gitleaks_still_flags_reserved_lookalikes(lookalike: str) -> None:
+    assert not _gitleaks_allows(lookalike)
 
 
 def test_one_line_with_a_token_and_an_email_gives_two_findings() -> None:
@@ -326,6 +385,16 @@ def test_clean_staged_file_passes_with_warnings(
     assert code == 0
     assert "WARNING: gitleaks not found; only the built-in regex scan ran" in err
     assert "deny-terms" in err
+
+
+def test_staged_file_with_a_reserved_domain_address_passes(
+    inproc: Repo, capsys: pytest.CaptureFixture[str]
+) -> None:
+    inproc.write("conftest.py", 'EMAIL = "test' + '@example.invalid"\n')
+    inproc.git("add", "conftest.py")
+    code, err = run_main(["pre-commit"], capsys)
+    assert code == 0
+    assert "email" not in err
 
 
 def test_staged_token_is_refused_without_echo(

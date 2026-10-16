@@ -2,6 +2,9 @@
 
 python3 -I tools/cfg/lock.py [--claude-home <dir>] [--repo-root <dir>] [--out <file>]
 exit 0 = written, 2 = an input can't be used (nothing is written)
+python3 -I tools/cfg/lock.py --check [--claude-home <dir>] [--repo-root <dir>]
+exit 0 = the committed lock and vendored files match this machine, 1 = they don't,
+2 = an input can't be used. --check never writes.
 
 The lock lets tools/check_config.py --plugin-index resolve plugin skills
 where no plugins are installed, such as CI (ADR-0005). For each plugin
@@ -10,11 +13,16 @@ and skill names. For each plugin skill that a host profile's CLAUDE.md or
 overlays refer to, it also records the skill's files. It records the names
 of the synced skills. It holds no install paths, timestamps or other
 machine-specific values, so the same plugins always give the same bytes.
+
+--check builds the lock in memory and lists how the committed one differs.
+It also compares each file in tools/vendor/claude-skills/VENDORED.json with
+the installed plugin copy it came from, to catch upstream changes.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -29,6 +37,7 @@ if str(REPO_ROOT) not in sys.path:
 from tools import check_config  # noqa: E402
 
 LOCK_NAME = "plugins.lock.json"
+VENDORED = Path("tools") / "vendor" / "claude-skills" / "VENDORED.json"
 SKIPPED_PARTS = {"__pycache__", ".pytest_cache"}
 
 Lock = dict[str, Any]
@@ -143,6 +152,62 @@ def build_lock(home: Path, repo_root: Path) -> Lock:
     return lock
 
 
+def lock_differences(committed: Lock, current: Lock) -> list[str]:
+    """One line per difference between the committed lock and this machine's."""
+    diffs = []
+    old, new = committed.get("plugins") or {}, current["plugins"]
+    for pid in sorted(set(old) | set(new)):
+        if pid not in new:
+            diffs.append(f"{pid}: in the lock but not installed")
+        elif pid not in old:
+            diffs.append(f"{pid}: installed but not in the lock")
+        else:
+            diffs += [
+                f"{pid}: {key} was {old[pid].get(key)!r}, now {new[pid].get(key)!r}"
+                for key in sorted(set(old[pid]) | set(new[pid]))
+                if old[pid].get(key) != new[pid].get(key)
+            ]
+    for key in ("lockVersion", "synced"):
+        if committed.get(key) != current[key]:
+            diffs.append(f"{key}: was {committed.get(key)!r}, now {current[key]!r}")
+    return diffs
+
+
+def vendored_problems(repo_root: Path, home: Path) -> list[dict[str, str]]:
+    """Vendored files whose installed upstream copy is missing or has changed."""
+    record_path = repo_root / VENDORED
+    if not record_path.exists():
+        return []
+    installed = read_json(home / "plugins" / "installed_plugins.json").get("plugins") or {}
+    problems = []
+    for entry in read_json(record_path):
+        inst = user_install(entry["plugin"], installed.get(entry["plugin"]))
+        if inst is None:
+            problem = f"plugin {entry['plugin']} isn't installed"
+        else:
+            copy = Path(inst.get("installPath", "")) / entry["installedPath"]
+            if not copy.is_file():
+                problem = "the installed copy is missing"
+            elif hashlib.sha256(copy.read_bytes()).hexdigest() != entry["sha256"]:
+                problem = "the installed copy has a different sha256"
+            else:
+                continue
+        problems.append({"path": entry["path"], "problem": problem})
+    return problems
+
+
+def check(home: Path, repo_root: Path, lock_path: Path) -> dict[str, Any]:
+    current = build_lock(home, repo_root)
+    try:
+        committed = json.loads(lock_path.read_text())
+    except (OSError, ValueError) as e:
+        lock_diffs = [f"{lock_path.name}: can't be read as a lock ({e})"]
+    else:
+        lock_diffs = lock_differences(committed, current)
+    vendored = vendored_problems(repo_root, home)
+    return {"ok": not (lock_diffs or vendored), "lock": lock_diffs, "vendored": vendored}
+
+
 def render(lock: Lock) -> str:
     return json.dumps(lock, indent=2, sort_keys=True) + "\n"
 
@@ -164,6 +229,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap.add_argument("--claude-home", default=str(Path.home() / ".claude"))
     ap.add_argument("--repo-root", default=str(REPO_ROOT))
     ap.add_argument("--out", help=f"where to write the lock (default: <repo-root>/{LOCK_NAME})")
+    ap.add_argument("--check", action="store_true", help="compare instead of writing; never writes")
     return ap.parse_args(argv)
 
 
@@ -172,6 +238,10 @@ def main(argv: list[str] | None = None) -> int:
     home, repo_root = Path(args.claude_home), Path(args.repo_root)
     out = Path(args.out) if args.out else repo_root / LOCK_NAME
     try:
+        if args.check:
+            report = check(home, repo_root, out)
+            print(json.dumps(report))
+            return 0 if report["ok"] else 1
         lock = build_lock(home, repo_root)
     except LockInputError as e:
         print(json.dumps({"error": str(e)}))

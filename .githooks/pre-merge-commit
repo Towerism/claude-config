@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs the pre-commit checks for merge commits (git merge skips pre-commit).
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+exec python3 -I "$(git rev-parse --show-toplevel)/tools/git_hooks.py" pre-merge-commit "$@"

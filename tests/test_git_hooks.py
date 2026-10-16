@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import json
 import os
 from collections.abc import Callable
@@ -10,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.conftest import NOREPLY, Repo, fake_email, fake_token
+from tests.conftest import NOREPLY, Repo, fake_email, fake_token, run_main
 from tools import git_hooks as gh
 
 ZERO = "0" * 40
@@ -170,6 +169,11 @@ def test_ordinary_paths_are_allowed(path: str) -> None:
     assert not gh.denied_path(path)
 
 
+@pytest.mark.parametrize("path", [".ENV", "Projects/a.md", "CONFIG/Settings.json", "x/K.PEM"])
+def test_deny_list_ignores_case(path: str) -> None:
+    assert gh.denied_path(path)
+
+
 def test_every_deny_list_entry_is_in_gitignore() -> None:
     gitignore = (Path(__file__).resolve().parent.parent / ".gitignore").read_text().splitlines()
     for entry in gh.gitignore_entries():
@@ -234,17 +238,57 @@ def test_findings_are_formatted_and_paths_with_terms_are_redacted() -> None:
 # ---------------------------------------------------------------- commit messages
 
 
-def test_message_comments_and_scissors_section_are_dropped() -> None:
-    raw = (
-        "feat: x (#1)\n\nbody\n# a comment " + fake_token() + "\n"
-        "# ------------------------ >8 ------------------------\n"
-        "diff " + fake_token("gho") + "\n"
-    )
-    assert gh.clean_message(raw, "#") == "feat: x (#1)\n\nbody\n"
+SCISSORS = " ------------------------ >8 ------------------------"
 
 
-def test_message_cleaning_respects_a_custom_comment_char() -> None:
-    assert gh.clean_message("a\n; c\n# kept\n", ";") == "a\n# kept\n"
+def test_comment_lines_are_kept_for_scanning() -> None:
+    raw = "feat: x (#1)\n\nbody\n# a comment " + fake_token() + "\n"
+    assert gh.message_to_scan(raw) == raw
+
+
+def test_only_gits_own_verbose_diff_is_skipped() -> None:
+    head = "feat: x (#1)\n# Please enter the commit message\n"
+    raw = head + "#" + SCISSORS + "\n# Do not modify or remove the line above.\n"
+    raw += "diff --git a/x b/x\n-" + fake_token() + "\n"
+    assert gh.message_to_scan(raw) == head
+
+
+def test_verbose_diff_skipping_honours_a_multi_character_comment_prefix() -> None:
+    head = "feat: x (#1)\n"
+    raw = head + "//" + SCISSORS + "\n// keep out\ndiff --git a/x b/x\n-gone\n"
+    assert gh.message_to_scan(raw) == head
+
+
+def test_a_fake_scissors_line_without_a_diff_is_scanned() -> None:
+    raw = "feat: x (#1)\n#" + SCISSORS + "\n" + fake_token() + "\n"
+    assert gh.message_to_scan(raw) == raw
+
+
+def test_lines_split_on_newline_only() -> None:
+    assert gh.scan_text("a\x0cb\n" + fake_token()) == [("token", 2)]
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (b"\xff\xfe\x00\x00" + "hi ok".encode("utf-32-le"), "hi ok"),
+        (b"\x00\x00\xfe\xff" + "hi ok".encode("utf-32-be"), "hi ok"),
+        (b"\xff\xfe" + "hi ok".encode("utf-16-le"), "hi ok"),
+        (b"\xfe\xff" + "hi ok".encode("utf-16-be"), "hi ok"),
+        (b"plain", "plain"),
+    ],
+)
+def test_byte_order_marks_pick_the_codec(data: bytes, expected: str) -> None:
+    assert gh.decode_blob(data)[0] == expected
+
+
+def test_text_with_nul_bytes_is_also_scanned_without_them() -> None:
+    texts = gh.decode_blob(fake_token().encode("utf-16-le"))
+    assert any(gh.scan_text(t) for t in texts)
+
+
+def test_broken_utf16_does_not_raise() -> None:
+    assert gh.decode_blob(b"\xff\xfe\x00")
 
 
 # ---------------------------------------------------------------- pre-push parsing
@@ -264,26 +308,6 @@ def test_zero_shas_of_both_lengths_are_recognised(sha: str) -> None:
 
 
 # ---------------------------------------------------------------- main(), in-process
-
-
-@pytest.fixture
-def inproc(repo: Repo, monkeypatch: pytest.MonkeyPatch) -> Repo:
-    for key in list(os.environ):
-        if key.startswith("GIT_"):
-            monkeypatch.delenv(key)
-    for key, value in repo.env.items():
-        monkeypatch.setenv(key, value)
-    monkeypatch.chdir(repo.path)
-    return repo
-
-
-def run_main(
-    argv: list[str], capsys: pytest.CaptureFixture[str], stdin: str = ""
-) -> tuple[int, str]:
-    code = gh.main(argv, stdin=io.StringIO(stdin))
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    return code, captured.err
 
 
 def test_usage_errors_exit_2(capsys: pytest.CaptureFixture[str]) -> None:
@@ -397,9 +421,7 @@ def test_commit_msg_checks(
 ) -> None:
     Path(inproc.env["CLAUDE_CONFIG_DENY_TERMS"]).write_text("zephyrine\n")
     msg = tmp_path / "MSG"
-    msg.write_text(
-        "feat: x (#1)\n\nCo-Authored-By: C <noreply@anthropic.com>\n# " + fake_token() + "\n"
-    )
+    msg.write_text("feat: x (#1)\n\nCo-Authored-By: C <noreply@anthropic.com>\n")
     assert run_main(["commit-msg", str(msg)], capsys)[0] == 0
     msg.write_text("feat: x (#1)\n\nsee " + fake_token("xoxb") + "\nZephyrine\n")
     code, err = run_main(["commit-msg", str(msg)], capsys)
@@ -408,13 +430,14 @@ def test_commit_msg_checks(
     assert "commit-msg: deny-term: message:4" in err
 
 
-def test_commit_msg_treats_auto_comment_char_as_hash(
+def test_commit_msg_refuses_secrets_on_comment_lines(
     inproc: Repo, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    inproc.git("config", "core.commentChar", "auto")
     msg = tmp_path / "MSG"
     msg.write_text("feat: x (#1)\n# " + fake_token() + "\n")
-    assert run_main(["commit-msg", str(msg)], capsys)[0] == 0
+    code, err = run_main(["commit-msg", str(msg)], capsys)
+    assert code == 1
+    assert "commit-msg: token: message:2" in err
 
 
 def test_commit_msg_with_unreadable_file_is_a_usage_error(
@@ -448,7 +471,14 @@ def test_pre_push_refuses_main_and_passes_branches(
     )
     other_deletion = f"(delete) {ZERO} refs/heads/old {'b' * 40}\n"
     assert run_main(["pre-push", "origin", "url"], capsys, stdin=other_deletion)[0] == 0
-    assert run_main(["pre-push", "origin", "url"], capsys, stdin="junk\n\n")[0] == 0
+    assert run_main(["pre-push", "origin", "url"], capsys, stdin="\n")[0] == 0
+    code, err = run_main(["pre-push", "origin", "url"], capsys, stdin="\njunk\n")
+    assert code == 1
+    assert "pre-push: input: 2" in err
+    unknown_local = f"refs/heads/x {'d' * 40} refs/heads/y {ZERO}\n"
+    code, err = run_main(["pre-push", "origin", "url"], capsys, stdin=unknown_local)
+    assert code == 1
+    assert "pre-push: input: 1" in err
 
 
 def test_pre_push_refuses_commits_with_a_foreign_identity(

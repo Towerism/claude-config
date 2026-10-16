@@ -5,6 +5,7 @@ Fake secrets are assembled at runtime so that no committed file contains one.
 
 from __future__ import annotations
 
+import io
 import os
 import shutil
 import subprocess
@@ -12,6 +13,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+from tools import git_hooks
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NOREPLY = "2057426+Towerism@users.noreply.github.com"
@@ -144,3 +147,24 @@ def fake_gitleaks(isolated_env: dict[str, str]) -> Callable[[int, str], None]:
         script.chmod(0o755)
 
     return install
+
+
+@pytest.fixture
+def inproc(repo: Repo, monkeypatch: pytest.MonkeyPatch) -> Repo:
+    """Run the hook module in this process, inside the test repo, for coverage."""
+    for key in list(os.environ):
+        if key.startswith("GIT_"):
+            monkeypatch.delenv(key)
+    for key, value in repo.env.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.chdir(repo.path)
+    return repo
+
+
+def run_main(
+    argv: list[str], capsys: pytest.CaptureFixture[str], stdin: str = ""
+) -> tuple[int, str]:
+    code = git_hooks.main(argv, stdin=io.StringIO(stdin))
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    return code, captured.err

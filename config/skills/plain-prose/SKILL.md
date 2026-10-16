@@ -1,6 +1,6 @@
 ---
 name: plain-prose
-description: Makes prose written for people easy to understand for a reader with no context, and free of the patterns that mark text as AI-written. Load it once per session, before the first human-facing text Claude writes, such as chat replies and questions to the user, issue titles, bodies and comments, PR titles, descriptions and comments, commit subjects and bodies, code comments and docstrings, review notes, documentation, artifact pages, release notes, or messages drafted for the user to send. Its rules then cover every later text in the session; if its instructions are already in the conversation, don't invoke it again. Also use when the user says text is hard to follow, too long, robotic, or sounds like AI. Not for code itself, identifiers, machine-read formats, or files written for Claude (CLAUDE.md, SKILL.md, skill overlays, memory, subagent prompts).
+description: Makes text that people will read later easy to understand for a reader with no context, and free of the patterns that mark it as AI-written. Load it once per session, before the first such text Claude writes: code comments and docstrings; assertion, error and log messages; text a CLI or web page will show, such as help and usage text, CLI output, UI labels and page copy; commit subjects and bodies; issue titles, bodies and comments; PR titles, descriptions and comments; review notes, documentation, artifact pages, release notes, and messages drafted for the user to send. A coding task needs it whenever it may write or change such text, for example a test fix that touches assertion messages. Its rules then cover every later such text in the session; if its instructions are already in the conversation, don't invoke it again. Also use when the user says text is hard to follow, too long, robotic, or sounds like AI. Not for the chat reply itself, code itself, identifiers, machine-read formats, or files written for Claude (CLAUDE.md, SKILL.md, skill overlays, memory, subagent prompts).
 ---
 
 # Plain prose
@@ -9,7 +9,7 @@ Write so that someone opening the text months from now, with none of today's con
 
 ## Load once
 
-These rules cover every human-facing text for the rest of the session, including chat replies, code comments, commits and PR text. While the block starting `Base directory for this skill: …/plain-prose` is in the conversation, don't load the skill again; reload only if it's gone, for example after compaction. Asked whether the rules were followed, point to the checks you ran.
+These rules cover every text a person will read later, for the rest of the session: code comments, docstrings, assertion and error messages, CLI and web page text, commits, issue and PR text, and docs. The chat reply itself is out of scope. While the block starting `Base directory for this skill: …/plain-prose` is in the conversation, don't load the skill again; reload only if it's gone, for example after compaction. Asked whether the rules were followed, point to the checks you ran.
 
 ## For a cold reader
 

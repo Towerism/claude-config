@@ -31,14 +31,18 @@ def test_the_frontmatter_names_the_skill_and_its_scope():
     assert set(fields) == {"name", "description"}
     assert fields["name"] == "plain-prose"
     description = fields["description"]
-    for covered in ("chat replies", "commit", "review notes", "code comments", "once per session"):
-        assert covered in description, covered
-    for excluded in ("CLAUDE.md", "SKILL.md"):
-        assert excluded in description.split("Not for", 1)[1], excluded
+    covered, excluded = description.split("Not for", 1)
+    for phrase in ("code comments", "assertion", "CLI or web page", "commit", "review notes",
+                   "once per session"):  # fmt: skip
+        assert phrase in covered, phrase
+    assert "chat repl" not in covered
+    for phrase in ("chat reply", "CLAUDE.md", "SKILL.md"):
+        assert phrase in excluded, phrase
 
 
 def test_the_body_links_the_references_and_names_the_checker_command():
     _, body = frontmatter_and_body()
+    assert "including chat replies" not in body and "chat replies," not in body
     assert "references/vendored/ai-tells-checklist.md" in body
     assert "plain-english-alternatives.md" in body
     command = "python3 -I <this skill's base directory>/scripts/prose_check.py <file or -> [--json]"

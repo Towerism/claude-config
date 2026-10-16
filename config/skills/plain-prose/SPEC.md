@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-16
-**Status:** Draft. Approval mode: manual review with adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial."). Only the owner's explicit words approve it.
+**Status:** Approved by the owner on 2026-10-16 ("approve"), after the single adversarial pass recorded in `REVIEW-NOTE.md`. Approval mode: manual review with adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial.").
 **Issue:** [#12](https://github.com/Towerism/claude-config/issues/12)
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Decided by:** [ADR-0010](../../../docs/adr/0010-prose-for-people.md) (where the guidance lives, the vendoring, the evals), [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) (eval gates and records), [ADR-0002](../../../docs/adr/0002-repo-layout.md) (where specs live)

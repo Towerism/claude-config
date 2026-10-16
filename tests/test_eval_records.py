@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from tests.checker_helpers import REPO_ROOT
 from tests.eval_helpers import FRAGMENT, GATES, LIFECYCLE, SKILL_MD, commit, git, make_repo
 from tools.cfg import eval_records as er
 
@@ -431,3 +432,51 @@ def test_a_pointer_to_an_absent_key_selects_nothing(tmp_path):
     head = commit(repo, {"config/settings.fragment.json": "{}"})
     sel = {"file": "config/settings.fragment.json", "pointer": "/hooks/PreToolUse"}
     assert er.selector_value(repo, head, sel) is None
+
+
+# The plain-prose suites, as eval/gates.json defines them
+
+PROSE = "config/skills/plain-prose"
+PROSE_SKILL_MD = "---\nname: plain-prose\ndescription: Makes prose clear.\n---\n# Body\n"
+
+
+def prose_repo(tmp_path):
+    repo, _ = make_repo(tmp_path)
+    base = commit(repo, {
+        "eval/gates.json": (REPO_ROOT / "eval" / "gates.json").read_text(),
+        f"{PROSE}/SKILL.md": PROSE_SKILL_MD,
+        f"{PROSE}/scripts/prose_check.py": "print(1)\n",
+        f"{PROSE}/evals/trigger-evals.json": "[]\n",
+        f"{PROSE}/evals/behaviour-evals.json": "[]\n",
+    })  # fmt: skip
+    git(repo, "update-ref", "refs/remotes/origin/main", base)
+    return repo, base
+
+
+@pytest.mark.parametrize(
+    "change, suite",
+    [
+        ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("clear", "plain")}, "plain-prose-trigger"),
+        ({f"{PROSE}/evals/trigger-evals.json": "[1]\n"}, "plain-prose-trigger"),
+        ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("# Body", "# New")}, "plain-prose-behaviour"),
+        ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, "plain-prose-behaviour"),
+    ],
+)
+def test_each_plain_prose_change_requires_its_suite(tmp_path, change, suite):
+    repo, base = prose_repo(tmp_path)
+    commit(repo, change)
+    assert required(repo, base) == [suite]
+
+
+@pytest.mark.parametrize("missing", ["skill", "cases"])
+def test_a_skill_suite_without_its_skill_or_cases_is_refused(missing):
+    gates = json.loads((REPO_ROOT / "eval" / "gates.json").read_text())
+    del gates["suites"]["plain-prose-trigger"][missing]
+    with pytest.raises(er.GatesError, match="needs a skill and a cases file"):
+        er.parse_gates(json.dumps(gates))
+
+
+def test_the_skill_suites_parse_with_their_skill_and_cases():
+    suites = er.parse_gates((REPO_ROOT / "eval" / "gates.json").read_text())
+    assert suites["plain-prose-behaviour"].skill == "plain-prose"
+    assert suites["plain-prose-behaviour"].cases == f"{PROSE}/evals/behaviour-evals.json"

@@ -84,3 +84,27 @@ def make_overlay(home: Path, skill: str, body: str) -> Path:
     p = home / "skill-overlays" / f"{skill}.md"
     p.write_text(body)
     return p
+
+
+def make_lock(
+    path: Path,
+    plugins: dict[str, dict[str, Any]] | None = None,
+    synced: Iterable[str] = (),
+    version: int = 1,
+) -> Path:
+    """Write a plugin lock. Each plugin needs only "skills" and, optionally, "files"."""
+    entries = {}
+    for pid, p in (plugins or {}).items():
+        marketplace = pid.split("@", 1)[1]
+        entries[pid] = {
+            "marketplace": marketplace,
+            "marketplaceRepo": f"owner/{marketplace}",
+            "marketplaceSource": "github",
+            "version": "1.0.0",
+            "gitCommitSha": "0" * 40,
+            "skills": sorted(p.get("skills", [])),
+            "files": p.get("files", {}),
+        }
+    lock = {"lockVersion": version, "plugins": entries, "synced": sorted(synced)}
+    path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
+    return path

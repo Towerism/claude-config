@@ -2,8 +2,12 @@
 
 python3 -I tools/check_config.py --claude-md <path> --overlays <dir> [--claude-home <dir>]
     [--skill-root <dir>]... [--clauses eval/clauses.json] [--lifecycle-skill <name>]
-    [--repo-name <name>]... [--json]
+    [--repo-name <name>]... [--plugin-index plugins.lock.json] [--json]
 exit 0 = pass, 1 = findings, 2 = usage error
+
+With --plugin-index, plugin and synced skills resolve from the plugin lock
+instead of the plugin cache, so the check runs where no plugins are installed,
+such as CI. tools/cfg/lock.py writes the lock.
 """
 
 from __future__ import annotations
@@ -13,12 +17,15 @@ import importlib.util
 import json
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK_FILE = REPO_ROOT / "config" / "hooks" / "skill_overlay.py"
+LOCK_VERSION = 1
+SYNCED_PREFIX = "anthropic-skills:"
 
 
 def _load_hook() -> ModuleType:
@@ -45,6 +52,28 @@ DEFAULT_REPOS = ["play-pokemon-attendance", "discord-pokemon-tournament-genie", 
 LIMITS = {"claude-md": 1800, "claude-md-lines": 200, "overlay": 700}
 
 Report = dict[str, Any]
+Lock = dict[str, Any]
+
+
+class UsageError(Exception):
+    """An input the checker can't use. main() reports it and exits 2."""
+
+
+@dataclass(frozen=True)
+class Skill:
+    """A resolved skill.
+
+    Either a directory on disk, or (offline) a plugin skill known only from
+    the lock, with the files the lock recorded for it, if any.
+    """
+
+    path: Path | None = None
+    files: frozenset[str] | None = None
+
+    def has(self, rel: str) -> bool:
+        if self.path is not None:
+            return (self.path / rel).exists()
+        return self.files is not None and rel in self.files
 
 
 def estimate_tokens(text: str) -> int:
@@ -62,7 +91,7 @@ def is_skill_token(tok: str) -> bool:
 
 def resolve(name: str, home: Path, roots: list[Path]) -> Path | None:
     """Return the skill directory, or None if it isn't installed/staged."""
-    if name.startswith("anthropic-skills:"):
+    if name.startswith(SYNCED_PREFIX):
         hits = list((home / "skills" / "synced").glob(f"*/{name.split(':', 1)[1]}/SKILL.md"))
         return hits[0].parent if hits else None
     try:
@@ -71,12 +100,19 @@ def resolve(name: str, home: Path, roots: list[Path]) -> Path | None:
     except OverlayError:
         pass
     if ":" not in name:
-        for root in roots:
-            if (root / name / "SKILL.md").is_file():
-                return root / name
+        found_on_disk = resolve_repo_skill(name, roots)
+        if found_on_disk is not None:
+            return found_on_disk
         hits = resolve_plugin(home, name)
         if len(hits) == 1:
             return hits[0]
+    return None
+
+
+def resolve_repo_skill(name: str, roots: list[Path]) -> Path | None:
+    for root in roots:
+        if (root / name / "SKILL.md").is_file():
+            return root / name
     return None
 
 
@@ -98,11 +134,66 @@ def resolve_plugin(home: Path, short: str) -> list[Path]:
     return found
 
 
+def load_lock(path: Path) -> Lock:
+    """Read and shape-check a plugin lock; raise UsageError if it can't be used."""
+    try:
+        lock = json.loads(path.read_text())
+    except OSError as e:
+        raise UsageError(f"cannot read plugin lock {path}: {e.strerror}") from e
+    except ValueError as e:
+        raise UsageError(f"plugin lock {path} is not valid JSON: {e}") from e
+    if not isinstance(lock, dict):
+        raise UsageError(f"plugin lock {path} is not a JSON object")
+    if lock.get("lockVersion") != LOCK_VERSION:
+        raise UsageError(f"plugin lock {path} has lockVersion {lock.get('lockVersion')!r}")
+    plugins = lock.get("plugins")
+    if not isinstance(plugins, dict):
+        raise UsageError(f"plugin lock {path} has no plugins object")
+    for pid, entry in plugins.items():
+        if not (isinstance(entry, dict) and _str_list(entry.get("skills"))):
+            raise UsageError(f"plugin lock {path}: {pid} has no skills list")
+        if not isinstance(entry.get("files", {}), dict):
+            raise UsageError(f"plugin lock {path}: {pid} has a files entry that isn't an object")
+    if not _str_list(lock.get("synced")):
+        raise UsageError(f"plugin lock {path} has no synced list")
+    return lock
+
+
+def _str_list(value: object) -> bool:
+    return isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+
+def resolve_offline(name: str, lock: Lock, home: Path, roots: list[Path]) -> Skill | None:
+    """Resolve a skill name the way resolve() does, but plugin skills come from the lock."""
+    plugins: dict[str, Any] = lock["plugins"]
+    if name.startswith(SYNCED_PREFIX):
+        return Skill() if name.split(":", 1)[1] in lock["synced"] else None
+    if ":" in name:
+        bundle, short = name.split(":", 1)
+        for pid, entry in plugins.items():
+            if pid.split("@", 1)[0] == bundle and short in entry["skills"]:
+                return _lock_skill(entry, short)
+        return None
+    user = home / "skills" / name
+    if (user / "SKILL.md").is_file():
+        return Skill(path=user)
+    on_disk = resolve_repo_skill(name, roots)
+    if on_disk is not None:
+        return Skill(path=on_disk)
+    hits = [entry for entry in plugins.values() if name in entry["skills"]]
+    return _lock_skill(hits[0], name) if len(hits) == 1 else None
+
+
+def _lock_skill(entry: dict[str, Any], short: str) -> Skill:
+    files = entry.get("files", {}).get(short)
+    return Skill(files=frozenset(files) if files is not None else None)
+
+
 def bundle_text(d: Path) -> str:
     return "\n".join(p.read_text(errors="replace") for p in sorted(d.rglob("*.md")))
 
 
-def check(args: argparse.Namespace) -> Report:
+def check(args: argparse.Namespace, lock: Lock | None = None) -> Report:
     home, roots = Path(args.claude_home), [Path(r) for r in args.skill_root]
     md_path, ov_dir = Path(args.claude_md), Path(args.overlays)
     md = md_path.read_text()
@@ -118,20 +209,24 @@ def check(args: argparse.Namespace) -> Report:
         "tokenCounts": [],
     }
 
-    names = sorted({t for t in SKILL_TOKEN.findall(md) if is_skill_token(t)} | set(overlays))
-    dirs = {n: resolve(n, home, roots) for n in names}
-    rep["unresolvedSkills"] = [n for n in names if dirs[n] is None]
+    def find(name: str) -> Skill | None:
+        if lock is not None:
+            return resolve_offline(name, lock, home, roots)
+        found = resolve(name, home, roots)
+        return Skill(path=found) if found is not None else None
 
-    for skill, body in overlays.items():
-        base = dirs.get(skill)
-        if base is not None:
+    names = sorted({t for t in SKILL_TOKEN.findall(md) if is_skill_token(t)} | set(overlays))
+    skills = {n: find(n) for n in names}
+    rep["unresolvedSkills"] = [n for n in names if skills[n] is None]
+
+    for name, body in overlays.items():
+        skill = skills.get(name)
+        if skill is not None:
             rep["missingPaths"] += [
-                {"skill": skill, "path": rel}
-                for rel in REL_PATH.findall(body)
-                if not (base / rel).exists()
+                {"skill": name, "path": rel} for rel in REL_PATH.findall(body) if not skill.has(rel)
             ]
         rep["tokenCounts"].append(
-            {"file": f"{skill}.md", "tokens": estimate_tokens(body), "limit": LIMITS["overlay"]}
+            {"file": f"{name}.md", "tokens": estimate_tokens(body), "limit": LIMITS["overlay"]}
         )
 
     rep["tokenCounts"].insert(
@@ -164,8 +259,9 @@ def check(args: argparse.Namespace) -> Report:
         )
 
     if args.clauses:
-        lifecycle = resolve(args.lifecycle_skill, home, roots) if args.lifecycle_skill else None
-        texts = {"claude-md": md, "lifecycle-skill": bundle_text(lifecycle) if lifecycle else ""}
+        lifecycle = find(args.lifecycle_skill) if args.lifecycle_skill else None
+        lifecycle_text = bundle_text(lifecycle.path) if lifecycle and lifecycle.path else ""
+        texts = {"claude-md": md, "lifecycle-skill": lifecycle_text}
         texts.update({f"overlay:{s}": b for s, b in overlays.items()})
         seen = set()
         for row in json.loads(Path(args.clauses).read_text()):
@@ -204,13 +300,19 @@ def main() -> int:
     ap.add_argument("--clauses")
     ap.add_argument("--lifecycle-skill")
     ap.add_argument("--repo-name", action="append")
+    ap.add_argument("--plugin-index", help="plugin lock to resolve plugin skills from, offline")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
     for f in [args.claude_md] + ([args.clauses] if args.clauses else []):
         if not Path(f).is_file():
             print(json.dumps({"error": f"file not found: {f}"}))
             return 2
-    rep = check(args)
+    try:
+        lock = load_lock(Path(args.plugin_index)) if args.plugin_index else None
+    except UsageError as e:
+        print(json.dumps({"error": str(e)}))
+        return 2
+    rep = check(args, lock)
     print(json.dumps(rep, indent=None if args.json else 2))
     return 0 if rep["ok"] else 1
 

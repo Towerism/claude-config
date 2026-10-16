@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-16
-**Status:** Draft again. The owner approved the first version on 2026-10-16 ("approve"). It came back to draft after the first live trigger run, when the owner set the scope in three statements the same day: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent", then "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope.", and "This includes text that is rendered by a CLI or a web page eventually". Approval mode: manual review with adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial."). Only the owner's explicit words approve it.
+**Status:** Draft again. The owner approved the first version on 2026-10-16 ("approve"). It came back to draft after the first live trigger run, when the owner set the scope in three statements the same day: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent", then "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope.", and "This includes text that is rendered by a CLI or a web page eventually". Asked whether the chat reply itself stays out, the owner confirmed: "yes, keep chat replies out of scope". The owner then asked for 15 should-trigger cases ("increase triggering cases to 15"). Approval mode: manual review with adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial."). Only the owner's explicit words approve it.
 **Issue:** [#12](https://github.com/Towerism/claude-config/issues/12)
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Decided by:** [ADR-0010](../../../docs/adr/0010-prose-for-people.md) (where the guidance lives, the vendoring, the evals), [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) (eval gates and records), [ADR-0002](../../../docs/adr/0002-repo-layout.md) (where specs live)
@@ -21,7 +21,7 @@ This spec covers more than the skill itself. The issue also adds a line to the g
 
 The checker fails when CLAUDE.md names a skill it can't resolve, and `writing-docs` doesn't exist in the repo until #13. So this PR adds the `plain-prose` half of the owner's wording (FR-15), and #13 extends it to the full live line. The ADR-0010 draft wording ("Before writing prose for people …, load `plain-prose`") is replaced by the owner's newer wording, because the owner wrote it later.
 
-**Scope set after the first live run (2026-10-16).** The first approved version followed the live line above and covered chat replies. The first trigger run then loaded the skill for six coding tasks that were meant as near misses, among them a failing-test fix, a regex and a config bump. The owner answered in three statements: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent", and then "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope.", and "This includes text that is rendered by a CLI or a web page eventually".
+**Scope set after the first live run (2026-10-16).** The first approved version followed the live line above and covered chat replies. The first trigger run then loaded the skill for six coding tasks that were meant as near misses, among them a failing-test fix, a regex and a config bump. The owner answered in three statements: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent", and then "The near misses are fine. Fixing a failing test can sometimes mean changing assertion messages. Those absolutely are in scope since they are human facing. That's another way to look at it. Anything that is (future--any amount of time in the future) human facing is in scope.", and "This includes text that is rendered by a CLI or a web page eventually". Asked whether that keeps the chat reply itself out of scope, the owner confirmed: "yes, keep chat replies out of scope".
 
 This spec reads them together:
 
@@ -39,7 +39,7 @@ A coding task is in scope whenever it may produce such text, so loading the skil
 | `github-issue-lifecycle` | Claiming #12, labels, branch and PR |
 | `spec-driven-workflow` | This spec, validated with `tools/vendor/claude-skills/spec_validator.py --strict` |
 | `senior-qa` (all three guides read) | The test plan below |
-| `anthropic-skills:skill-creator` | Skill structure: a short `SKILL.md`, detail in `references/`, deterministic work in `scripts/`, a pushy description, 20 trigger queries with near misses |
+| `anthropic-skills:skill-creator` | Skill structure: a short `SKILL.md`, detail in `references/`, deterministic work in `scripts/`, a pushy description, trigger queries with near misses |
 | `tdd-guide` | Red-green-refactor for `prose_check.py`, the runners and the `lock.py` change |
 | `skill-tester` | Validating the finished skill package |
 | `skill-security-auditor` | The vendored scripts, before they're committed |
@@ -133,9 +133,14 @@ A coding task is in scope whenever it may produce such text, so loading the skil
   - A run triggers when the stream holds a `Skill` tool use for the skill.
   - For a case marked `delegated`, it counts only when that tool use comes from a subagent, that is, when the event has a non-null `parent_tool_use_id`.
   - A query triggers when two of its three runs trigger.
-  - The suite passes when at least 90% of queries match `should_trigger`, no should-not-trigger query triggers, and every delegated case triggers.
-- FR-25: `trigger-evals.json` MUST hold 20 queries.
-  - Ten should trigger. Two of them are delegated: the user asks for a subagent to write the prose, as [ADR-0010](../../../docs/adr/0010-prose-for-people.md) requires. At least three are coding tasks that may write or change text a person reads later, such as a failing-test fix that may touch assertion messages, new validation with an error message, or a function that needs a docstring. At least one edits text a CLI or web page shows, such as `--help` text or a button label.
+  - The suite passes when three things hold, each judged on its own class:
+    - at least 85% of the should-trigger queries trigger (with 15, at least 13);
+    - no should-not-trigger query triggers;
+    - every delegated query triggers.
+
+    The record also reports overall accuracy, as information only. With 15 queries that should trigger and 10 that shouldn't, one accuracy figure would weigh the two classes unevenly, so each class gets its own rule.
+- FR-25: `trigger-evals.json` MUST hold 25 queries.
+  - Fifteen should trigger. Two of them are delegated: the user asks for a subagent to write the prose, as [ADR-0010](../../../docs/adr/0010-prose-for-people.md) requires. At least three are coding tasks that may write or change text a person reads later, such as a failing-test fix that may touch assertion messages, new validation with an error message, or a function that needs a docstring. At least one edits text a CLI or web page shows, such as `--help` text or a button label. The fifteen SHOULD be split as eight prose texts (two of them delegated), five coding tasks and two CLI or web page edits, so coding work, which the owner put in scope, is tested as often as written prose.
   - Ten are near misses that shouldn't trigger. At least five are text written for Claude: a CLAUDE.md edit, a `SKILL.md` edit, a subagent prompt, an overlay edit and a memory note. At least three are questions the user wants answered in chat only, with no file, commit or post, because the chat reply itself is out of scope. No near miss touches code comments or any string a person will see.
 - FR-26: The `cold-reader` runner MUST grade each case in `behaviour-evals.json` by cold-reader comprehension:
   - **Write cases** give a writing task and its facts. The with-skill arm gets the skill, the instruction to load it, `--tools "Skill,Read,Bash"` and a pre-approval for running `prose_check.py` only. The baseline arm has no skill and no tools. Both must reply with only the text.
@@ -161,7 +166,7 @@ A coding task is in scope whenever it may produce such text, so loading the skil
 - FR-32: The repo's `CLAUDE.md` MUST give the command for the skill's tests with coverage. [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) MUST change in two places, both recorded on its amendment line naming #12:
   - its gates table gains the extra paths from FR-21 that require `plain-prose-behaviour`;
   - its note that `config/` is excluded from ruff until #20 says instead that only the hooks, the lifecycle skill and vendored files stay excluded, as FR-31 sets.
-- FR-33: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record the owner's three 2026-10-16 statements, quoted, and the scope they set: any text a person will read later, including text a CLI or web page will eventually show, is in scope, and the chat reply itself and text written for Claude are not. It records this in its opening summary and its scope list, which today say chat replies are covered, and in its eval section, which today says the skill must not trigger on code. The plan's resolved question Q-9 in `docs/architecture/plan.md`, which says `plain-prose` covers chat replies, MUST be updated the same way.
+- FR-33: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record the owner's three 2026-10-16 statements and the confirmation that followed ("yes, keep chat replies out of scope"), quoted, and the scope they set: any text a person will read later, including text a CLI or web page will eventually show, is in scope, and the chat reply itself and text written for Claude are not. It records this in its opening summary and its scope list, which today say chat replies are covered, and in its eval section, which today says the skill must not trigger on code. The plan's resolved question Q-9 in `docs/architecture/plan.md`, which says `plain-prose` covers chat replies, MUST be updated the same way.
 
 ## Non-Functional Requirements
 
@@ -254,7 +259,7 @@ Then the first and fourth require `plain-prose-trigger`, the second and third re
 ### AC-13: Trigger scoring (FR-24)
 Given a fake `claude` that replays recorded streams
 When the trigger runner scores them
-Then a top-level `Skill` tool use counts for an ordinary case but not for a delegated one, a subagent's `Skill` tool use counts for a delegated case, two of three runs make a trigger, and the suite fails when a should-not-trigger query triggers, when a delegated case doesn't, or when accuracy is under 90%.
+Then a top-level `Skill` tool use counts for an ordinary case but not for a delegated one, a subagent's `Skill` tool use counts for a delegated case, two of three runs make a trigger, and the suite fails when a should-not-trigger query triggers, when a delegated case doesn't, or when fewer than 85% of the should-trigger queries trigger. Overall accuracy is reported but never decides.
 
 ### AC-14: Isolation and run limits are proven per run (FR-23)
 Given a fake `claude` whose `init` event lists the skill twice in a with-skill run, or lists it in a baseline run
@@ -274,7 +279,7 @@ Then the record holds the score and rates for that text, and the case still pass
 ### AC-17: Case files are well formed (FR-25, FR-28, NFR-S3)
 Given the two case files
 When the eval-data test runs
-Then the trigger file has 20 queries, each with a `kind`: 10 should trigger, 2 of those delegated, at least 3 of kind `code` and at least 1 of kind `cli-ui`; of the 10 that shouldn't, at least 5 are of kind `for-claude` and at least 3 of kind `chat-only`. The behaviour file has at least three write cases and three rewrite cases, each with facts, questions and `mustKeep`.
+Then the trigger file has 25 queries, each with a `kind`: 15 should trigger, 2 of those delegated, at least 3 of kind `code` and at least 1 of kind `cli-ui`; of the 10 that shouldn't, at least 5 are of kind `for-claude` and at least 3 of kind `chat-only`. The behaviour file has at least three write cases and three rewrite cases, each with facts, questions and `mustKeep`.
 
 ### AC-18: Upstream changes are reported (FR-30)
 Given a temporary home whose marketplace clone has one vendored file changed, one missing and one unchanged
@@ -350,7 +355,7 @@ interface CheckResult {
 }
 
 // eval/skill_evals.py, called by tools/cfg/eval.py like the other runners
-function run_trigger(ctx: Context, suite: Suite): SuiteResult;      // pass, accuracy, cases
+function run_trigger(ctx: Context, suite: Suite): SuiteResult;      // pass, recall, falseTriggers, accuracy (info), cases
 function run_cold_reader(ctx: Context, suite: Suite): SuiteResult;  // pass, rerunsUsed, cases
 ```
 

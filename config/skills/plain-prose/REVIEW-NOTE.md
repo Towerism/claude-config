@@ -63,3 +63,21 @@ An intermediate draft (commit 04def1a) followed only the first statement and tre
 | Where | Change | Why |
 |---|---|---|
 | FR-33 | Also amends ADR-0010's eval section | It says the skill must not trigger on code, which the owner's second statement reverses |
+
+# Third review: fifteen should-trigger cases (2026-10-16)
+
+This section records the single adversarial review of the owner's next change request on the draft: "increase triggering cases to 15". The same day, the owner also confirmed that the chat reply itself stays out of scope: "yes, keep chat replies out of scope". That confirmation is now quoted in the spec's Status and Context sections and in FR-33, alongside the three earlier statements; it changes nothing else.
+
+**What changed:**
+
+- FR-25 now asks for 25 queries: 15 that should trigger and 10 near misses. The minimum mix stays: 2 delegated, at least 3 coding tasks, at least 1 CLI or web page edit. The 5 extra go to coding work and prose, so the planned split is 8 prose texts (2 of them delegated), 5 coding tasks and 2 CLI or web page edits. AC-17 checks the new counts.
+- FR-24 replaces the single "90% of queries" rule with one rule per class. At least 85% of the should-trigger queries must trigger (13 of 15), no near miss may trigger, and every delegated query must trigger. Overall accuracy stays in the record as information only. With 15 positives and 10 negatives, one accuracy figure would weigh the classes unevenly. And because any false trigger already fails the suite, the old rule only ever limited missed triggers, so it is now stated that way. AC-13 and the API contract follow.
+
+**Verdict:** no critical finding and no warning. Four notes.
+
+## Notes
+
+- **The per-class rule goes beyond the literal request, so the owner should look at it.** The old rule allowed 2 missed triggers out of 10 (80%); the new one allows 2 out of 15 (about 87%). The miss allowance is unchanged, and the rate is stricter. No ADR sets a threshold; the 90% came only from this spec and its runner.
+- **The runner has to change.** `eval/skill_evals.py` still applies the 90% accuracy rule, its docstring says so, and its tests check it. They change with the trigger cases after approval.
+- **Each trigger run costs more.** 25 queries at 3 runs each is 75 model runs, up from 60.
+- **The near-miss set stays at 10.** Nothing breaks: 5 text-for-Claude cases and 3 chat-only questions leave 2 free.

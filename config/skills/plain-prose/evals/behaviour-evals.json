@@ -108,9 +108,9 @@
     ]
   },
   {
-    "id": "rewrite-chat-reply",
+    "id": "rewrite-drafted-reply",
     "kind": "rewrite",
-    "task": "Rewrite this reply to a teammate's question so it answers them directly. Keep every fact.",
+    "task": "Rewrite this reply, which the owner will send to a teammate who asked why the desktop app uses SQLite, so it answers them directly. Keep every fact.",
     "draft": "Great question! Choosing a database is a multifaceted decision, and there are many factors at play. Let's dive in.\n\nSQLite offers a seamless, zero-configuration experience \u2014 which is crucial for a desktop app. Postgres, while incredibly powerful, would require users to install and run a separate server. Additionally, it's worth noting that our data volume (well under 1 GB per user) is comfortably within SQLite's capabilities.\n\nIn conclusion, SQLite was the optimal choice for our needs. I hope this helps!",
     "facts": [
       "The desktop app uses SQLite instead of Postgres.",

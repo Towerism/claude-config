@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tests.checker_helpers import REPO_ROOT, make_lock, make_repo, make_skill, run_script
+from tests.checker_helpers import REPO_ROOT, make_lock, make_repo, make_skill, run_tool
 from tools import check_config
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
@@ -52,7 +52,7 @@ def check(home, profile, lock, *extra):
         str(home),
         "--json",
     ]
-    r = run_script(SCRIPT, "", home, [*args, *extra])
+    r = run_tool(SCRIPT, [*args, *extra])
     return r, (json.loads(r.stdout) if r.stdout.strip().startswith("{") else None)
 
 

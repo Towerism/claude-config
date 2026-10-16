@@ -1,10 +1,19 @@
 """tools/cfg/lock.py: writing the plugin lock from the installed plugins."""
 
 import json
+import os
 
 import pytest
 
-from tests.checker_helpers import GOOD_GLOBAL_MD, REPO_ROOT, make_repo, make_skill, run_script
+from tests.checker_helpers import (
+    GOOD_GLOBAL_MD,
+    REPO_ROOT,
+    make_repo,
+    make_skill,
+    run_script,
+    run_tool,
+)
+from tools.cfg import lock as lock_module
 
 LOCK_SCRIPT = REPO_ROOT / "tools" / "cfg" / "lock.py"
 CHECK_SCRIPT = REPO_ROOT / "tools" / "check_config.py"
@@ -76,7 +85,7 @@ def installed(claude_home, tmp_path):
 
 def run_lock(home, repo, *extra):
     args = ["--claude-home", str(home), "--repo-root", str(repo), *extra]
-    return run_script(LOCK_SCRIPT, "", home, args)
+    return run_tool(LOCK_SCRIPT, args)
 
 
 EXPECTED = {
@@ -144,7 +153,7 @@ def test_a_lock_written_by_lock_py_lets_the_checker_pass_with_no_plugins_install
         str(empty),
         "--json",
     ]
-    r = run_script(CHECK_SCRIPT, "", empty, args)
+    r = run_tool(CHECK_SCRIPT, args)
     assert r.returncode == 0, r.stdout + r.stderr
 
 
@@ -199,3 +208,36 @@ def test_a_broken_host_profile_is_refused(installed):
     (repo / "hosts" / "a.json").write_text("{not json")
     r = run_lock(home, repo)
     assert r.returncode == 2 and "a.json" in r.stdout
+
+
+def test_lock_py_runs_on_its_own_under_python_isolated(installed):
+    home, repo = installed
+    args = ["--claude-home", str(home), "--repo-root", str(repo)]
+    r = run_script(LOCK_SCRIPT, "", home, args)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert json.loads((repo / "plugins.lock.json").read_text()) == EXPECTED
+
+
+def test_a_failed_rename_removes_the_temp_file_and_keeps_the_old_lock(tmp_path, monkeypatch):
+    target = tmp_path / "plugins.lock.json"
+    target.write_text("previous\n")
+
+    def refuse(src, dst):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(os, "replace", refuse)
+    with pytest.raises(OSError):
+        lock_module.write_atomically(target, "new\n")
+    assert target.read_text() == "previous\n"
+    assert [p.name for p in tmp_path.iterdir()] == ["plugins.lock.json"]
+
+
+def test_a_plugin_without_a_skills_directory_has_no_skills(installed):
+    home, repo = installed
+    install = home / "plugins" / "cache" / "mkt2" / "other-bundle" / "1.0.0"
+    for p in sorted((install / "skills").rglob("*"), reverse=True):
+        p.rmdir() if p.is_dir() else p.unlink()
+    (install / "skills").rmdir()
+    assert run_lock(home, repo).returncode == 0
+    lock = json.loads((repo / "plugins.lock.json").read_text())
+    assert lock["plugins"]["other-bundle@mkt2"]["skills"] == []

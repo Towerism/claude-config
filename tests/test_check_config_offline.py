@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tests.checker_helpers import REPO_ROOT, make_lock, make_overlay, make_skill, run_script
+from tests.checker_helpers import REPO_ROOT, make_lock, make_overlay, make_skill, run_tool
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
 QA = "engineering-skills:senior-qa"
@@ -46,7 +46,7 @@ def check(home, staging, md, lock, *extra):
         "--json",
         *extra,
     ]  # fmt: skip
-    r = run_script(SCRIPT, "", home, args)
+    r = run_tool(SCRIPT, args)
     return r, (json.loads(r.stdout) if r.stdout.strip().startswith("{") else None)
 
 
@@ -131,10 +131,13 @@ def test_overlay_for_a_repo_skill_is_checked_on_disk(offline):
         json.dumps({"lockVersion": 1, "synced": []}),
         json.dumps({"lockVersion": 1, "plugins": [], "synced": []}),
         json.dumps({"lockVersion": 1, "plugins": {"a@m": {"skills": "x"}}, "synced": []}),
+        json.dumps({"lockVersion": 1, "plugins": {"a@m": {"skills": [], "files": []}},
+                    "synced": []}),
+        json.dumps({"lockVersion": 1, "plugins": {}}),
         json.dumps([1]),
     ],
     ids=["missing", "invalid-json", "unknown-version", "no-plugins", "plugins-not-object",
-         "skills-not-list", "not-an-object"],
+         "skills-not-list", "files-not-object", "no-synced", "not-an-object"],
 )  # fmt: skip
 def test_unusable_lock_is_a_usage_error(offline, tmp_path, content):
     home, staging, md, _ = offline
@@ -144,3 +147,11 @@ def test_unusable_lock_is_a_usage_error(offline, tmp_path, content):
     r, rep = check(home, staging, md, lock)
     assert r.returncode == 2, r.stdout + r.stderr
     assert "error" in rep
+
+
+def test_a_user_skill_in_the_home_still_resolves_offline(offline):
+    home, staging, md, lock = offline
+    make_skill(home, None, "", "home-skill")
+    md.write_text(GOOD_MD + "- And `home-skill`.\n")
+    r, rep = check(home, staging, md, lock)
+    assert r.returncode == 0, rep

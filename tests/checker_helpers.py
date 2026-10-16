@@ -7,11 +7,14 @@ subprocess with HOME and CLAUDE_HOME inside it, so no test reads the real
 
 from __future__ import annotations
 
+import importlib
+import io
 import json
 import os
 import subprocess
 import sys
 from collections.abc import Iterable
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +38,26 @@ def run_script(
         env=env,
         timeout=30,
     )
+
+
+TOOL_MODULES = {"check_config.py": "tools.check_config", "lock.py": "tools.cfg.lock"}
+
+
+def run_tool(script: Path, args: Iterable[str]) -> subprocess.CompletedProcess[str]:
+    """Run a repo tool's main() in this process, so coverage sees it.
+
+    Returns what run_script would. Tests that must prove the script runs on
+    its own under python -I use run_script instead.
+    """
+    module = importlib.import_module(TOOL_MODULES[script.name])
+    argv = list(args)
+    out, err = io.StringIO(), io.StringIO()
+    with redirect_stdout(out), redirect_stderr(err):
+        try:
+            code = module.main(argv)
+        except SystemExit as e:  # argparse exits on a bad flag
+            code = e.code if isinstance(e.code, int) else 1
+    return subprocess.CompletedProcess(argv, code, out.getvalue(), err.getvalue())
 
 
 @pytest.fixture

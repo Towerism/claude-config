@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from tests.checker_helpers import GOOD_GLOBAL_MD, REPO_ROOT, make_repo, make_skill, run_script
+from tests.checker_helpers import GOOD_GLOBAL_MD, REPO_ROOT, make_repo, make_skill, run_tool
 
 LOCK_SCRIPT = REPO_ROOT / "tools" / "cfg" / "lock.py"
 VENDORED_REL = "skills/senior-qa/scripts/v.py"
@@ -34,9 +34,7 @@ def machine(claude_home, tmp_path):
 
 
 def run_lock(home, repo, *extra):
-    return run_script(
-        LOCK_SCRIPT, "", home, ["--claude-home", str(home), "--repo-root", str(repo), *extra]
-    )
+    return run_tool(LOCK_SCRIPT, ["--claude-home", str(home), "--repo-root", str(repo), *extra])
 
 
 def run_check(home, repo):

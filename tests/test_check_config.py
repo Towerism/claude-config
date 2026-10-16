@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tests.checker_helpers import REPO_ROOT, make_overlay, make_skill, run_script
+from tests.checker_helpers import REPO_ROOT, make_overlay, make_skill, run_tool
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
 QA = "engineering-skills:senior-qa"
@@ -51,7 +51,7 @@ def check(home, staging, md, *extra, overlays=None):
         "--json",
         *extra,
     ]
-    r = run_script(SCRIPT, "", home, args)
+    r = run_tool(SCRIPT, args)
     return r, (json.loads(r.stdout) if r.stdout.strip().startswith("{") else None)
 
 

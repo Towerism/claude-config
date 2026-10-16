@@ -10,7 +10,7 @@ from tests.checker_helpers import (
     make_lock,
     make_repo,
     make_skill,
-    run_script,
+    run_tool,
 )
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
@@ -44,7 +44,7 @@ def check(home, profile, *extra, lock=None):
     args = ["--host", str(profile), "--claude-home", str(home), "--json", *extra]
     if lock is not None:
         args += ["--plugin-index", str(lock)]
-    r = run_script(SCRIPT, "", home, args)
+    r = run_tool(SCRIPT, args)
     return r, (json.loads(r.stdout) if r.stdout.strip().startswith("{") else None)
 
 
@@ -151,7 +151,7 @@ def test_host_with_an_explicit_input_flag_is_a_usage_error(host, flag):
 
 
 def test_without_host_claude_md_and_overlays_are_required(claude_home):
-    r = run_script(SCRIPT, "", claude_home, ["--claude-home", str(claude_home), "--json"])
+    r = run_tool(SCRIPT, ["--claude-home", str(claude_home), "--json"])
     assert r.returncode == 2 and "error" in json.loads(r.stdout)
 
 
@@ -196,5 +196,23 @@ def test_without_host_there_are_no_profile_problems(claude_home, tmp_path):
     md = tmp_path / "CLAUDE.md"
     md.write_text("- IMPORTANT: merge only with the user's authorization.\n")
     args = ["--claude-md", str(md), "--overlays", str(tmp_path / "none"), "--json"]
-    r = run_script(SCRIPT, "", claude_home, ["--claude-home", str(claude_home), *args])
+    r = run_tool(SCRIPT, ["--claude-home", str(claude_home), *args])
     assert r.returncode == 0 and json.loads(r.stdout)["profileProblems"] == []
+
+
+def test_synced_skills_resolve_in_host_mode(mode, tmp_path):
+    home, repo, profile, lock = mode
+    synced = home / "skills" / "synced" / "uuid-1" / "skill-creator"
+    synced.mkdir(parents=True)
+    (synced / "SKILL.md").write_text("x")
+    if lock is not None:
+        lock = make_lock(
+            tmp_path / "synced.lock.json",
+            {"engineering-skills@mkt": {"skills": ["senior-qa"], "files": QA_FILES}},
+            synced=["skill-creator"],
+        )
+    (repo / "config" / "CLAUDE.global.md").write_text(
+        GOOD_GLOBAL_MD + "- `anthropic-skills:skill-creator`, not `anthropic-skills:pdf`.\n"
+    )
+    r, rep = check(home, profile, lock=lock)
+    assert rep["unresolvedSkills"] == ["anthropic-skills:pdf"]

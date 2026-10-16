@@ -21,6 +21,9 @@ exclude_also = ['if __name__ == "__main__":']
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+# The payload is imported byte for byte so adoption can compare it with the live
+# files by sha256 (ADR-0004), and it doesn't pass ruff yet. #20 narrows this.
+extend-exclude = ["config"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]

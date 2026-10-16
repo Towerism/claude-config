@@ -1,0 +1,60 @@
+# gitleaks config for this repo: the default rules plus the token prefixes and email
+# rule that tools/git_hooks.py also checks (ADR-0007). gitleaks uses RE2, which has no
+# lookbehind, so each token rule matches its left boundary in a non-capturing group and
+# reports the token itself as secretGroup 1.
+
+title = "claude-config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "claude-config-github-classic-token"
+description = "GitHub classic personal access token"
+regex = '''(?:^|[^A-Za-z0-9_-])(ghp_[A-Za-z0-9]{36})'''
+secretGroup = 1
+keywords = ["ghp_"]
+
+[[rules]]
+id = "claude-config-github-oauth-token"
+description = "GitHub OAuth token"
+regex = '''(?:^|[^A-Za-z0-9_-])(gho_[A-Za-z0-9]{36})'''
+secretGroup = 1
+keywords = ["gho_"]
+
+[[rules]]
+id = "claude-config-github-fine-grained-token"
+description = "GitHub fine-grained personal access token"
+regex = '''(?:^|[^A-Za-z0-9_-])(github_pat_[A-Za-z0-9_]{22,})'''
+secretGroup = 1
+keywords = ["github_pat_"]
+
+[[rules]]
+id = "claude-config-sk-key"
+description = "API key with an sk- prefix (Anthropic, OpenAI and others)"
+regex = '''(?:^|[^A-Za-z0-9_-])(sk-[A-Za-z0-9_-]{20,})'''
+secretGroup = 1
+keywords = ["sk-"]
+
+[[rules]]
+id = "claude-config-slack-token"
+description = "Slack bot or user token"
+regex = '''(?:^|[^A-Za-z0-9_-])(xox[bp]-[A-Za-z0-9-]{10,})'''
+secretGroup = 1
+keywords = ["xoxb-", "xoxp-"]
+
+[[rules]]
+id = "claude-config-email-address"
+description = "Email address (the owner's address must stay out of the repo)"
+regex = '''[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}'''
+keywords = ["@"]
+
+# Allowed: Claude's commit trailer address, GitHub noreply addresses, and the
+# RFC 2606 documentation domains.
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = [
+  '''(?i)^noreply@anthropic\.com$''',
+  '''(?i)@users\.noreply\.github\.com$''',
+  '''(?i)@example\.(?:com|org|net)$''',
+]

@@ -133,7 +133,10 @@ def build_lock(home: Path, repo_root: Path) -> Lock:
         inst = user_install(pid, entries)
         if inst is None:
             continue
-        install = Path(inst.get("installPath", ""))
+        if not inst.get("installPath"):
+            # Path("") would be the current directory, and the lock would describe it.
+            raise LockInputError(f"{pid}: its user-scope install has no installPath")
+        install = Path(inst["installPath"])
         if not install.is_dir():
             raise LockInputError(f"{pid}: install directory {install} doesn't exist")
         installs[pid] = install
@@ -179,8 +182,14 @@ def vendored_problems(repo_root: Path, home: Path) -> list[dict[str, str]]:
     if not record_path.exists():
         return []
     installed = read_json(home / "plugins" / "installed_plugins.json").get("plugins") or {}
+    entries = read_json(record_path)
+    fields = ("path", "plugin", "installedPath", "sha256")
+    if not isinstance(entries, list) or not all(
+        isinstance(e, dict) and all(isinstance(e.get(f), str) for f in fields) for e in entries
+    ):
+        raise LockInputError(f"{record_path} needs a list of entries with {', '.join(fields)}")
     problems = []
-    for entry in read_json(record_path):
+    for entry in entries:
         inst = user_install(entry["plugin"], installed.get(entry["plugin"]))
         if inst is None:
             problem = f"plugin {entry['plugin']} isn't installed"
@@ -199,9 +208,9 @@ def vendored_problems(repo_root: Path, home: Path) -> list[dict[str, str]]:
 def check(home: Path, repo_root: Path, lock_path: Path) -> dict[str, Any]:
     current = build_lock(home, repo_root)
     try:
-        committed = json.loads(lock_path.read_text())
-    except (OSError, ValueError) as e:
-        lock_diffs = [f"{lock_path.name}: can't be read as a lock ({e})"]
+        committed = check_config.load_lock(lock_path)
+    except check_config.UsageError as e:
+        lock_diffs = [f"{lock_path.name}: can't be used as a lock ({e})"]
     else:
         lock_diffs = lock_differences(committed, current)
     vendored = vendored_problems(repo_root, home)

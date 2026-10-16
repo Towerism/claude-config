@@ -122,3 +122,23 @@ def test_a_repo_without_vendored_files_checks_only_the_lock(machine):
     (repo / "tools/vendor/claude-skills/VENDORED.json").unlink()
     r, rep = run_check(home, repo)
     assert r.returncode == 0 and rep["vendored"] == []
+
+
+@pytest.mark.parametrize(
+    "content", ["[]", '{"lockVersion": 1, "plugins": {"a@m": 3}, "synced": []}']
+)
+def test_a_committed_lock_of_the_wrong_shape_is_reported_not_a_crash(machine, content):
+    home, repo = machine
+    (repo / "plugins.lock.json").write_text(content)
+    r, rep = run_check(home, repo)
+    assert r.returncode == 1 and rep["lock"][0].startswith("plugins.lock.json: ")
+
+
+def test_a_vendored_record_missing_a_field_is_a_usage_error(machine):
+    home, repo = machine
+    record_path = repo / "tools/vendor/claude-skills/VENDORED.json"
+    record = json.loads(record_path.read_text())
+    del record[0]["sha256"]
+    record_path.write_text(json.dumps(record))
+    r = run_lock(home, repo, "--check")
+    assert r.returncode == 2 and "VENDORED.json" in r.stdout

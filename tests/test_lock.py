@@ -241,3 +241,13 @@ def test_a_plugin_without_a_skills_directory_has_no_skills(installed):
     assert run_lock(home, repo).returncode == 0
     lock = json.loads((repo / "plugins.lock.json").read_text())
     assert lock["plugins"]["other-bundle@mkt2"]["skills"] == []
+
+
+def test_a_user_install_without_an_install_path_is_refused(installed):
+    home, repo = installed
+    ip = home / "plugins" / "installed_plugins.json"
+    data = json.loads(ip.read_text())
+    del data["plugins"]["other-bundle@mkt2"][0]["installPath"]
+    ip.write_text(json.dumps(data))
+    r = run_lock(home, repo)
+    assert r.returncode == 2 and "other-bundle@mkt2" in r.stdout

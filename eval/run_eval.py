@@ -132,7 +132,11 @@ def run_claude(
 ) -> tuple[int, str]:
     """Run `claude <args>` with `cfg` as its config, in a fresh directory under the temp root."""
     cwd = Path(tempfile.mkdtemp(prefix="eval-cwd.", dir=ctx.root))
-    env = {**os.environ, **(extra_env or {}), "CLAUDE_CONFIG_DIR": str(cfg)}
+    # Started from inside Claude Code, the environment carries that session's CLAUDE*
+    # variables (its effort level, session id, messaging socket). They would change how
+    # the eval runs behave, so only CLAUDE_CONFIG_DIR is passed on.
+    inherited = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
+    env = {**inherited, **(extra_env or {}), "CLAUDE_CONFIG_DIR": str(cfg)}
     try:
         return ctx.runner(["claude", *args], prompt, env, cwd, timeout)
     except (subprocess.TimeoutExpired, OSError) as e:

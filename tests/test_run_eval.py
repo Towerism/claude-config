@@ -463,3 +463,25 @@ def test_a_rubric_plugin_install_without_the_criteria_file_is_refused(env, tmp_p
     (env["live"] / "plugins" / "installed_plugins.json").write_text(json.dumps(installed))
     with pytest.raises(re_.Refusal, match="not installed"):
         re_.find_rubric(env["live"])
+
+
+def test_the_calling_sessions_claude_variables_do_not_reach_eval_runs(env, monkeypatch):
+    monkeypatch.setenv("CLAUDE_EFFORT", "medium")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "outer")
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("KEEP_ME", "yes")
+    seen = []
+
+    def runner(cmd, stdin, env_, cwd, timeout):
+        seen.append(env_)
+        return 0, '{"result": "ok"}'
+
+    ctx = context(env, runner, [])
+    cfg = re_.make_config_dir(ctx, "x", "# x\n")
+    try:
+        re_.run_claude(ctx, cfg, ["-p"], "hi", extra_env={"GH_TOKEN": ""})
+    finally:
+        re_.remove_config_dir(cfg)
+    claude_vars = {k for k in seen[0] if k.startswith("CLAUDE")}
+    assert claude_vars == {"CLAUDE_CONFIG_DIR"}
+    assert seen[0]["KEEP_ME"] == "yes" and seen[0]["GH_TOKEN"] == ""

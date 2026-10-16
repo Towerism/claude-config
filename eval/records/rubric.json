@@ -4,19 +4,19 @@
     "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269"
   },
   "inputs": {
-    "config/CLAUDE.global.md": "c8ff249f4033ee38cb94e71acb80c54d16378fe58053c2501fd1c4718a116a3b"
+    "config/CLAUDE.global.md": "dd5089005beb5e60bbbf7b0fc87511d86e9b043cb148bfaaaf1ae4bf30523096"
   },
   "models": {
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T22:09:16Z",
+  "ranAt": "2026-10-16T22:55:05Z",
   "result": {
     "cases": [],
     "pass": true,
     "rerunsUsed": 0,
     "scores": [
-      82
+      81
     ]
   },
   "suite": "rubric"

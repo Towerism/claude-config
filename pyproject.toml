@@ -12,9 +12,9 @@ pythonpath = ["."]
 
 [tool.coverage.run]
 branch = true
-source = ["tools", "eval"]
+source = ["tools", "eval", "config/skills/plain-prose/scripts"]
 # Vendored upstream files are never edited, so their coverage isn't ours to raise.
-omit = ["tools/vendor/*"]
+omit = ["tools/vendor/*", "config/skills/*/scripts/vendored/*"]
 
 [tool.coverage.report]
 show_missing = true
@@ -23,27 +23,36 @@ exclude_also = ['if __name__ == "__main__":']
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-# The payload is imported byte for byte so adoption can compare it with the live
-# files by sha256 (ADR-0004), and it doesn't pass ruff yet. #20 narrows this.
+# The hooks and the lifecycle skill were imported byte for byte so adoption can
+# compare them with the live files by sha256 (ADR-0004), and they don't pass ruff
+# yet; #20 takes the hooks off this list. Skills built in this repo, such as
+# plain-prose, are linted, except for the upstream files they vendor.
 # "./" anchors the pattern to the repo root; a bare "config" would also skip any
 # nested directory of that name, such as a future tools/config/.
 # docs/history/ holds frozen copies that are never edited (ADR-0002), so lint
 # findings there could never be fixed. tools/vendor/ holds upstream files
 # kept byte for byte, with their hashes in VENDORED.json, for the same reason.
-extend-exclude = ["./config", "./docs/history", "./tools/vendor"]
+extend-exclude = [
+    "./config/hooks",
+    "./config/skills/github-issue-lifecycle",
+    "./config/skills/*/scripts/vendored",
+    "./docs/history",
+    "./tools/vendor",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]
+"config/skills/*/tests/**" = ["S"]
 # The hooks run git and gitleaks from PATH with argument lists and no shell, by design.
 "tools/git_hooks.py" = ["S603", "S607"]
 
 [tool.mypy]
 python_version = "3.13"
 strict = true
-files = ["tools", "eval"]
-exclude = ["^tools/vendor/"]
+files = ["tools", "eval", "config/skills/plain-prose/scripts/prose_check.py"]
+exclude = ["^tools/vendor/", "/scripts/vendored/"]
 # tools/ has no __init__.py; name its modules from the repo root (tools.check_config).
 explicit_package_bases = true

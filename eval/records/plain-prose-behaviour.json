@@ -2,11 +2,11 @@
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
     "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
-    "eval/skill_evals.py": "d05b28908231da72b76bccc21e454e46ea49c36bbf9a865f752ed7ed0d1cc847"
+    "eval/skill_evals.py": "aced28f6a5957ccba14b331d762c49e11f890719f7389fb0b18adafb3ca574d7"
   },
   "inputs": {
-    "config/skills/plain-prose/SKILL.md#body": "b8b31c79b02cf958a87489faa663158a3c8b7483a3b0135a96ffa61132c40aec",
-    "config/skills/plain-prose/evals/behaviour-evals.json": "23547bd49994b5b2ce5725b7f273a352ba38ade5b65a1cb72a72b8a0646a9357",
+    "config/skills/plain-prose/SKILL.md#body": "4ab58883c39b7adc3a059b6454fa43e1bf7dbe7bd092115a358e3a059b87728a",
+    "config/skills/plain-prose/evals/behaviour-evals.json": "a456c9a74d8e6cf5ab82148deaceaff3605f05bc9bca99c26dd4b1fac1a51f31",
     "config/skills/plain-prose/references/vendored/ai-tells-checklist.md": "5e4742b119057a01b0a659eeffde08fd6b7cb817645291c48887e6484b6a615e",
     "config/skills/plain-prose/references/vendored/plain-english-alternatives.md": "491c34b011de82617613a558ce609ff7ba8fd92554ac90b4c5b4db2ab0aef62e",
     "config/skills/plain-prose/scripts/prose_check.py": "ca6b23d5e5823167bd92e4d3675f5e4ab5bcaa4d298a2996b5b5ba8833f00d8d",
@@ -17,7 +17,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T23:07:20Z",
+  "ranAt": "2026-10-16T23:27:29Z",
   "result": {
     "cases": [
       {
@@ -35,7 +35,7 @@
           "lost": [],
           "quote": "Great question! Choosing a database is a multifaceted decision, and there are many factors at play. Let's dive in. ... In conclusion, SQLite was the optimal choice for our needs. I hope this helps!"
         },
-        "id": "rewrite-chat-reply",
+        "id": "rewrite-drafted-reply",
         "reason": "",
         "result": "pass",
         "skill": {
@@ -79,7 +79,7 @@
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 0.0
+              "readability": 32.8
             }
           },
           "lost": [],
@@ -99,26 +99,27 @@
             }
           },
           "lost": [
+            "The cache key ignores the user, so users can see each other's cached data.",
             "The export endpoint needs a rate limit."
           ],
-          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved: ... could perhaps be revisited ... It "
+          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved: ... The cache key could perhaps be rev"
         },
         "id": "rewrite-review-note",
         "reason": "",
         "result": "pass",
         "skill": {
-          "aiSounding": false,
+          "aiSounding": true,
           "correct": 3,
           "diagnostics": {
-            "detectability": 17.9,
+            "detectability": 18.9,
             "per_1000_words": {
-              "ai_tells": 6.0,
+              "ai_tells": 6.5,
               "cold_reader": 0.0,
-              "readability": 12.0
+              "readability": 12.9
             }
           },
           "lost": [],
-          "quote": ""
+          "quote": "I'm happy to help with any of these."
         }
       },
       {
@@ -129,8 +130,8 @@
             "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 37.7,
-              "readability": 18.9
+              "cold_reader": 42.6,
+              "readability": 0.0
             }
           },
           "lost": [],
@@ -143,10 +144,10 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 25.7,
+            "detectability": 23.4,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 29.9,
+              "cold_reader": 31.2,
               "readability": 0.0
             }
           },
@@ -159,11 +160,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 15.4,
+            "detectability": 40.5,
             "per_1000_words": {
-              "ai_tells": 0.0,
-              "cold_reader": 17.2,
-              "readability": 51.7
+              "ai_tells": 18.2,
+              "cold_reader": 18.2,
+              "readability": 54.5
             }
           },
           "lost": [],
@@ -176,11 +177,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 12.2,
+            "detectability": 33.7,
             "per_1000_words": {
-              "ai_tells": 0.0,
-              "cold_reader": 12.7,
-              "readability": 38.0
+              "ai_tells": 20.4,
+              "cold_reader": 20.4,
+              "readability": 40.8
             }
           },
           "lost": [],
@@ -192,11 +193,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 16.4,
+            "detectability": 17.5,
             "per_1000_words": {
-              "ai_tells": 8.8,
-              "cold_reader": 8.8,
-              "readability": 8.8
+              "ai_tells": 8.5,
+              "cold_reader": 8.5,
+              "readability": 8.5
             }
           },
           "lost": [],
@@ -209,11 +210,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 22.0,
+            "detectability": 38.1,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 9.8,
-              "readability": 0.0
+              "cold_reader": 9.3,
+              "readability": 9.3
             }
           },
           "lost": [],

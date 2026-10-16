@@ -1,0 +1,200 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/skill_evals.py": "aced28f6a5957ccba14b331d762c49e11f890719f7389fb0b18adafb3ca574d7"
+  },
+  "inputs": {
+    "config/skills/plain-prose/SKILL.md#description": "7bf4e5fa39f844d85a8e79f93f7aafe5b12e3ec47cb0a53f979048922e2849d4",
+    "config/skills/plain-prose/evals/trigger-evals.json": "2dde18c4d77ac2f81363d4da0c28ae3bf5e9dc52d0775d7847b582ab9f49db3a"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-16T23:27:29Z",
+  "result": {
+    "accuracy": 0.92,
+    "cases": [
+      {
+        "delegated": false,
+        "id": "here's the diff for the retry fix in the uploader (it stops ",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "write the commit message for the staged change \u2014 it renames ",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "post a comment on issue 214 saying the timezone bug is fixed",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "draft the bug report for this: the nightly backup job silent",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "my teammate asked why we chose SQLite over Postgres for the ",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "the README's setup section is a wall of text and nobody can ",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": true,
+        "id": "Use a subagent to write the PR description for the change th",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": true,
+        "id": "Delegate this to a general-purpose subagent: draft the GitHu",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "fix the failing test in test_export.py, it expects the heade",
+        "result": "fail",
+        "shouldTrigger": true,
+        "triggered": 1
+      },
+      {
+        "delegated": false,
+        "id": "add a regex to the validator that accepts ISO dates like 202",
+        "result": "fail",
+        "shouldTrigger": true,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "add input validation to create_invoice() so a negative amoun",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "write docstrings for the public functions in utils/dates.py,",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "the retry loop in uploader.py just logs 'err' when an upload",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "update the --help text for the export subcommand in cli.py, ",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "the Save button on the settings page says 'Submit'; change t",
+        "result": "pass",
+        "shouldTrigger": true,
+        "triggered": 3
+      },
+      {
+        "delegated": false,
+        "id": "update ~/.claude/CLAUDE.md so the git section also says to d",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "edit the SKILL.md of my deploy skill so its description ment",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "write the prompt for a subagent that will search the repo fo",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "add a line to my senior-qa skill overlay telling it to read ",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "save a memory that I prefer pnpm over npm in every JavaScrip",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "write an agent definition file for a read-only code-search s",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "quick question, no changes needed: what's the difference bet",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "just answer here, don't touch any files: what does exit code",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "explain in a sentence or two what a race condition is, no ne",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "in chat only: is it safe to delete the .pytest_cache folder?",
+        "result": "pass",
+        "shouldTrigger": false,
+        "triggered": 0
+      }
+    ],
+    "falseTriggers": 0,
+    "pass": true,
+    "recall": 0.867
+  },
+  "suite": "plain-prose-trigger"
+}

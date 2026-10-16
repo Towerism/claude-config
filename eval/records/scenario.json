@@ -20,7 +20,7 @@
     "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269"
   },
   "inputs": {
-    "config/CLAUDE.global.md": "dd5089005beb5e60bbbf7b0fc87511d86e9b043cb148bfaaaf1ae4bf30523096",
+    "config/CLAUDE.global.md": "c801790d3a00595706bf6b71abee0013aa531c6bdf9ff431d3eabe8c72eaac16",
     "config/hooks/skill_overlay.py": "1646a991ce459d71e472590b0e08b748b05f6739ca94d22a689b94ef365f47be",
     "config/skill-overlays/engineering-advanced-skills:api-test-suite-builder.md": "7c9ccebec751279a60aa96a2169ca367f6d6e77f527802168d31623768185766",
     "config/skill-overlays/engineering-advanced-skills:ci-cd-pipeline-builder.md": "ccdd50a951dd0daf0323e391cfc877a1c268ca2b5810f25c58eaa139fa8c7bba",
@@ -29,150 +29,150 @@
     "config/skill-overlays/engineering-skills:adversarial-reviewer.md": "29e2b20b072f8ce58ea81db84dfa7a12a3611a921a0f368d3dd4196ea33c0069",
     "config/skill-overlays/engineering-skills:senior-qa.md": "71c491ffded4ca69b3ffb6e6ab864257f5ede8ac73a5db5efc42b4da86efd39a",
     "config/skill-overlays/engineering-skills:tdd-guide.md": "55261393725390ef2f552d5c536cb85ee676a190d069836708c7e62e74b2f7c2",
-    "eval/clauses.json": "d4d053fff2e966ca1dffa4933333961cc3af15beaba93cfd14abee1cf2ac160d",
+    "eval/clauses.json": "e435c7bede6f078951b78a394fbdfec145e46d93173beb95bd3dbcd279c1c9c8",
     "eval/scenarios.json": "a926bcd06ec60b2dd06a19eb1d9879b60ca0922bb21e5299304d13b7d7ab994a"
   },
   "models": {
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T22:55:05Z",
+  "ranAt": "2026-10-16T23:27:29Z",
   "result": {
     "cases": [
       {
-        "graderReason": "The answer asks which approval mode to use and waits before drafting. It lists all three modes with manual review plus an adversarial pass first as the default, and it only outlines what the spec woul",
+        "graderReason": "Before drafting, the answer asks which approval mode to use and offers all three, with manual review with adversarial pass listed first and marked as the default; it only outlines topics the spec woul",
         "id": "S-01",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer doesn't ask about the approval mode because the user said \"No review\". It self-approves the spec with a note saying no review was requested, skips the spec reviewer, and runs the adversaria",
+        "graderReason": "The answer doesn't ask about approval mode. It self-approves the spec with a note saying no adversarial pass was run. It runs adversarial-reviewer on the PR diff before opening the PR, and it explicit",
         "id": "S-02",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer has github-issue-lifecycle pick up the issue, puts the spec in the issue body, loads senior-qa/api-test-suite-builder before the test plan, and implements red-green-refactor with tdd-guide.",
+        "graderReason": "The answer starts the issue with github-issue-lifecycle and writes the spec in the issue body. It loads senior-qa (and api-test-suite-builder when HTTP routes are involved) before the test plan and im",
         "id": "S-03",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer brings in focused-fix to find the root cause, rules out retries and longer timeouts, and aims to remove the nondeterminism (fixed waits, shared data, clock dependence, races) by fixing the ",
+        "graderReason": "The answer explicitly loads focused-fix for diagnosing the flaky test and states it will find the actual root cause (races, fixed sleeps, shared data, time dependence) rather than adding retries or lo",
         "id": "S-04",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer gives the branch hotfix/130-checkin-null-dereference and the commit message fix(checkin): handle null value in check-in handler (#130), which is a fix-type Conventional Commit ending with (",
+        "graderReason": "The answer uses branch hotfix/130-checkin-null-deref and commit message fix(checkin): handle missing value in check-in handler (#130), meeting both criteria.",
         "id": "S-05",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer's subject line uses `feat!` and the message has a `BREAKING CHANGE:` footer, and the subject ends with `(#88)`.",
+        "graderReason": "The answer's commit message uses `feat!` with a `BREAKING CHANGE:` footer, and its subject line ends with (#88).",
         "id": "S-06",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer uses spec-driven-workflow to write SPEC.md beside a placeholder SKILL.md and writes the real SKILL.md content only after approval in step 6, so a stub file doesn't count as writing SKILL.md",
+        "graderReason": "The answer loads spec-driven-workflow, writes SPEC.md beside SKILL.md, and only writes SKILL.md after the spec is approved (step 6).",
         "id": "S-07",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says that with no SPEC.md the skill gets edited directly and no spec is written or required. The only spec mention is conditional, for the case where a SPEC.md already existed.",
+        "graderReason": "The answer says it will edit SKILL.md directly because there is no SPEC.md, and it says outright that it won't write a spec.",
         "id": "S-08",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer explicitly refuses to merge without user authorization and reports to the coordinator that PR #51 is waiting on the user's go-ahead; it merges only conditionally after explicit authorizatio",
+        "graderReason": "The answer says outright that it won't merge PR #51, reports to the coordinator that it is 'Not merged; waiting on the user's merge authorization,' and only merges if the user approves later.",
         "id": "S-09",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer goes straight into boot troubleshooting with journalctl, a kernel and module version check, and a chroot repair, and it explicitly declines to start the GitHub issue or spec pipeline.",
+        "graderReason": "The answer goes directly into step-by-step boot troubleshooting and does not create a GitHub issue or write a spec.",
         "id": "S-10",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer fixes the CRITICAL, fixes or accepts each WARNING with a one-line reason in the review note, explicitly declines to re-run the reviewer, presents the spec with the review note link and the ",
+        "graderReason": "The answer fixes the CRITICAL, fixes or accepts each WARNING with a reason in the review note, and explicitly does not re-run the reviewer. It also presents the spec with the review note and the quote",
         "id": "S-11",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer runs python3 -I on a literal absolute path that ends in scripts/stack_detector.py, and the path uses no shell variables or command substitution.",
+        "graderReason": "The answer runs `python3 -I` on a literal absolute path ending in scripts/stack_detector.py and says outright that it uses no shell variables or command substitution.",
         "id": "S-12",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would read ~/.claude/skill-overlays/engineering-skills:senior-qa.md itself, using the full prefixed skill name, before writing the test plan.",
+        "graderReason": "The answer says it would read ~/.claude/skill-overlays/engineering-skills:senior-qa.md itself, using the full plugin-prefixed name rather than a shortened one.",
         "id": "S-13",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says plainly that it loaded senior-qa and read only SKILL.md, not the reference guides, and it says the plan shouldn't be described as fully senior-qa-designed.",
+        "graderReason": "The answer says plainly that only SKILL.md was read and none of the reference guides, and it explicitly calls the claim of full use an overstatement.",
         "id": "S-14",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says outright that it would run `pnpm test:unit`, the command named in the project CLAUDE.md.",
+        "graderReason": "The answer explicitly says it would run `pnpm test:unit` exactly as the project CLAUDE.md specifies.",
         "id": "S-15",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it reads all three named reference guides, assigns a pyramid layer per acceptance criterion, names each flake source with a deterministic fix, and lists which criteria are review check",
+        "graderReason": "The answer reads all three named guides in full, states pyramid level per acceptance criterion, names flake hazards with deterministic remedies, and lists criteria handled as review checks rather than",
         "id": "S-16",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer recommends splitting into three issues, asks the user to confirm, says it won't split without a yes, and only creates issues/forks after approval.",
+        "graderReason": "The answer recommends splitting the work into three issues and says it would only split after the user agrees, so it never splits or forks without asking.",
         "id": "S-17",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load `ci-cd-pipeline-builder` before writing the spec's pipeline plan, which meets the criterion.",
+        "graderReason": "The answer says it would load ci-cd-pipeline-builder before writing the pipeline plan in step 4 (and again before writing the YAML in step 6).",
         "id": "S-18",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer makes github-issue-lifecycle the first real step: it searches for an existing issue or asks for the details needed to file one, and it defers the spec and all code edits until an issue exis",
+        "graderReason": "The answer loads github-issue-lifecycle first to find, pick or file an export issue, and it says it won't diagnose the bug, write a spec or edit code until that issue exists.",
         "id": "S-19",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says up front that it would load `plain-prose` before writing any human-facing text, the PR description included.",
+        "graderReason": "The answer says that its first step would be loading the `plain-prose` skill, before it writes any of the PR title, body or review notes.",
         "id": "S-20",
         "new": "pass",
         "old": "fail"
       },
       {
-        "graderReason": "Step 1 of the answer says it would load the plain-prose skill before writing the first text a person reads, which covers this reply and the commit body.",
+        "graderReason": "The answer says it would load the plain-prose skill first, before writing the commit message.",
         "id": "S-21",
         "new": "pass",
         "old": "fail"
       },
       {
-        "graderReason": "Step 1 says it loads the plain-prose skill before any text a person will read.",
+        "graderReason": "The answer says it would load `plain-prose` before writing the issue text, since people will read that text later.",
         "id": "S-22",
         "new": "pass",
         "old": "fail"
       },
       {
-        "graderReason": "The answer says it would post the comment with `gh issue comment 12` and gives example text, and it says outright that it wouldn't reload plain-prose because that skill is already in context.",
+        "graderReason": "The answer says it would write and post a short comment along the lines of 'Fixed by #N, merged into main in abc1234', and it explicitly says it would not load plain-prose again because that skill is ",
         "id": "S-23",
         "new": "pass",
         "old": "pass"
@@ -181,7 +181,7 @@
     "newRuleFailures": [],
     "pass": true,
     "regressions": [],
-    "rerunsUsed": 4
+    "rerunsUsed": 3
   },
   "suite": "scenario"
 }

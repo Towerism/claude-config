@@ -13,6 +13,8 @@ pythonpath = ["."]
 [tool.coverage.run]
 branch = true
 source = ["tools"]
+# Vendored upstream files are never edited, so their coverage isn't ours to raise.
+omit = ["tools/vendor/*"]
 
 [tool.coverage.report]
 show_missing = true
@@ -26,8 +28,9 @@ line-length = 100
 # "./" anchors the pattern to the repo root; a bare "config" would also skip any
 # nested directory of that name, such as a future tools/config/.
 # docs/history/ holds frozen copies that are never edited (ADR-0002), so lint
-# findings there could never be fixed.
-extend-exclude = ["./config", "./docs/history"]
+# findings there could never be fixed. tools/vendor/ holds upstream files
+# kept byte for byte, with their hashes in VENDORED.json, for the same reason.
+extend-exclude = ["./config", "./docs/history", "./tools/vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]
@@ -41,3 +44,4 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 python_version = "3.13"
 strict = true
 files = ["tools"]
+exclude = ["^tools/vendor/"]

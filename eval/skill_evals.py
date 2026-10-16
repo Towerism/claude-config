@@ -17,8 +17,10 @@ otherwise the suite stops with an IsolationError and no record is written.
 trigger: each query runs three times with only the skill installed and an empty
 CLAUDE.md, so only the description can make Claude load it. Two triggering runs
 of three trigger the query. For a delegated query, only a load inside a subagent
-counts. The suite passes at 90% accuracy with no false trigger and every
-delegated query triggering. A run that errors fails its query.
+counts. The suite passes when at least 85% of the queries that should trigger do,
+no near miss triggers or errors, and every delegated query triggers. Overall
+accuracy is reported but never decides, because the two classes differ in size.
+A run that errors fails its query.
 
 cold-reader: a write case asks the skill arm (told to load the skill) and a
 baseline arm (no skill, no tools) for the same text; a rewrite case compares the
@@ -54,7 +56,9 @@ from eval import hook_harness, run_eval  # noqa: E402
 
 TRIGGER_RUNS = 3
 TRIGGER_NEEDED = 2
-TRIGGER_ACCURACY = 0.9
+# Each class gets its own rule (spec FR-24): recall over the queries that should load the
+# skill, and no near miss at all. Overall accuracy is reported but never decides.
+TRIGGER_RECALL = 0.85
 TRIGGER_TOOLS = "Skill,Read,Agent"
 TRIGGER_MAX_TURNS = "4"
 WRITE_TOOLS = "Skill,Read,Bash"
@@ -216,13 +220,21 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             entry["errors"] = errors
         results.append(entry)
     _write_out(ctx, "trigger-results.json", results)
+    positive = [r for r in results if r["shouldTrigger"]]
+    recall = (
+        round(sum(r["result"] == "pass" for r in positive) / len(positive), 3) if positive else 1.0
+    )
+    false_triggers = sum(
+        1 for r in results if not r["shouldTrigger"] and r["triggered"] >= TRIGGER_NEEDED
+    )
+    near_misses_clean = all(r["result"] == "pass" for r in results if not r["shouldTrigger"])
+    delegated_ok = all(r["result"] == "pass" for r in results if r["delegated"])
     right = sum(r["result"] == "pass" for r in results)
-    accuracy = round(right / len(results), 3) if results else 0.0
-    false_trigger = any(r["result"] == "fail" and not r["shouldTrigger"] for r in results)
-    missed_delegation = any(r["delegated"] and r["result"] == "fail" for r in results)
     return {
-        "pass": accuracy >= TRIGGER_ACCURACY and not false_trigger and not missed_delegation,
-        "accuracy": accuracy,
+        "pass": recall >= TRIGGER_RECALL and near_misses_clean and delegated_ok,
+        "recall": recall,
+        "falseTriggers": false_triggers,
+        "accuracy": round(right / len(results), 3) if results else 0.0,
         "cases": results,
     }
 

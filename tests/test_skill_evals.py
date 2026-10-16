@@ -151,26 +151,53 @@ def test_a_delegated_case_counts_only_subagent_calls(make_ctx):
     assert result["pass"] is False
 
 
-def test_a_should_not_trigger_query_that_triggers_fails_the_suite(make_ctx):
-    cases = [trig(f"p{i}", True) for i in range(10)] + [trig("n", False)]
-    plan = {f"p{i}": ["top"] * 3 for i in range(10)} | {"n": ["sub", "sub", "none"]}
-    result, _, _ = run_trigger(make_ctx, cases, plan)
-    assert result["accuracy"] == round(10 / 11, 3)
+def positives(n, misses=0):
+    """`n` should-trigger queries, the last `misses` of which never trigger."""
+    cases = [trig(f"p{i}", True) for i in range(n)]
+    plan = {f"p{i}": (["none"] if i >= n - misses else ["top"]) * 3 for i in range(n)}
+    return cases, plan
+
+
+def test_a_near_miss_that_triggers_fails_the_suite_even_with_full_recall(make_ctx):
+    cases, plan = positives(15)
+    result, _, _ = run_trigger(make_ctx, cases + [trig("n", False)],
+                               plan | {"n": ["sub", "sub", "none"]})  # fmt: skip
+    assert result["recall"] == 1.0
+    assert result["falseTriggers"] == 1
     assert result["pass"] is False
 
 
-def test_accuracy_under_ninety_percent_fails_the_suite(make_ctx):
-    cases = [trig(f"p{i}", True) for i in range(5)]
-    plan = {f"p{i}": ["top"] * 3 for i in range(4)} | {"p4": ["none"] * 3}
+def test_thirteen_of_fifteen_should_trigger_queries_pass(make_ctx):
+    cases, plan = positives(15, misses=2)
     result, _, _ = run_trigger(make_ctx, cases, plan)
-    assert result["accuracy"] == 0.8 and result["pass"] is False
+    assert result["recall"] == round(13 / 15, 3)
+    assert result["pass"] is True
 
 
-def test_nine_of_ten_passes(make_ctx):
-    cases = [trig(f"p{i}", True) for i in range(9)] + [trig("miss", True)]
-    plan = {f"p{i}": ["top"] * 3 for i in range(9)} | {"miss": ["none"] * 3}
-    result, _, _ = run_trigger(make_ctx, cases, plan)
-    assert result["accuracy"] == 0.9 and result["pass"] is True
+def test_twelve_of_fifteen_fails_however_clean_the_near_misses(make_ctx):
+    cases, plan = positives(15, misses=3)
+    near = [trig(f"n{i}", False) for i in range(10)]
+    result, _, _ = run_trigger(make_ctx, cases + near,
+                               plan | {f"n{i}": ["none"] * 3 for i in range(10)})  # fmt: skip
+    assert result["recall"] == 0.8 and result["falseTriggers"] == 0
+    assert result["pass"] is False
+
+
+def test_overall_accuracy_is_reported_but_never_decides(make_ctx):
+    cases, plan = positives(15, misses=2)
+    near = [trig(f"n{i}", False) for i in range(10)]
+    result, _, _ = run_trigger(make_ctx, cases + near,
+                               plan | {f"n{i}": ["none"] * 3 for i in range(10)})  # fmt: skip
+    assert result["accuracy"] == round(23 / 25, 3)
+    assert result["pass"] is True
+
+
+def test_an_errored_near_miss_fails_the_suite(make_ctx):
+    cases, plan = positives(15)
+    result, _, _ = run_trigger(make_ctx, cases + [trig("n", False)],
+                               plan | {"n": ["none", "error", "none"]})  # fmt: skip
+    assert result["falseTriggers"] == 0
+    assert result["pass"] is False
 
 
 def test_a_run_error_fails_the_query_even_when_it_should_not_trigger(make_ctx):

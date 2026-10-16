@@ -42,7 +42,16 @@ from eval import hook_harness, run_eval, skill_evals  # noqa: E402
 from tools.cfg import eval_records as er  # noqa: E402
 
 SuiteRunner = Callable[[run_eval.Context, er.Suite], dict[str, Any]]
-SUMMARY_KEYS = ("regressions", "newRuleFailures", "scores", "p95Ms", "accuracy", "rerunsUsed")
+SUMMARY_KEYS = (
+    "regressions",
+    "newRuleFailures",
+    "scores",
+    "p95Ms",
+    "recall",
+    "falseTriggers",
+    "accuracy",
+    "rerunsUsed",
+)
 
 
 def claude_version() -> str:

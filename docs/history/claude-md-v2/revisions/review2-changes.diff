@@ -1,0 +1,140 @@
+--- SPEC.pre-review2.md	2026-10-15 18:31:12.574183561 -0500
++++ SPEC.md	2026-10-15 18:31:46.224611654 -0500
+@@ -2,7 +2,7 @@
+ 
+ **Author:** Claude (for mfracker)
+ **Date:** 2026-10-15
+-**Status:** Draft — revised with the user's decisions D-1/D-2/D-3; second single adversarial pass (on the changed spec) pending
++**Status:** Draft — revised with the user's decisions D-1/D-2/D-3; second single adversarial pass done (BLOCK: 2 CRITICAL fixed, 3 WARNING fixed, 3 NOTE fixed); awaiting the user's go-ahead
+ **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass), then the user (this spec replaces global configuration and changes the delivery workflow)
+ **Supersedes:** `~/dev/scratch/claude-md-rewrite/SPEC.md` (session "claude-skills-plugin-usage"), by the user's decision D-2 (2026-10-15)
+ **Depends on:** the `github-issue-lifecycle` skill (Option B, chosen by the user on 2026-10-15), which gets its own `SPEC.md` under FR-14 and must be built before this deliverable is installed
+@@ -30,6 +30,7 @@
+ | `~/.claude/CLAUDE.md` | Every session | Authority (who approves and merges), the pipeline weave (which skill at which stage), git conventions, precedence, skill-authoring rule | Applies broadly; short enough to be followed |
+ | `~/.claude/skill-overlays/<skill>.md` | Injected when that skill loads | The user's policy for that skill: references to read (as absolute paths), plan checklists, stack translation, storage overrides, severity handling | Progressive disclosure; arrives next to the text it amends |
+ | PostToolUse + UserPromptSubmit hooks (`~/.claude/hooks/skill_overlay.py`) | Harness, deterministic | Injects the overlay; never depends on Claude remembering | "Must happen every time" ⇒ hook |
++| PreToolUse `Bash` hook (`~/.claude/hooks/merge_confirm.py`) | Harness, deterministic | Makes every PR merge wait for the user's click (FR-24) | The one rule already violated (10-12) |
+ | `github-issue-lifecycle` skill (separate spec) | When a repo change starts/ends | Issue pickup/creation, labels, spec markers in the issue body, branch/worktree naming, PR with `Closes #N` | Procedure, used only in repos |
+ | Project `CLAUDE.md` / repo `docs/` | Per repo | Commands, paths, release specifics | Project facts beat global defaults |
+ 
+@@ -59,7 +60,7 @@
+ ### B. The global CLAUDE.md
+ 
+ - FR-2: **precedence** — It MUST state that a project `CLAUDE.md` wins on project specifics (commands, paths, conventions), and that the global file holds only cross-project rules.
+-- (Former FR 3 — withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
++- (FR-3 withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
+ - FR-4: **pipeline weave** — It MUST name, in order, the skill used at each stage of a repo change, as a compact ordered list:
+   1. New project or major design: `engineering-skills:senior-architect` drafts architecture doc + ADRs before feature work; user reviews; ADRs are then the source of truth and departures need a new/updated ADR;
+   2. Start: `github-issue-lifecycle` (find or offer to create the issue, assign, label, branch/worktree).
+@@ -68,7 +69,7 @@
+   5. Implement: `engineering-skills:tdd-guide` for all code (red-green-refactor).
+   6. Review: `engineering-skills:adversarial-reviewer` — once on the spec, once on the PR diff.
+   7. Merge: `engineering-advanced-skills:ship-gate`, then `github-issue-lifecycle` closes out.
+-- (Former FR 5 — withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
++- (FR-5 withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
+ - FR-6: **non-obvious routing only** — It MUST contain a routing table limited to work whose skill would not reliably auto-trigger from its description or where the user picked a specific skill. Each row MUST cite why it is there (a transcript miss, or the user's pick, or a skill whose description doesn't name the user's trigger); rows whose skill auto-triggers from its description are dropped. Candidate rows: flaky tests/bugs → `focused-fix`; schema/data migrations → `migration-architect` (+ `database-schema-designer` for new schemas); HTTP or published-library API changes → `api-design-reviewer`; auth/session/secrets/PII → `senior-security`; dependency/bot PRs → `dependency-auditor`; deploy/ops docs → `senior-devops`, `runbook-generator`; multi-agent orchestration → `agent-workflow-designer`; CLAUDE.md upkeep → `claude-md-improver` / `/revise-claude-md`. (`linux-troubleshooting`, `senior-security` and `claude-md-improver` stay only if a transcript shows they failed to trigger.) Skills not listed are used when their description fits or the user asks.
+ - FR-7: **authority — approval modes** — It MUST state the three spec-approval modes, with these clauses intact:
+   - Every generated or revised spec gets the single adversarial pass before it is approved **or presented** (except under "no review").
+@@ -78,18 +79,18 @@
+   - Any change to an approved spec re-enters review (default/manual) or self-re-approval ("no review").
+ - FR-8: **authority — raising and merging** — It MUST state:
+   - Raise = post the review note, say what was CRITICAL, quote each spec change with its reason, then stop until the user's go-ahead — triggered by a fixed CRITICAL or any review-driven spec change (including a PR review that changed the spec).
+-  - Merge only with the user's authorization. This is the one emphasised line (FR-16); FR-24 also enforces it with a hook. A fork merges only when the coordinator relays the user's authorization. Gates (review, ship-gate) add to the user's authority and never stand in for it.
+-  - Handling a review (the caller's rules, wherever the reviewer runs): one pass per spec or changeset, never re-run — not after fixes, not after a CRITICAL, not for "iterate until green" (that means fixing CI and re-running ship-gate); a later change for another reason gets its own pass. CRITICAL → fix, then raise; WARNING → fix, or accept with a one-line reason in the review note; NOTE → fix only if trivial, else list it. Before opening a PR, one pass on the full diff against the base branch, and the PR description notes what it found and how each finding was handled.
++  - Merge only with the user's authorization. This is the one emphasised line (FR-16); FR-24 also enforces it with a hook. Merge on your own only when the user has authorized merging. If a merge prompt is declined or can't be answered, don't merge another way; report the merge as waiting on the user. Gates (review, ship-gate) add to the user's authority and never stand in for it.
++  - Handling a review (the caller's rules, wherever the reviewer runs): one pass per spec or changeset, never re-run — not after fixes, not after a CRITICAL; a later change for another reason gets its own pass. CRITICAL → fix, then raise; WARNING → fix, or accept with a one-line reason in the review note; NOTE → fix only if trivial, else list it. Before opening a PR, one pass on the full diff against the base branch, and the PR description notes what it found and how each finding was handled.
+   - Before reporting work done or opening a PR, run the repo's test/lint/typecheck commands and quote the result ("give Claude a way to verify its work").
+ - FR-9: **git conventions, adapted from git-workflow-standards** — It MUST state: Conventional Commits whose type matches the change's release impact (`feat`/`fix`/`!` + `BREAKING CHANGE:` footer drive semantic-release), subject ends with `(#N)`; branches `feature|fix|hotfix|docs|chore/{issue}-{slug}`, worktree named the same; atomic commits; per-commit history (merge commit or rebase, no squash), so every commit on the branch must itself be a Conventional Commit; delete the branch after merge; never commit to or force-push the default branch; roll back with `git revert`; semantic-release, not humans, creates tags.
+-- (Former FR 10 — withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
++- (FR-10 withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
+ - FR-11: **splitting and forks** — It MUST state:
+   - One request = one issue/spec by default, no asking. Only if scope looks big, judge fit with `spec-driven-workflow`; if it clearly doesn't fit one spec, recommend a split and ask; never split without a yes.
+-  - On a yes: one issue per piece up front, one fork (`subagent_type: "fork"`) per issue in parallel,  Each fork owns its issue's lifecycle through an opened PR, approves under FR-7 like any session, and merges only with relayed authorization (FR-8). Approvals, change requests and questions go to the owning fork; the coordinator never edits a spec itself; the owning fork makes every spec change and validates it with the spec validator.
++  - On a yes: one issue per piece up front, one fork (`subagent_type: "fork"`) per issue in parallel. Each fork owns its issue's lifecycle through an opened PR, approves under FR-7 like any session, and merges only under FR-8. Route each approval, change request or question to the fork that owns that issue; the coordinator never edits a spec itself; the owning fork makes every spec change and validates it with the spec validator.
+   - Bugs/follow-ups found along the way are only filed: no fork, assignee, `in progress` label, or same-day work unless the user asks.
+ - FR-12: **skill application honesty** — It MUST state that when asked whether a skill was used, Claude answers how deeply it was applied (loaded only / references read / outputs used).
+ - FR-13: **plugin scripts** — It MUST state that skill scripts are run as `python3 -I <literal absolute path>` (the overlay supplies the path; otherwise "Base directory for this skill" + relative path), never via a shell variable or command substitution, and only scripts shipped inside the loaded skill.
+-- FR-14: **skill authoring** — It MUST state: new skills always use `spec-driven-workflow` with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already beside its `SKILL.md` (spec updated first, re-reviewed under FR-7, approval status in the spec's `**Status:**` line, review note saved beside it); skills without one are edited directly; `skill-creator` guides structure and `skill-tester` validates; third-party skills are vetted with `skill-security-auditor` before install; 
++- FR-14: **skill authoring** — It MUST state: new skills always use `spec-driven-workflow` with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already beside its `SKILL.md` (spec updated first, re-reviewed under FR-7, approval status in the spec's `**Status:**` line, review note saved beside it); skills without one are edited directly; `skill-creator` guides structure and `skill-tester` validates; third-party skills are vetted with `skill-security-auditor` before install.
+ - FR-15: **overlay fallback** — It MUST contain one line telling Claude that if a skill loads and no "Skill overlay" block follows it, Claude reads `~/.claude/skill-overlays/<skill-name>.md` itself when that file exists.
+ - FR-16: **style** — It MUST be written as direct imperatives with a one-clause reason where the reason changes behaviour; emphasis (`IMPORTANT`) on exactly one line, the rule actually violated before — merge only with authorization (violated 10-12); no generic advice the model already follows (e.g. "write clean code"); no repo names; no section duplicating another.
+ 
+@@ -107,20 +108,23 @@
+ 
+ ### D. Hooks
+ 
+-- FR-18a: **verify the mechanism first** — Before the hook is built, a time-boxed check MUST confirm against the installed Claude Code (2.1.299) that (a) a `PostToolUse` hook with matcher `Skill` fires on a Skill tool call, in the main session and in a subagent, and (b) its `hookSpecificOutput.additionalContext` reaches the model. If (a) or (b) fails, the injection point falls back, in order, to `UserPromptExpansion` / `UserPromptSubmit` (user-typed skills) plus a `PreToolUse` `Skill` hook returning `additionalContext`, and finally to FR-15's fallback line alone. The result is recorded in the spec before implementation; changing the injection event is not a spec change, but dropping deterministic injection entirely is, and goes back to the user.
++- FR-18a: **verify the mechanism first** — Before the hook is built, a time-boxed check MUST confirm against the installed Claude Code (2.1.299) that (a) a `PostToolUse` hook with matcher `Skill` fires on a Skill tool call, in the main session and in a subagent, and (b) its `hookSpecificOutput.additionalContext` reaches the model. It MUST also record whether a PreToolUse `ask` still prompts under `--permission-mode auto` and `bypassPermissions` (FR-24); if it does not, that is reported to the user before install. If (a) or (b) fails, the injection point falls back, in order, to `UserPromptExpansion` / `UserPromptSubmit` (user-typed skills) plus a `PreToolUse` `Skill` hook returning `additionalContext`, and finally to FR-15's fallback line alone. The result is recorded in the spec before implementation; changing the injection event is not a spec change, but dropping deterministic injection entirely is, and goes back to the user.
+ - FR-19: **PostToolUse injection** — A `PostToolUse` hook with matcher `Skill` MUST run `~/.claude/hooks/skill_overlay.py`, which reads the hook JSON from stdin, takes `tool_input.skill`, and, if `~/.claude/skill-overlays/<skill>.md` exists, returns `hookSpecificOutput.additionalContext` beginning `Skill overlay for <skill>:` followed by the overlay text with every relative reference/script path rewritten to an absolute path under the skill's *active* base directory: for plugin skills the `installPath` recorded in `~/.claude/plugins/installed_plugins.json`, for user skills `~/.claude/skills/<name>/`. If no overlay exists it outputs nothing and exits 0.
+ - FR-20: **user-typed slash commands** — A `UserPromptExpansion` hook (or, if FR-18a shows it doesn't carry the skill name, a `UserPromptSubmit` hook) MUST run the same script in prompt mode: if the prompt starts with `/<skill-name>` for a skill that has an overlay, it injects the same `additionalContext`.
+ - FR-21: **fail visible, never block** — On any internal error (bad JSON, unreadable overlay, unresolvable skill directory) the script MUST exit 0, inject `Skill overlay for <skill> could not be loaded (<reason>); read ~/.claude/skill-overlays/<skill>.md manually.` when the skill name is known, and write the traceback to stderr. It MUST never block a tool call or prompt.
+ 
+-- FR-24: **merge confirmation hook** (user decision D-3) — A `PreToolUse` hook with matcher `Bash` and `if: "Bash(gh pr merge *)"` MUST return `hookSpecificOutput.permissionDecision: "ask"` with `permissionDecisionReason` "Merging needs your confirmation (global rule: merge only with your authorization)", so every `gh pr merge` — in the main session, forks and subagents — waits for the user's click even when Claude believes it is authorized. It MUST NOT deny, and MUST NOT match other `gh` commands.
+ 
+-### E. Rollout
++### E. Merge guard
++
++- FR-24: **merge confirmation hook** (user decision D-3) — A `PreToolUse` hook with matcher `Bash` MUST run `python3 -I ~/.claude/hooks/merge_confirm.py`, which reads `tool_input.command` and returns `hookSpecificOutput.permissionDecision: "ask"` with `permissionDecisionReason` "Merging needs your confirmation (global rule: merge only with your authorization)" when the command matches `\bgh\b(\s+-\S+(\s+\S+)?)*\s+pr\s+merge\b` or `\bgh\s+api\b.*\/merge\b` anywhere in the string (so `gh -R o/r pr merge 5`, `cd x && gh pr merge`, and `bash -c "gh pr merge …"` are caught); otherwise it outputs nothing. It MUST NOT deny, MUST exit 0, and MUST NOT match other `gh` commands (e.g. `gh pr view`, `gh pr list --search merge`). This applies in the main session, forks and subagents.
++
++### F. Rollout
+ 
+ - FR-22: **review stop** — Before install, Claude MUST present to the user: the new CLAUDE.md, the overlays, the clause inventory's `dropped` and `superseded-by` rows, the eval results (AC-6/AC-7), and the token figures; installation waits for the user's go-ahead.
+ - FR-23: **install & rollback** — Install MUST:
+   1. Abort unless the sha256 of the live `~/.claude/CLAUDE.md` equals `claude-md-rewrite/baseline/CLAUDE.md.orig` (the inventory's source); otherwise rebuild `eval/clauses.json` from the live file and re-run AC-1 and AC-6 first.
+   2. Back up `~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/skills/issue-spec-driven-workflow/` to `~/.claude/backups/claude-md-v2-<timestamp>/`.
+-  3. Write the new CLAUDE.md, overlays and hook script; add the hook entries via `update-config`.
++  3. Write the new CLAUDE.md, overlays and both hook scripts (`skill_overlay.py`, `merge_confirm.py`); add the overlay hooks and the FR-24 merge hook via `update-config`.
+   4. Disable `issue-spec-driven-workflow` by *moving* its directory into the backup directory (outside `~/.claude/skills/`, so it is no longer discovered); it is deleted only when the user confirms after two weeks of use.
+   `restore.sh` in the backup directory MUST be non-destructive: it first snapshots the current CLAUDE.md, settings.json and skills dir to `restore-<timestamp>/`; removes only the hook entries this install added (matched by command path) instead of overwriting settings.json; overwrites CLAUDE.md only if it still equals the installed deliverable, otherwise stops and prints the diff; and moves the old skill back.
+ 
+@@ -164,7 +168,7 @@
+ ### AC-4: Quality rubric (NFR-M3, FR-16)
+ Given `claude-md-improver/references/quality-criteria.md`
+ When a headless `claude -p` run isolated as in AC-6 scores the new CLAUDE.md against the rubric
+-Then the score is ≥ 80, and the checker finds no emphasis beyond one line, no repo names, no email/token patterns (`[\w.+-]+@[\w-]+\.[\w.]+`, `(ghp_|gho_|github_pat_|sk-|xox[bp]-)[A-Za-z0-9_-]{16,}`).
++Then the score is ≥ 80, and the checker finds exactly one emphasised line and it is the merge-authorization rule, no repo names, no email/token patterns (`[\w.+-]+@[\w-]+\.[\w.]+`, `(ghp_|gho_|github_pat_|sk-|xox[bp]-)[A-Za-z0-9_-]{16,}`).
+ 
+ ### AC-5: Overlay injection (FR-17, FR-18a, FR-19, FR-20, FR-21, NFR-S2)
+ Given a PostToolUse payload `{"tool_name":"Skill","tool_input":{"skill":"engineering-skills:senior-qa"}}`
+@@ -184,12 +188,12 @@
+ ### AC-8: Safe install and rollback (FR-22, FR-23, NFR-R3)
+ Given the user's go-ahead
+ When install runs
+-Then backups match the pre-install files byte-for-byte, `~/.claude/CLAUDE.md` equals the deliverable, the settings hooks validate as JSON, and `issue-spec-driven-workflow` no longer appears in a fresh session's skill list (`claude -p` listing). In a temp `HOME`: an unchanged install is restored byte-for-byte by `restore.sh`; after adding an unrelated settings entry (e.g. an enabled plugin) and editing CLAUDE.md, `restore.sh` keeps the settings entry, removes only the overlay hooks, refuses to overwrite the edited CLAUDE.md (non-zero exit, diff printed), and leaves a `restore-<ts>/` snapshot. Install refuses when the live CLAUDE.md's sha256 differs from the baseline.
++Then backups match the pre-install files byte-for-byte, `~/.claude/CLAUDE.md` equals the deliverable, the settings hooks validate as JSON and contain the FR-24 entry (and don't after `restore.sh`), and `issue-spec-driven-workflow` no longer appears in a fresh session's skill list (`claude -p` listing). In a temp `HOME`: an unchanged install is restored byte-for-byte by `restore.sh`; after adding an unrelated settings entry (e.g. an enabled plugin) and editing CLAUDE.md, `restore.sh` keeps the settings entry, removes only the overlay hooks, refuses to overwrite the edited CLAUDE.md (non-zero exit, diff printed), and leaves a `restore-<ts>/` snapshot. Install refuses when the live CLAUDE.md's sha256 differs from the baseline.
+ 
+ ### AC-9: Merge needs a click (FR-24)
+-Given the merge hook supplied via `claude -p --settings <tmp-hooks.json> --output-format stream-json`
+-When Claude is asked to run `gh pr merge --help` and, separately, `gh pr view --help`
+-Then the stream shows the `gh pr merge` call stopped for permission (not executed) with the FR-24 reason, and `gh pr view --help` runs without a prompt. A unit test on the settings entry asserts the matcher/`if` strings and the `ask` decision.
++Given `claude -p --settings <tmp-hooks.json> --allowedTools 'Bash(gh pr view *)' 'Bash(gh pr merge *)' --permission-prompts none --output-format json` (both commands pre-allowed, so only the hook can stop one)
++When Claude is asked to run `gh pr merge --help` and then `gh pr view --help`
++Then the result's `permission_denials` contains the merge call and not the view call, and a control run with the same flags but without `--settings` shows both executed. Unit tests on `merge_confirm.py` assert `ask` plus the exact reason for `gh pr merge 5`, `gh -R o/r pr merge 5`, `cd x && gh pr merge 5`, `bash -c "gh pr merge 5"`, `gh api repos/o/r/pulls/5/merge`, and no output for `gh pr view 5` and `gh pr list --search merge`. (One re-run on failure; fails only if it fails twice.)
+ 
+ ## Edge Cases
+ 
+@@ -202,9 +206,9 @@
+ - EC-7: "Manual review" and "no review" both said in a session → "manual review" wins for that issue (FR-7).
+ - EC-8: Scenario-eval nondeterminism → binary must-include / must-not-include checks; one re-run per failing case; identical policy for old and new config.
+ - EC-9: A skill is invoked by its short name (e.g. `/senior-qa`) → the hook normalises by matching the overlay whose name ends with `:<short-name>` when exactly one does.
+-- EC-11: A merge attempted where nobody can click (headless `-p` run, unattended background job) → the "ask" cannot be answered, so the merge does not happen and the job reports it as waiting on the user; this is the intended safe failure.
+-- EC-12: A merge done another way (`gh api …/merge`, the GitHub UI) → not covered by FR-24; the CLAUDE.md rule (FR-8) still applies. Widening the matcher is a later change.
+ - EC-10: The work machine (Jira-based spec skill) lacks these skills → out of scope (OS-3); the overlay hook is a no-op there.
++- EC-11: A merge attempted where nobody can click (headless `-p` run, unattended background job) → the call is denied; FR-8's "don't merge another way" line applies. This is the intended safe failure.
++- EC-12: A merge done some other way (GitHub UI, `git push` of a merge to the default branch — already forbidden by FR-9, a custom script) → not caught by FR-24; FR-8 still applies.
+ 
+ ## API Contracts
+ 
+@@ -219,6 +223,12 @@
+   hookSpecificOutput: { hookEventName: "PostToolUse" | "PreToolUse" | "UserPromptSubmit" | "UserPromptExpansion"; additionalContext: string }
+ }
+ 
++// Merge guard: python3 -I ~/.claude/hooks/merge_confirm.py   (PreToolUse, matcher "Bash"; exit code always 0)
++interface MergeGuardInput  { hook_event_name: "PreToolUse"; tool_name: "Bash"; tool_input: { command: string } }
++interface MergeGuardOutput {               // printed only when the command is a merge
++  hookSpecificOutput: { hookEventName: "PreToolUse"; permissionDecision: "ask"; permissionDecisionReason: string }
++}
++
+ // Checker: python3 -I check_config.py --claude-md <path> --overlays <dir> --skill-root <dir>... [--clauses eval/clauses.json] [--json]
+ // exit 0 = pass, 1 = findings, 2 = usage error
+ interface CheckReport {

@@ -1,0 +1,54 @@
+{
+  "ok": true,
+  "unresolvedSkills": [],
+  "missingPaths": [],
+  "clauseProblems": [],
+  "forbiddenContent": [],
+  "tokenCounts": [
+    {
+      "file": "deliverable/CLAUDE.md",
+      "tokens": 1401,
+      "limit": 1800
+    },
+    {
+      "file": "deliverable/CLAUDE.md (lines)",
+      "tokens": 54,
+      "limit": 200
+    },
+    {
+      "file": "engineering-advanced-skills:api-test-suite-builder.md",
+      "tokens": 166,
+      "limit": 700
+    },
+    {
+      "file": "engineering-advanced-skills:ci-cd-pipeline-builder.md",
+      "tokens": 361,
+      "limit": 700
+    },
+    {
+      "file": "engineering-advanced-skills:ship-gate.md",
+      "tokens": 106,
+      "limit": 700
+    },
+    {
+      "file": "engineering-advanced-skills:spec-driven-workflow.md",
+      "tokens": 175,
+      "limit": 700
+    },
+    {
+      "file": "engineering-skills:adversarial-reviewer.md",
+      "tokens": 185,
+      "limit": 700
+    },
+    {
+      "file": "engineering-skills:senior-qa.md",
+      "tokens": 260,
+      "limit": 700
+    },
+    {
+      "file": "engineering-skills:tdd-guide.md",
+      "tokens": 169,
+      "limit": 700
+    }
+  ]
+}

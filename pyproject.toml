@@ -25,7 +25,9 @@ line-length = 100
 # files by sha256 (ADR-0004), and it doesn't pass ruff yet. #20 narrows this.
 # "./" anchors the pattern to the repo root; a bare "config" would also skip any
 # nested directory of that name, such as a future tools/config/.
-extend-exclude = ["./config"]
+# docs/history/ holds frozen copies that are never edited (ADR-0002), so lint
+# findings there could never be fixed.
+extend-exclude = ["./config", "./docs/history"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]

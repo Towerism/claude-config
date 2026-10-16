@@ -1,0 +1,21 @@
+OK  True  3/3  pick up #57 in play-pokemon-attendance, it's the one about the export 
+OK  True  3/3  start on the issue about DST drift in the tournament scheduler, I thin
+OK  True  3/3  ok I've finished the roster change locally, open the PR for this and l
+OK  True  2/3  file a bug for the BOM problem we just hit in the CSV export, don't st
+OK  True  2/3  hotfix the login 500 on prod, users can't sign in since the last deplo
+OK  True  3/3  work on GH-112
+OK  True  3/3  https://github.com/Towerism/selfhost-kit/issues/31 can you take this o
+OK  True  3/3  let's do the litestream backup retention issue next, grab it and set u
+OK  True  3/3  the spec for #88 is approved now, go ahead and create the branch and w
+OK  True  3/3  add CSV export to the roster page — there's probably no issue for it y
+OK  False 0/3  write a spec for a CSV export feature, just a markdown doc I can share
+OK  False 0/3  review PR #12 in selfhost-kit and tell me if the caching change is saf
+OK  False 0/3  what's in the changelog for selfhost-kit 1.0.0? summarise the breaking
+OK  False 0/3  create a Jira ticket for the payments timeout in the WEB project
+OK  False 0/3  explain conventional commits to me, and how semantic-release picks the
+OK  False 0/3  my arch box won't boot after the kernel update, stuck at loading initi
+OK  False 0/3  set up a github actions workflow that runs vitest and playwright on ev
+OK  False 0/3  rebase my branch onto main and fix the conflicts in server/api/roster.
+OK  False 0/3  how many open issues does the genie repo have and which are the oldest
+OK  False 0/3  write a commit message for these staged changes to the drizzle schema
+{"model": "default", "probe": {"skills_seen": 109, "has_new": true, "has_old": false, "ok": true}, "accuracy": 1.0, "passed": 20, "total": 20, "near_misses_triggering": [], "ok": true}

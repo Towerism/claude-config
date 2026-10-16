@@ -1,0 +1,3 @@
+isolation probe: {'skills_seen': 109, 'has_new': True, 'has_old': False, 'ok': True}
+PASS  23 routed-bare-request-goes-through-issue  (14.1s)
+1/1 passed

@@ -151,7 +151,7 @@ claude-config/
 │   ├── clauses.json             the clause inventory
 │   ├── scenarios.json           19 scenarios for the scenario eval (v2 spec AC-6)
 │   ├── gates.json               which changed paths require which eval suites
-│   ├── run_eval.py  hook_harness.py  score_ac7.py
+│   ├── run_eval.py  hook_harness.py
 │   ├── records/<suite>.json     committed eval records
 │   └── out/                     raw transcripts, gitignored
 │

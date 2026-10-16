@@ -1,13 +1,23 @@
-"""AC-6 scenario eval (old vs new CLAUDE.md) and AC-4 rubric, headless and arm-isolated.
+"""The scenario and rubric evals for the global CLAUDE.md, run with headless `claude -p`.
 
-python3 -I run_eval.py [--only S-01,S-02] [--workers 6]
+tools/cfg/eval.py calls these suites and writes their records; see ADR-0005.
 
-Isolation (see impl/FR-18a-results.md): each arm runs `claude -p` with its own
-CLAUDE_CONFIG_DIR (arm CLAUDE.md + settings.json + symlinked plugins + credentials,
-removed afterwards) and a cwd outside /home/mfracker, so ~/.claude/CLAUDE.md isn't
-picked up by ancestor discovery. A canary probe proves isolation before scoring.
+The scenario suite compares two arms: the config/ tree at the merge-base (old)
+and at HEAD (new). Both come from commits, never the working tree. Each arm,
+and the grader, runs with CLAUDE_CONFIG_DIR set to its own temporary
+directory: that arm's CLAUDE.md with a canary line, the live settings.json
+without its hooks, a symlink to the live plugins and a private copy of the
+credentials. A probe proves each arm sees only its own canary before any
+scenario runs. Every temporary directory lives under the system temp root,
+outside $HOME, because ancestor discovery would otherwise load the live
+~/.claude/CLAUDE.md into every arm.
+
+The rubric suite scores HEAD's CLAUDE.md against the claude-md-improver
+quality criteria (v2 spec AC-4).
 """
-import argparse
+
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -15,182 +25,358 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-IMPL = Path(__file__).resolve().parent.parent
-REAL = Path("/home/mfracker/.claude")
-JOBTMP = Path("/home/mfracker/.claude/jobs/9130cbd8/tmp")
-OLD_MD = Path("/home/mfracker/dev/scratch/claude-md-rewrite/baseline/CLAUDE.md.orig")
-NEW_MD = IMPL / "deliverable" / "CLAUDE.md"
-QUALITY = Path("/home/mfracker/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0/skills/claude-md-improver/references/quality-criteria.md")
-OUT = IMPL / "eval" / "results"
-PREAMBLE = ("Answer in prose only. Do not use any tools. Describe exactly what you would do next, in order, "
-            "and why, naming any skills you would use.\n\n")
+# (command, stdin, environment, working directory, timeout) -> (exit code, stdout)
+Runner = Callable[[list[str], str, dict[str, str], Path, float], tuple[int, str]]
+
+PREAMBLE = (
+    "Answer in prose only. Do not use any tools. Describe exactly what you would do next, "
+    "in order, and why, naming any skills you would use.\n\n"
+)
+CANARY = {"old": "Eval arm marker: CANARY-OLD-5150", "new": "Eval arm marker: CANARY-NEW-6260"}
+GRADER_MD = "# Grader\nFollow the grading instructions exactly.\n"
+RUBRIC_PLUGIN = "claude-md-management"
+RUBRIC_FILE = Path("skills/claude-md-improver/references/quality-criteria.md")
+RUBRIC_PASS = 80
+REASON_LIMIT = 200
+CLAUDE_TIMEOUT = 400
 
 
-def make_arm(name: str, md_text: str) -> Path:
-    d = Path(tempfile.mkdtemp(prefix=f"arm-{name}.", dir=JOBTMP))
-    (d / "CLAUDE.md").write_text(md_text)
-    shutil.copy2(REAL / "settings.json", d / "settings.json")
-    (d / "plugins").symlink_to(REAL / "plugins")
-    shutil.copy2(REAL / ".credentials.json", d / ".credentials.json")
-    os.chmod(d / ".credentials.json", 0o600)
+class Refusal(Exception):
+    """A precondition failed before any model ran; eval.py exits 2."""
+
+
+class IsolationError(Exception):
+    """An arm's probe saw the wrong config; eval.py exits 1 and writes no record."""
+
+
+@dataclass
+class Context:
+    live: Path  # the owner's Claude home: credentials, settings and plugins come from here
+    root: Path  # temp root every temporary directory goes under
+    runner: Runner
+    model: str | None  # model for the scenario arms; the grader keeps the default
+    workers: int
+    out: Path  # eval/out/<suite>: raw answers, never committed
+    head_tree: Path  # the HEAD commit's config/ and eval/, extracted
+    base_tree: Path | None  # the merge-base's config/, extracted
+
+
+def live_home() -> Path:
+    configured = os.environ.get("CLAUDE_CONFIG_DIR")
+    return Path(configured) if configured else Path.home() / ".claude"
+
+
+def temp_root(repo: Path) -> Path:
+    """The system temp root, refused when it sits inside the repo or inside $HOME."""
+    root = Path(tempfile.gettempdir()).resolve()
+    if root.is_relative_to(repo.resolve()):
+        raise Refusal(f"the temp root {root} is inside the repo; set TMPDIR=/tmp")
+    if root.is_relative_to(Path.home().resolve()):
+        raise Refusal(
+            f"the temp root {root} is inside $HOME, where the live CLAUDE.md would load "
+            "into every arm; set TMPDIR=/tmp"
+        )
+    return root
+
+
+def default_runner(
+    cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float
+) -> tuple[int, str]:
+    # The command is built by this harness from fixed arguments; no shell is involved.
+    out = subprocess.run(  # noqa: S603
+        cmd, input=stdin, text=True, capture_output=True, env=env, cwd=cwd, timeout=timeout
+    )
+    return out.returncode, out.stdout
+
+
+def make_config_dir(ctx: Context, name: str, claude_md: str) -> Path:
+    """A private CLAUDE_CONFIG_DIR: given CLAUDE.md, live settings without hooks, credentials."""
+    creds = ctx.live / ".credentials.json"
+    if not creds.is_file():
+        raise Refusal(f"no {creds}; log in to Claude Code first")
+    d = Path(tempfile.mkdtemp(prefix=f"arm-{name}.", dir=ctx.root))  # mode 0700
+    try:
+        (d / "CLAUDE.md").write_text(claude_md)
+        settings_file = ctx.live / "settings.json"
+        settings = json.loads(settings_file.read_text()) if settings_file.is_file() else {}
+        settings.pop("hooks", None)
+        (d / "settings.json").write_text(json.dumps(settings, indent=2))
+        (d / "plugins").symlink_to(ctx.live / "plugins")
+        fd = os.open(d / ".credentials.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(creds.read_bytes())
+    except BaseException:
+        remove_config_dir(d)
+        raise
     return d
 
 
-MODEL = None  # --model for the scenario arms only; the grader uses the default model
+def remove_config_dir(d: Path) -> None:
+    (d / ".credentials.json").unlink(missing_ok=True)
+    shutil.rmtree(d, ignore_errors=True)
 
 
-def claude(arm: Path, prompt: str, timeout=400, model=None) -> str:
-    cwd = tempfile.mkdtemp(prefix="cmv2-eval.", dir="/tmp")
-    cmd = ["claude", "-p", "--tools", "", "--output-format", "json"] + (["--model", model] if model else [])
+def run_claude(
+    ctx: Context,
+    cfg: Path,
+    args: list[str],
+    prompt: str,
+    extra_env: dict[str, str] | None = None,
+    timeout: float = CLAUDE_TIMEOUT,
+) -> tuple[int, str]:
+    """Run `claude <args>` with `cfg` as its config, in a fresh directory under the temp root."""
+    cwd = Path(tempfile.mkdtemp(prefix="eval-cwd.", dir=ctx.root))
+    env = {**os.environ, **(extra_env or {}), "CLAUDE_CONFIG_DIR": str(cfg)}
     try:
-        r = subprocess.run(cmd, input=prompt, text=True,
-                           capture_output=True, cwd=cwd, timeout=timeout,
-                           env={**os.environ, "CLAUDE_CONFIG_DIR": str(arm)})
-        return json.loads(r.stdout).get("result") or ""
-    except Exception as e:  # recorded as an empty answer; graded as a failure
-        return f"<run error: {e}>"
+        return ctx.runner(["claude", *args], prompt, env, cwd, timeout)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        return -1, f"<run error: {e}>"
     finally:
         shutil.rmtree(cwd, ignore_errors=True)
 
 
-def overlay_text(skill: str) -> str:
-    """What the real hook injects for `skill`, using the deliverable overlays."""
-    home = Path(tempfile.mkdtemp(prefix="ovl.", dir=JOBTMP))
+def claude(ctx: Context, cfg: Path, prompt: str, model: str | None = None) -> str:
+    """The `result` text of a tool-less `claude -p` run; a run error becomes a marked answer."""
+    args = ["-p", "--tools", "", "--output-format", "json"]
+    if model:
+        args += ["--model", model]
+    code, out = run_claude(ctx, cfg, args, prompt)
     try:
-        shutil.copytree(IMPL / "deliverable" / "skill-overlays", home / "skill-overlays")
-        (home / "plugins").symlink_to(REAL / "plugins")
-        payload = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Skill", "tool_input": {"skill": skill}})
-        r = subprocess.run([sys.executable, "-I", str(IMPL / "deliverable" / "hooks" / "skill_overlay.py")],
-                           input=payload, capture_output=True, text=True, env={"PATH": os.environ["PATH"], "CLAUDE_HOME": str(home)})
-        return json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+        return str(json.loads(out)["result"] or "")
+    except (ValueError, KeyError, TypeError):
+        return f"<run error: exit {code}: {out[:200]}>"
+
+
+def overlay_text(ctx: Context, tree: Path, skill: str) -> str | None:
+    """What `tree`'s overlay hook injects for `skill`, run against `tree`'s overlays."""
+    hook = tree / "config" / "hooks" / "skill_overlay.py"
+    if not hook.is_file():
+        return None
+    home = Path(tempfile.mkdtemp(prefix="overlay-home.", dir=ctx.root))
+    try:
+        overlays = tree / "config" / "skill-overlays"
+        if overlays.is_dir():
+            shutil.copytree(overlays, home / "skill-overlays")
+        (home / "plugins").symlink_to(ctx.live / "plugins")
+        payload = {"hook_event_name": "PostToolUse", "tool_name": "Skill",
+                   "tool_input": {"skill": skill}}  # fmt: skip
+        out = subprocess.run(  # noqa: S603
+            [sys.executable, "-I", str(hook)],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            env={"PATH": os.environ.get("PATH", ""), "CLAUDE_HOME": str(home)},
+            timeout=30,
+        )
+        if not out.stdout.strip():
+            return None
+        return str(json.loads(out.stdout)["hookSpecificOutput"]["additionalContext"])
     finally:
         shutil.rmtree(home, ignore_errors=True)
 
 
-def criteria(sc: dict, arm_name: str) -> dict:
-    """Arm-specific additions (e.g. S-03's new-arm check) extend mustInclude for that arm only."""
-    extra = (sc.get("mustIncludeByArm") or {}).get(arm_name, [])
+def overlay_prefix(ctx: Context, tree: Path, skills: list[str]) -> str:
+    parts = []
+    for skill in skills:
+        text = overlay_text(ctx, tree, skill)
+        if text is None:
+            parts.append(f"[You loaded {skill}.]\n\n")
+        else:
+            parts.append(f"[You loaded {skill}. A hook then injected this context:]\n{text}\n\n")
+    return "".join(parts)
+
+
+def criteria(sc: dict[str, Any], arm: str) -> dict[str, list[str]]:
+    """`mustIncludeByArm` adds checks for the named arm only."""
+    extra = (sc.get("mustIncludeByArm") or {}).get(arm, [])
     return {"mustInclude": sc["mustInclude"] + extra, "mustNotInclude": sc["mustNotInclude"]}
 
 
-def grade(grader: Path, sc: dict, answer: str, arm_name: str) -> dict:
-    crit = criteria(sc, arm_name)
+def _bools(value: object, length: int) -> bool:
+    return (
+        isinstance(value, list) and len(value) == length and all(isinstance(v, bool) for v in value)
+    )
+
+
+def score_grade(raw: str, crit: dict[str, list[str]]) -> dict[str, Any]:
+    """Pass only if every required behaviour is present and no forbidden one is."""
+    match = re.search(r"\{.*\}", raw, re.S)
+    try:
+        g = json.loads(match.group(0)) if match else None
+    except json.JSONDecodeError:
+        g = None
+    if not isinstance(g, dict):
+        return {"pass": False, "reason": "grader reply unparsable"}
+    reason = str(g.get("reason", ""))
+    must, must_not = g.get("mustInclude"), g.get("mustNotInclude")
+    if not (
+        _bools(must, len(crit["mustInclude"])) and _bools(must_not, len(crit["mustNotInclude"]))
+    ):
+        return {"pass": False, "reason": reason or "grader reply had the wrong shape"}
+    return {"pass": all(must) and not any(must_not), "reason": reason}  # type: ignore[arg-type]
+
+
+def grade(ctx: Context, grader: Path, sc: dict[str, Any], answer: str, arm: str) -> dict[str, Any]:
+    crit = criteria(sc, arm)
     prompt = (
-        "You are grading an AI assistant's answer against binary criteria. Judge only what the answer says it "
-        "would do. Respond with ONLY a JSON object: {\"mustInclude\": [true/false per item], "
-        "\"mustNotInclude\": [true/false per item: true means the forbidden behaviour IS present]}.\n\n"
-        f"SCENARIO:\n{sc['prompt']}\n\nANSWER:\n{answer}\n\nCRITERIA:\n{json.dumps(crit, indent=1)}\n")
-    raw = claude(grader, prompt)
-    m = re.search(r"\{.*\}", raw, re.S)
-    try:
-        g = json.loads(m.group(0))
-        ok = all(g["mustInclude"]) and not any(g["mustNotInclude"]) \
-            and len(g["mustInclude"]) == len(crit["mustInclude"]) and len(g["mustNotInclude"]) == len(crit["mustNotInclude"])
-    except Exception:
-        g, ok = {"unparsed": raw[:500]}, False
-    return {"grade": g, "pass": ok}
+        "You are grading an AI assistant's answer against binary criteria. Judge only what "
+        "the answer says it would do. Respond with ONLY a JSON object: "
+        '{"mustInclude": [true/false per item], "mustNotInclude": [true/false per item: true '
+        'means the forbidden behaviour IS present], "reason": "one sentence"}.\n\n'
+        f"SCENARIO:\n{sc['prompt']}\n\nANSWER:\n{answer}\n\n"
+        f"CRITERIA:\n{json.dumps(crit, indent=1)}\n"
+    )
+    return score_grade(claude(ctx, grader, prompt), crit)
 
 
-def run_case(arm: Path, arm_name: str, grader: Path, sc: dict) -> dict:
-    prefix = ""
-    if arm_name == "new":
-        for s in sc["loadsSkills"]:
-            prefix += f"[You loaded {s}. A hook then injected this context:]\n{overlay_text(s)}\n\n"
-    elif sc["loadsSkills"]:
-        prefix = "".join(f"[You loaded {s}.]\n" for s in sc["loadsSkills"]) + "\n"
+def run_case(
+    ctx: Context, arm_dir: Path, arm: str, grader: Path, sc: dict[str, Any], prefix: str
+) -> dict[str, Any]:
+    """One scenario on one arm, re-run once on failure (v2 spec EC-8)."""
     attempts = []
-    for _ in range(2):  # EC-8: one re-run; fails only if both fail
-        ans = claude(arm, PREAMBLE + prefix + sc["prompt"], model=MODEL)
-        g = grade(grader, sc, ans, arm_name)
-        attempts.append({"answer": ans, **g})
-        if g["pass"]:
+    for _ in range(2):
+        answer = claude(ctx, arm_dir, PREAMBLE + prefix + sc["prompt"], model=ctx.model)
+        graded = grade(ctx, grader, sc, answer, arm)
+        attempts.append({"answer": answer, **graded})
+        if graded["pass"]:
             break
-    return {"id": sc["id"], "arm": arm_name, "pass": any(a["pass"] for a in attempts), "attempts": attempts}
+    return {"id": sc["id"], "arm": arm, "pass": attempts[-1]["pass"], "attempts": attempts}
 
 
-def summarize(results, scenarios):
-    """Markdown table plus exit code: 1 on any regression or any new-rule-only scenario failing on the new arm."""
-    by = {}
+def summarize(results: list[dict[str, Any]], scenarios: list[dict[str, Any]]) -> dict[str, Any]:
+    """The record's result: no old-pass/new-fail regressions, and every new rule passing."""
+    by: dict[str, dict[str, dict[str, Any]]] = {}
     for r in results:
-        by.setdefault(r["id"], {})[r["arm"]] = r["pass"]
-    tags = {s["id"]: s.get("tags", []) for s in scenarios}
-    byarm = {s["id"] for s in scenarios if s.get("mustIncludeByArm")}
-    lines = ["| Scenario | Old | New | Note |", "|---|---|---|---|"]
-    regress, new_rule_fail = [], []
-    for sid, v in sorted(by.items()):
-        note = ""
-        if "new-rule-only" in tags[sid]:
-            note = "new-rule coverage; old arm not a regression gate"
-            if not v.get("new"):
-                new_rule_fail.append(sid)
-                note += "; NEW-RULE FAIL"
-        elif v.get("old") and not v.get("new"):
-            note = "exempt (superseded:D-4)" if "superseded:D-4" in tags[sid] else "REGRESSION"
-            if note == "REGRESSION":
-                regress.append(sid)
-        if sid in byarm:
-            note = (note + "; " if note else "") + "new arm graded with an extra arm-specific check"
-        lines.append(f"| {sid} | {'pass' if v.get('old') else 'FAIL'} | {'pass' if v.get('new') else 'FAIL'} | {note} |")
-    text = "\n".join(lines) + f"\n\nRegressions: {regress or 'none'}\nNew-rule failures: {new_rule_fail or 'none'}\n"
-    return text, 1 if (regress or new_rule_fail) else 0
+        by.setdefault(r["id"], {})[r["arm"]] = r
+    regressions, new_rule_failures, cases = [], [], []
+    for sc in scenarios:
+        old, new = by[sc["id"]]["old"], by[sc["id"]]["new"]
+        if "new-rule-only" in sc.get("tags", []):
+            if not new["pass"]:
+                new_rule_failures.append(sc["id"])
+        elif old["pass"] and not new["pass"]:
+            regressions.append(sc["id"])
+        cases.append(
+            {
+                "id": sc["id"],
+                "old": "pass" if old["pass"] else "fail",
+                "new": "pass" if new["pass"] else "fail",
+                "graderReason": new["attempts"][-1]["reason"][:REASON_LIMIT],
+            }
+        )
+    return {
+        "pass": not regressions and not new_rule_failures,
+        "regressions": regressions,
+        "newRuleFailures": new_rule_failures,
+        "rerunsUsed": sum(len(r["attempts"]) - 1 for r in results),
+        "cases": cases,
+    }
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--only")
-    ap.add_argument("--workers", type=int, default=6)
-    ap.add_argument("--suffix", default="", help="output file suffix, e.g. -addendum")
-    ap.add_argument("--no-rubric", action="store_true")
-    ap.add_argument("--model", help="model for the scenario arms (grader stays on the default)")
-    ap.add_argument("--arms", default="old,new")
-    args = ap.parse_args()
-    global MODEL
-    MODEL = args.model
-    arm_names = args.arms.split(",")
-    OUT.mkdir(parents=True, exist_ok=True)
-    scenarios = json.loads((IMPL / "eval" / "scenarios.json").read_text())
-    if args.only:
-        scenarios = [s for s in scenarios if s["id"] in args.only.split(",")]
-    canary = {"old": "Eval arm marker: CANARY-OLD-5150", "new": "Eval arm marker: CANARY-NEW-6260"}
-    arms = {"old": make_arm("old", OLD_MD.read_text() + "\n" + canary["old"] + "\n"),
-            "new": make_arm("new", NEW_MD.read_text() + "\n" + canary["new"] + "\n")}
-    grader = make_arm("grader", "# Grader\nFollow the grading instructions exactly.\n")
+def probe(ctx: Context, arms: dict[str, Path]) -> None:
+    """Stop the run unless each arm's answer shows its own canary and not the other's."""
+    question = "Without tools: quote every line in your instructions containing 'Eval arm marker'."
+    probes = {}
+    for name, d in arms.items():
+        answer = claude(ctx, d, question)
+        other = CANARY["new" if name == "old" else "old"]
+        isolated = CANARY[name] in answer and other not in answer
+        probes[name] = {"answer": answer, "isolated": isolated}
+    (ctx.out / "probes.json").write_text(json.dumps(probes, indent=1))
+    if not all(p["isolated"] for p in probes.values()):
+        raise IsolationError(f"arm isolation failed; see {ctx.out / 'probes.json'}")
+
+
+def run_scenario(ctx: Context) -> dict[str, Any]:
+    if ctx.base_tree is None or not (ctx.base_tree / "config" / "CLAUDE.global.md").is_file():
+        raise Refusal("the merge-base has no config/CLAUDE.global.md to compare against")
+    trees = {"old": ctx.base_tree, "new": ctx.head_tree}
+    scenarios = json.loads((ctx.head_tree / "eval" / "scenarios.json").read_text())
+    ctx.out.mkdir(parents=True, exist_ok=True)
+    dirs: list[Path] = []
     try:
-        probes = {}
-        for name, arm in arms.items():
-            if name not in arm_names:
-                continue
-            a = claude(arm, "Without tools: quote every line in your instructions containing 'Eval arm marker', "
-                            "and say whether your context contains a heading starting 'Adversarial review:'.")
-            other = canary["new" if name == "old" else "old"]
-            probes[name] = {"answer": a, "isolated": canary[name] in a and other not in a}
-        (OUT / f"ac6-probes{args.suffix}.json").write_text(json.dumps(probes, indent=1))
-        if not probes or not all(p["isolated"] for p in probes.values()):
-            print("ARM ISOLATION FAILED", json.dumps(probes, indent=1))
-            return 1
-        jobs = [(arms[n], n, grader, s) for s in scenarios for n in arm_names]
-        with ThreadPoolExecutor(args.workers) as ex:
-            results = list(ex.map(lambda j: run_case(*j), jobs))
-        (OUT / f"ac6-results{args.suffix}.json").write_text(json.dumps(results, indent=1))
-        rubric = "" if args.no_rubric else claude(grader, "Score this global CLAUDE.md (a user-wide file, not a project file) against the rubric "
-                        "below. Score 'Commands/workflows' and 'Architecture clarity' on how clearly it maps the "
-                        "workflow and which skill is used where, not on build commands. Respond with ONLY JSON: "
-                        "{\"criteria\": {name: score}, \"total\": n, \"issues\": [..]}.\n\nRUBRIC:\n"
-                        + QUALITY.read_text() + "\n\nCLAUDE.md:\n" + NEW_MD.read_text())
-        if rubric:
-            (OUT / "ac4-rubric.json").write_text(rubric)
+        arms = {}
+        for name, tree in trees.items():
+            md = (tree / "config" / "CLAUDE.global.md").read_text()
+            arms[name] = make_config_dir(ctx, name, md + "\n" + CANARY[name] + "\n")
+            dirs.append(arms[name])
+        grader = make_config_dir(ctx, "grader", GRADER_MD)
+        dirs.append(grader)
+        probe(ctx, arms)
+        jobs = [
+            (arms[name], name, sc, overlay_prefix(ctx, trees[name], sc["loadsSkills"]))
+            for sc in scenarios
+            for name in ("old", "new")
+        ]
+        with ThreadPoolExecutor(ctx.workers) as ex:
+            results = list(ex.map(lambda j: run_case(ctx, j[0], j[1], grader, j[2], j[3]), jobs))
+        (ctx.out / "results.json").write_text(json.dumps(results, indent=1))
     finally:
-        for d in list(arms.values()) + [grader]:
-            (d / ".credentials.json").unlink(missing_ok=True)
-            shutil.rmtree(d, ignore_errors=True)
-    summary, code = summarize(results, scenarios)
-    (OUT / f"ac6-summary{args.suffix}.md").write_text(summary)
-    print(summary)
-    return code
+        for d in dirs:
+            remove_config_dir(d)
+    return summarize(results, scenarios)
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+def find_rubric(live: Path) -> Path:
+    """quality-criteria.md from the installed claude-md-management plugin."""
+    try:
+        installed = json.loads((live / "plugins" / "installed_plugins.json").read_text())
+    except (OSError, ValueError) as e:
+        raise Refusal(f"cannot read installed_plugins.json: {e}") from e
+    for key, installs in (installed.get("plugins") or {}).items():
+        if key.split("@", 1)[0] != RUBRIC_PLUGIN:
+            continue
+        for inst in installs:
+            path = Path(inst.get("installPath", "")) / RUBRIC_FILE
+            if path.is_file():
+                return path
+    raise Refusal(f"the {RUBRIC_PLUGIN} plugin's quality-criteria.md is not installed")
+
+
+def parse_rubric(raw: str) -> int | None:
+    match = re.search(r"\{.*\}", raw, re.S)
+    try:
+        doc = json.loads(match.group(0)) if match else None
+    except json.JSONDecodeError:
+        return None
+    total = doc.get("total") if isinstance(doc, dict) else None
+    return total if isinstance(total, int) else None
+
+
+def run_rubric(ctx: Context) -> dict[str, Any]:
+    """Score HEAD's CLAUDE.md; at least 80 passes, with one re-run allowed (v2 spec AC-4)."""
+    rubric = find_rubric(ctx.live).read_text()
+    md = (ctx.head_tree / "config" / "CLAUDE.global.md").read_text()
+    prompt = (
+        "Score this global CLAUDE.md (a user-wide file, not a project file) against the rubric "
+        "below. Score 'Commands/workflows' and 'Architecture clarity' on how clearly it maps "
+        "the workflow and which skill is used where, not on build commands. Respond with ONLY "
+        'JSON: {"criteria": {name: score}, "total": n, "issues": [..]}.\n\nRUBRIC:\n'
+        f"{rubric}\n\nCLAUDE.md:\n{md}"
+    )
+    ctx.out.mkdir(parents=True, exist_ok=True)
+    grader = make_config_dir(ctx, "rubric", GRADER_MD)
+    replies: list[str] = []
+    scores: list[int | None] = []
+    try:
+        for _ in range(2):
+            reply = claude(ctx, grader, prompt)
+            replies.append(reply)
+            scores.append(parse_rubric(reply))
+            if (scores[-1] or 0) >= RUBRIC_PASS:
+                break
+    finally:
+        remove_config_dir(grader)
+    (ctx.out / "rubric.json").write_text(json.dumps(replies, indent=1))
+    return {
+        "pass": (scores[-1] or 0) >= RUBRIC_PASS,
+        "scores": scores,
+        "rerunsUsed": len(scores) - 1,
+        "cases": [],
+    }

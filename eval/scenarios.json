@@ -14,9 +14,7 @@
   "mustNotInclude": [
    "Writes spec content (requirements or acceptance criteria) in this turn"
   ],
-  "tags": [
-   "superseded:D-4"
-  ]
+  "tags": []
  },
  {
   "id": "S-02",

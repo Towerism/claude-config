@@ -32,3 +32,30 @@ Before writing findings, the reviewer checked two assumptions against real `clau
 | FR-23, FR-24, FR-26, AC-14 | `--tools` lists, a stub `gh`, an empty `GH_CONFIG_DIR`, and only `prose_check.py` allowed in the write arm | Eval prompts about issues and PRs must never reach GitHub with the owner's login |
 | FR-32 | ADR-0005's ruff note is amended too | FR-31 makes the old note false |
 | FR-13 | The tell lists live in `prose_check.py` | Removes an ambiguity about the checker's source of truth |
+
+# Second review: the narrowed scope (2026-10-16)
+
+This section records the single adversarial review of one change to the approved spec. The first live `plain-prose-trigger` run scored 0.7. Six of its ten near misses (a regex, a subagent prompt, a config bump, a failing-test fix, JSON to TOML, a bash one-liner) loaded the skill, because the description put chat replies in scope and every coding task ends in a chat reply. The owner then decided: "chat replies are not in scope. but since code comments are, coding-only tasks must remain scope to that extent". The spec went back to draft, and only this change was reviewed.
+
+**What changed:** chat replies and questions to the user leave the description (FR-2) and the CLAUDE.md line (FR-15); code comments and docstrings stay in. FR-25 rebuilds the trigger cases around that line, with a `kind` on each case so AC-17 can check the mix. FR-28 calls the third rewrite case a reply drafted for the owner to send. New FR-33 amends ADR-0010 and the plan's Q-9, which both say chat replies are covered.
+
+**Verdict:** no critical finding. Two warnings, both fixed; three notes, listed below.
+
+## Warnings
+
+**Fixed: one example near miss wasn't a near miss under the new rule.** FR-25 listed "a regex" as a coding task with no text for people. Adding a regex to a validator is exactly where a careful coder writes a comment, which the owner kept in scope, so the case would punish correct behaviour. FR-25 now limits these near misses to tasks whose output can't reasonably include a comment (a config value, a format conversion, a rename, a one-off shell command) and says new logic such as a regex is left out.
+
+**Fixed: the skill body could still claim chat replies.** FR-2 narrowed the description, but FR-3 said nothing about the body, and the body written for the first version says the rules cover "chat replies, code comments, commits and PR text". FR-3 now says the load-once rule names the same scope as the description, and AC-1 checks that the body doesn't claim chat replies.
+
+## Notes
+
+- **Every suite reruns.** The CLAUDE.md line, the `SKILL.md` description and body, and both case files all change, so the committed `scenario`, `rubric` and `plain-prose-behaviour` records go stale and `plain-prose-trigger` has none yet. The gates already require all four; no spec change is needed.
+- **The rewrite case needs new wording.** The behaviour case `rewrite-chat-reply` has to be renamed and reworded as a reply the owner will send, to match FR-28. That's an implementation step.
+- **The live CLAUDE.md still says chat replies are included.** This PR doesn't touch `~/.claude`, so the owner's live line and the repo's differ until a deploy or a manual edit. The spec's Context section says so.
+
+## Spec changes made because of this review
+
+| Where | Change | Why |
+|---|---|---|
+| FR-25 | Coding-only near misses limited to tasks that can't reasonably include a comment; a regex is left out | A careful coder may comment new logic, which is in scope |
+| FR-3, AC-1 | The body's load-once rule names the description's scope and never claims chat replies | Otherwise the body contradicts the narrowed description |

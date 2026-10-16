@@ -1,72 +1,54 @@
-# Global preferences
+# Global rules
 
-## Default workflow for new projects
-This pipeline has produced very robust software; use it by default when starting a new project:
-1. **Architecture first.** Before any feature work, use `/engineering-skills:senior-architect` to draft the architecture doc and ADRs (stack, data model, module boundaries). Have the user review them, then treat them as the source of truth; departures need a new or updated ADR.
-2. **Spec every piece of work on its issue** with `/issue-spec-driven-workflow` (approval rules below: the adversarial reviewer approves by default; user-only for "manual review" issues). Draft the spec's test plan with the test skills (see "Writing code" below).
-3. **Test and implement** per "Writing code" below.
+Project CLAUDE.md files win on specifics (commands, paths, conventions); this file is cross-project only.
 
-## Writing code (every project, existing and new)
-- When writing any code, always use the `/engineering-skills:tdd-guide` skill (red-green-refactor).
-- Apply the test skills **before writing a spec's test plan**, not just before writing tests: `/engineering-skills:senior-qa` (unit, integration, E2E/browser journeys, coverage strategy) and/or `/engineering-advanced-skills:api-test-suite-builder` (HTTP API routes, contract and integration suites). Pick whichever fits each piece of the plan; use both when different pieces call for different ones.
-- **Apply the test skills; loading them isn't enough.** Before any test plan or tests, read `/engineering-skills:senior-qa`'s reference guides (`references/testing_strategies.md`, `qa_best_practices.md`, `test_automation_patterns.md`), not just its SKILL.md, plus `api-test-suite-builder`'s matrices for API routes. The plan must visibly use them:
-  - pyramid placement per acceptance criterion: push logic down, and keep E2E for critical journeys;
-  - coverage targets set by risk;
-  - each flake hazard and how it's made deterministic (gates, fake clocks, no wall-clock assertions);
-  - isolation and fixtures/factories;
-  - behaviour over mocks;
-  - which existing tests get rewritten or deleted;
-  - which criteria are review checks rather than tests.
-  If asked whether a skill was used, answer honestly about how deeply it was applied.
-- Load the same skill(s) again before writing the tests themselves, so the tests provide as much value as possible, aimed at the riskiest behaviour, not line coverage.
+## Pipeline
 
-## CI/CD pipelines (every project, existing and new)
-- Whenever a spec or change creates or edits a CI/CD pipeline (`.github/workflows/*`, `.gitlab-ci.yml`, deploy jobs, or the scripts they call), apply `/engineering-advanced-skills:ci-cd-pipeline-builder` **before writing the spec's pipeline plan**, not just before editing YAML.
-- **Apply the skill; loading it isn't enough.** Before any pipeline plan or edit, read its reference guides (`references/pipeline-design-notes.md`, `deployment-gates.md`, and `github-actions-templates.md` or `gitlab-ci-templates.md` for the platform), not just its SKILL.md, and run `scripts/stack_detector.py` against the repo so stages come from detected stack signals, not guesswork. The plan must visibly use them:
-  - stages and commands traced to detected stack signals, and each referenced command confirmed to exist in the repo;
-  - gate order (lint → test → build → deploy), with deploy requiring green CI and a build artifact;
-  - cache keys matched to the package manager and lockfile;
-  - matrix builds only where compatibility truly requires them, with the reason stated;
-  - secrets and env vars listed and documented, never embedded in YAML;
-  - environment protection: staging vs. production, protected branches, and manual approval for production;
-  - a rollback command or procedure for every deploy job;
-  - each pitfall from `pipeline-design-notes.md` checked and either addressed or marked not applicable;
-  - how the change is validated before merge (YAML parses, run locally where possible, e.g. `act`), and which items are review checks rather than automated checks.
-- Load the skill again before writing the pipeline itself, and add one optimization at a time (cache, matrix, split jobs).
-- If asked whether the skill was used, answer honestly about how deeply it was applied.
+Use these in order. Each injects a "Skill overlay"; if none appears, read `~/.claude/skill-overlays/<full skill name>.md`.
 
-## Adversarial review: one pass, then raise what changed
-These rules apply to every `/engineering-skills:adversarial-reviewer` review (specs and PRs). The skill requires each persona to report at least one finding, so a review never comes back empty; "no findings" is never the goal.
-- **One pass, every time. No re-runs, no loop.** Run the reviewer once on the spec or changeset, handle its findings, and stop. Re-runs cost too much; don't re-run after fixing, not even after a CRITICAL. (A spec or changeset that changes later for another reason gets its own single pass.)
-- **CRITICAL for a spec** means following the spec as written would cause data loss, a security hole, or an outage, or the spec contradicts the accepted architecture/ADRs, or an acceptance criterion can't be tested or implemented as written. "Could go wrong if implemented badly" is not CRITICAL.
-- **Handle each finding once, by severity:**
-  - CRITICAL: fix it, then raise it with the user (below).
-  - WARNING: fix it, or accept it with a one-line reason in the review note.
-  - NOTE: optional. Fix only if trivial; otherwise list it in the note.
-- **Quota findings aren't CRITICAL.** A finding raised only to meet the skill's at-least-one rule (e.g. "the most fragile assumption" on otherwise sound work) is at most a WARNING, and the promotion rule (2+ personas → one level up) never promotes a finding to CRITICAL unless it would be CRITICAL on its own.
-- **Raise it with the user when either is true:** (a) the review had a CRITICAL you fixed, or (b) the review led to any change in the spec (from a spec review, or a PR review that sent a change back into the spec). Post the review note, say what was CRITICAL, what you changed and why (quote the spec change), then stop and wait for the user's go-ahead before approving the spec / implementing, or before opening the PR. If neither is true, carry on without asking.
+1. New project or major design: `senior-architect` drafts the architecture doc and ADRs (stack, data model, module boundaries) before feature work. Once reviewed they're the source of truth; a departure needs a new or updated ADR.
+2. Start: `github-issue-lifecycle`. Every code-change request in a GitHub repo, even a bare "fix X", starts here, before reading or editing code.
+3. Spec: `spec-driven-workflow`, stored where the lifecycle skill says (the issue body).
+4. Test plan: `senior-qa` and/or `api-test-suite-builder` (HTTP routes), before the spec's test plan and again before the tests. Changes to `.github/workflows/*`, `.gitlab-ci.yml`, deploy jobs or the scripts they call: `ci-cd-pipeline-builder` before the pipeline plan and again before the YAML.
+5. Implement: `tdd-guide` for all code (red-green-refactor).
+6. Review: `adversarial-reviewer`, once on the spec and once on the PR diff.
+7. Merge: `ship-gate`, then `github-issue-lifecycle` closes out.
 
-## Specs: adversarial-review approval by default, user approval for "manual review", self-approval for "no review"
-- **Adversarial review first, unless "no review".** Every generated or revised spec must be reviewed with `/engineering-skills:adversarial-reviewer` before it's approved or presented, following the one-pass rules above. Keep a short note of what the review found and how each finding was handled (fixed, accepted with reason, or noted).
-- **Default (no "manual review"): the adversarial review is the approval.** After the single `/engineering-skills:adversarial-reviewer` pass on the current spec: if it had no CRITICAL and didn't change the spec, apply the `approved` label/status yourself, post the review note on the issue, and go on to implement without asking. If it had a CRITICAL you fixed, or changed the spec, raise it with the user (above) and approve only after their go-ahead.
-- **"Manual review" issues: only the user approves.** If the user says "manual review" for an issue, never self-approve its spec:
-  - A spec is approved only when the user explicitly says so in their own words; until then it stays a draft.
-  - Don't mark it approved yourself (no `approved` label, status field, checkbox or "Approved" heading), and don't treat silence, a passing validation, or a reviewer verdict as approval.
-  - Don't implement against the draft. Present it with the review note, then wait for the user.
-  - Any change at all to the spec after approval, however small, sends it back to draft and needs the user's explicit approval again.
-- **"No review" sessions: self-approve without the adversarial reviewer.** If the user says "no review", then for the rest of that session skip `/engineering-skills:adversarial-reviewer` on specs: approve each spec yourself (apply the `approved` label/status, note on the issue that it was self-approved under "no review") and go on to implement. It lasts only for that session, and "manual review" on a specific issue still wins: that spec waits for the user.
-- In the default and "manual review" modes, any change to an approved spec sends it back through adversarial review before it's re-approved; under "no review" you re-approve it yourself.
+Rarely self-trigger; load: flaky tests, bugs: `focused-fix`; migrations: `migration-architect`, `database-schema-designer`; API changes: `api-design-reviewer`; dependency/bot PRs: `dependency-auditor`; ops docs: `senior-devops`, `runbook-generator`; fork orchestration: `agent-workflow-designer`.
 
-## PRs: review before opening, ship-gate before merging
-- **Before opening a PR**, review the full changeset (diff against the base branch) with `/engineering-skills:adversarial-reviewer`, once, following the one-pass rules above: fix CRITICALs, fix or accept WARNINGs, and if a CRITICAL was fixed or the spec changed, raise it with the user and wait for their go-ahead; otherwise open the PR. Note in the PR description what the review found and how each finding was handled.
-- **Before merging a PR yourself**, run `/engineering-advanced-skills:ship-gate`. Merge only if it allows the merge. If it blocks or raises issues, fix them (pushing to the PR branch, and giving the changed changeset one adversarial pass if it changes meaningfully) and run ship-gate again. Repeat until it allows the merge. Never merge past a ship-gate block.
-- These gates add to the user's authority; they don't replace it. Merge on your own only when the user has authorized merging, and never treat a passing review or gate as user approval of a spec.
+## Approval modes
 
-## Splitting work
-- Default: treat a request as one issue / one spec, and don't split it or ask about splitting.
-- Only if the scope looks big, use `/engineering-advanced-skills:spec-driven-workflow` to judge whether it fits one spec (one coherent set of FRs/ACs that one PR can deliver, without large parts that would land in "Out of Scope — separate spec"). If it clearly doesn't, ask the user whether to break it up, and recommend a split. Don't split without their yes.
-- If the user agrees to split: create one GitHub issue per piece up front, then fork each issue into its own subagent (`subagent_type: "fork"`), one per issue, launched in parallel, to spec that issue.
-- Each fork stays open for its issue's whole lifecycle: it writes the spec, gets it through adversarial review per the review rules above, and approves it per the rules above (itself by default; for "manual review" issues it waits for the user's explicit approval, relayed to that same fork). Then it implements the spec and opens the PR. A fork is done only once its PR exists.
-- Route each approval, change request or question to the fork that owns that issue.
-- The coordinator never edits a spec's content itself, even with exact wording in hand. The owning fork makes every spec change and validates it with the evaluator. The coordinator only relays changes, and for "manual review" issues applies the approval label/status when the user approves.
-- Exception: issues filed for bugs or follow-ups found along the way (not part of the user's request) are only filed. No fork, no assignee, no `in progress` label, and no work on them the same day they're filed, unless the user explicitly asks.
+Before each spec, ask which approval mode applies, listing "Manual review with adversarial pass" first, as default. Skip asking if the prompt states a mode (its specs, or the session if it says so). With no possible user turn (a scheduled job, not `-p`), use the default.
+
+- **Manual review with adversarial pass** (default): one adversarial pass, then present the spec with the review note and wait. Only the user's explicit words approve; set no approval marker yourself; silence, a validator or a reviewer verdict never approves. Don't implement against a draft. Any change after approval, however small, returns it to draft. In a split, the coordinator applies the approval label/status when the user approves.
+- **Adversarial approval**: a clean pass (no CRITICAL, no change) approves; apply `approved`, post the review note on the issue, implement; otherwise raise and wait.
+- **No review**: skip the reviewer on specs only (the PR-diff pass still runs); self-approve with a note saying so; implement.
+
+Conflicts: manual review beats "no review"; else the more specific statement wins; if neither, ask. A change to an approved spec re-enters its mode.
+
+## Reviews, merging
+
+- One adversarial pass per spec or changeset; never re-run it, even after fixes or a CRITICAL. A later change for another reason gets its own pass. CRITICAL: fix, then raise. WARNING: fix, or accept with a one-line reason in the review note. NOTE: fix only if trivial, else list it.
+- Raise: post the review note, say what was CRITICAL, quote each spec change with its reason, then stop until the user's go-ahead. Triggered by a fixed CRITICAL or any review-driven spec change. Manual mode folds this into presenting the spec.
+- Before opening a PR, one pass on the full diff against the base branch; the PR description lists findings and their handling.
+- Before reporting done or opening a PR, run tests, lint and typecheck; quote results.
+- IMPORTANT: merge on your own only when the user has authorized merging. If a merge prompt is declined or unanswerable, don't merge another way; report it as waiting on the user.
+- Gates add to the user's authority and never stand in for it.
+
+## Git
+
+- Conventional Commits typed by release impact (`feat`, `fix`, `!` plus a `BREAKING CHANGE:` footer); subject ends with `(#N)`; atomic commits; no squash, so every branch commit is conventional.
+- Branch/worktree: `feature|fix|hotfix|docs|chore/{issue}-{slug}`. Delete after merge. Never commit to or force-push the default branch. Roll back with `git revert`. Only semantic-release tags.
+
+## Splitting and forks
+
+- One request is one issue and one spec by default; don't ask. If scope looks big, judge fit with `spec-driven-workflow`; if it clearly doesn't, recommend a split and ask. Never split without a yes.
+- On a yes: one issue per piece, one fork (`subagent_type: "fork"`) per issue, in parallel. Settle each issue's approval mode first (one question), pass it on quoting the user; forks never re-ask.
+- Each fork owns its issue through an opened PR; merges follow the merge rule. Route each approval, change request or question to the fork that owns that issue. The coordinator never edits a spec; the owning fork makes every spec change and validates it with the spec validator.
+- Bugs or follow-ups found en route are only filed: no fork, assignee, `in progress` label or same-day work unless asked.
+
+## Skills
+
+- New skills always use `spec-driven-workflow`, with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already there: update the spec first, re-review it under its mode, keep status in its `**Status:**` line and the note in `REVIEW-NOTE.md` beside it. Edit other skills directly. Use `anthropic-skills:skill-creator`, `skill-tester`, and `skill-security-auditor` (third-party skills, before install).
+- Run skill scripts only as `python3 -I <literal absolute path>` (overlay path or base dir + relative); never via shell variables or `$(...)`.
+- Asked whether a skill was used? Say how deeply: loaded, references read, outputs used.

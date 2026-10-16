@@ -1,0 +1,548 @@
+[
+ {
+  "id": "C-01",
+  "text": "draft the architecture doc and ADRs (stack, data model, module boundaries)",
+  "disposition": "claude-md",
+  "mustAppear": "drafts the architecture doc and ADRs (stack, data model, module boundaries)",
+  "reason": null
+ },
+ {
+  "id": "C-02",
+  "text": "Have the user review them, then treat them as the source of truth; departures need a new or updated ADR.",
+  "disposition": "claude-md",
+  "mustAppear": "a departure needs a new or updated ADR",
+  "reason": null
+ },
+ {
+  "id": "C-03",
+  "text": "Spec every piece of work on its issue",
+  "disposition": "claude-md",
+  "mustAppear": "stored where the lifecycle skill says (the issue body)",
+  "reason": null
+ },
+ {
+  "id": "C-04",
+  "text": "with `/issue-spec-driven-workflow`",
+  "disposition": "lifecycle-skill",
+  "mustAppear": "spec:start",
+  "reason": null
+ },
+ {
+  "id": "C-05",
+  "text": "Draft the spec's test plan with the test skills",
+  "disposition": "claude-md",
+  "mustAppear": "before the spec's test plan",
+  "reason": null
+ },
+ {
+  "id": "C-06",
+  "text": "**Test and implement** per \"Writing code\" below.",
+  "disposition": "claude-md",
+  "mustAppear": "5. Implement",
+  "reason": null
+ },
+ {
+  "id": "C-07",
+  "text": "When writing any code, always use the `/engineering-skills:tdd-guide` skill (red-green-refactor).",
+  "disposition": "claude-md",
+  "mustAppear": "`tdd-guide` for all code (red-green-refactor)",
+  "reason": null
+ },
+ {
+  "id": "C-08",
+  "text": "Pick whichever fits each piece of the plan; use both when different pieces call for different ones.",
+  "disposition": "claude-md",
+  "mustAppear": "and/or `api-test-suite-builder` (HTTP routes)",
+  "reason": null
+ },
+ {
+  "id": "C-09",
+  "text": "Apply the test skills; loading them isn't enough.",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "loading the skill isn't enough",
+  "reason": null
+ },
+ {
+  "id": "C-10",
+  "text": "read `/engineering-skills:senior-qa`'s reference guides (`references/testing_strategies.md`, `qa_best_practices.md`, `test_automation_patterns.md`)",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "references/test_automation_patterns.md",
+  "reason": null
+ },
+ {
+  "id": "C-11",
+  "text": "plus `api-test-suite-builder`'s matrices for API routes",
+  "disposition": "overlay:engineering-advanced-skills:api-test-suite-builder",
+  "mustAppear": "Input Validation Matrix",
+  "reason": null
+ },
+ {
+  "id": "C-12",
+  "text": "pyramid placement per acceptance criterion: push logic down, and keep E2E for critical journeys;",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "pyramid placement per acceptance criterion",
+  "reason": null
+ },
+ {
+  "id": "C-13",
+  "text": "coverage targets set by risk;",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "coverage targets set by risk",
+  "reason": null
+ },
+ {
+  "id": "C-14",
+  "text": "each flake hazard and how it's made deterministic (gates, fake clocks, no wall-clock assertions);",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "no wall-clock assertions",
+  "reason": null
+ },
+ {
+  "id": "C-15",
+  "text": "isolation and fixtures/factories;",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "isolation and fixtures/factories",
+  "reason": null
+ },
+ {
+  "id": "C-16",
+  "text": "behaviour over mocks;",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "behaviour over mocks",
+  "reason": null
+ },
+ {
+  "id": "C-17",
+  "text": "which existing tests get rewritten or deleted;",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "which existing tests get rewritten or deleted",
+  "reason": null
+ },
+ {
+  "id": "C-18",
+  "text": "which criteria are review checks rather than tests.",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "which criteria are review checks rather than tests",
+  "reason": null
+ },
+ {
+  "id": "C-19",
+  "text": "If asked whether a skill was used, answer honestly about how deeply it was applied.",
+  "disposition": "claude-md",
+  "mustAppear": "say how deeply",
+  "reason": null
+ },
+ {
+  "id": "C-20",
+  "text": "Load the same skill(s) again before writing the tests themselves, so the tests provide as much value as possible, aimed at the riskiest behaviour, not line coverage.",
+  "disposition": "overlay:engineering-skills:senior-qa",
+  "mustAppear": "riskiest behaviour, not line coverage",
+  "reason": null
+ },
+ {
+  "id": "C-21",
+  "text": "Whenever a spec or change creates or edits a CI/CD pipeline (`.github/workflows/*`, `.gitlab-ci.yml`, deploy jobs, or the scripts they call)",
+  "disposition": "claude-md",
+  "mustAppear": "`.github/workflows/*`, `.gitlab-ci.yml`, deploy jobs or the scripts they call",
+  "reason": null
+ },
+ {
+  "id": "C-22",
+  "text": "apply `/engineering-advanced-skills:ci-cd-pipeline-builder` **before writing the spec's pipeline plan**",
+  "disposition": "claude-md",
+  "mustAppear": "before the pipeline plan",
+  "reason": null
+ },
+ {
+  "id": "C-23",
+  "text": "read its reference guides (`references/pipeline-design-notes.md`, `deployment-gates.md`, and `github-actions-templates.md` or `gitlab-ci-templates.md` for the platform)",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "references/gitlab-ci-templates.md",
+  "reason": null
+ },
+ {
+  "id": "C-24",
+  "text": "run `scripts/stack_detector.py` against the repo so stages come from detected stack signals, not guesswork",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "not guesswork",
+  "reason": null
+ },
+ {
+  "id": "C-25",
+  "text": "stages and commands traced to detected stack signals, and each referenced command confirmed to exist in the repo;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "each command confirmed to exist in the repo",
+  "reason": null
+ },
+ {
+  "id": "C-26",
+  "text": "gate order (lint → test → build → deploy), with deploy requiring green CI and a build artifact;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "deploy requiring green CI and a build artifact",
+  "reason": null
+ },
+ {
+  "id": "C-27",
+  "text": "cache keys matched to the package manager and lockfile;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "cache keys matched to the package manager and lockfile",
+  "reason": null
+ },
+ {
+  "id": "C-28",
+  "text": "matrix builds only where compatibility truly requires them, with the reason stated;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "matrix builds only where compatibility requires them",
+  "reason": null
+ },
+ {
+  "id": "C-29",
+  "text": "secrets and env vars listed and documented, never embedded in YAML;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "never embedded in YAML",
+  "reason": null
+ },
+ {
+  "id": "C-30",
+  "text": "environment protection: staging vs. production, protected branches, and manual approval for production;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "manual approval for production",
+  "reason": null
+ },
+ {
+  "id": "C-31",
+  "text": "a rollback command or procedure for every deploy job;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "rollback command or procedure for every deploy job",
+  "reason": null
+ },
+ {
+  "id": "C-32",
+  "text": "each pitfall from `pipeline-design-notes.md` checked and either addressed or marked not applicable;",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "addressed or marked N/A",
+  "reason": null
+ },
+ {
+  "id": "C-33",
+  "text": "how the change is validated before merge (YAML parses, run locally where possible, e.g. `act`), and which items are review checks rather than automated checks.",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "review checks rather than automated checks",
+  "reason": null
+ },
+ {
+  "id": "C-34",
+  "text": "Load the skill again before writing the pipeline itself, and add one optimization at a time (cache, matrix, split jobs).",
+  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "mustAppear": "one optimization at a time",
+  "reason": null
+ },
+ {
+  "id": "C-35",
+  "text": "The skill requires each persona to report at least one finding, so a review never comes back empty; \"no findings\" is never the goal.",
+  "disposition": "dropped",
+  "mustAppear": null,
+  "reason": "Restates the adversarial-reviewer skill's own at-least-one-finding rule; the consequence that matters (quota findings capped at WARNING) is kept in the reviewer overlay."
+ },
+ {
+  "id": "C-36",
+  "text": "One pass, every time. No re-runs, no loop.",
+  "disposition": "claude-md",
+  "mustAppear": "never re-run it",
+  "reason": null
+ },
+ {
+  "id": "C-37",
+  "text": "A spec or changeset that changes later for another reason gets its own single pass.",
+  "disposition": "claude-md",
+  "mustAppear": "A later change for another reason gets its own pass",
+  "reason": null
+ },
+ {
+  "id": "C-38",
+  "text": "**CRITICAL for a spec** means following the spec as written would cause data loss, a security hole, or an outage",
+  "disposition": "overlay:engineering-skills:adversarial-reviewer",
+  "mustAppear": "Could go wrong if implemented badly",
+  "reason": null
+ },
+ {
+  "id": "C-39",
+  "text": "CRITICAL: fix it, then raise it with the user (below).",
+  "disposition": "claude-md",
+  "mustAppear": "CRITICAL: fix, then raise",
+  "reason": null
+ },
+ {
+  "id": "C-40",
+  "text": "WARNING: fix it, or accept it with a one-line reason in the review note.",
+  "disposition": "claude-md",
+  "mustAppear": "accept with a one-line reason in the review note",
+  "reason": null
+ },
+ {
+  "id": "C-41",
+  "text": "NOTE: optional. Fix only if trivial; otherwise list it in the note.",
+  "disposition": "claude-md",
+  "mustAppear": "fix only if trivial, else list it",
+  "reason": null
+ },
+ {
+  "id": "C-42",
+  "text": "**Quota findings aren't CRITICAL.**",
+  "disposition": "overlay:engineering-skills:adversarial-reviewer",
+  "mustAppear": "is at most a WARNING",
+  "reason": null
+ },
+ {
+  "id": "C-43",
+  "text": "the promotion rule (2+ personas → one level up) never promotes a finding to CRITICAL unless it would be CRITICAL on its own",
+  "disposition": "overlay:engineering-skills:adversarial-reviewer",
+  "mustAppear": "never promotes a finding to CRITICAL unless it would be CRITICAL on its own",
+  "reason": null
+ },
+ {
+  "id": "C-44",
+  "text": "(a) the review had a CRITICAL you fixed, or (b) the review led to any change in the spec",
+  "disposition": "claude-md",
+  "mustAppear": "Triggered by a fixed CRITICAL or any review-driven spec change",
+  "reason": null
+ },
+ {
+  "id": "C-45",
+  "text": "Post the review note, say what was CRITICAL, what you changed and why (quote the spec change), then stop and wait for the user's go-ahead",
+  "disposition": "claude-md",
+  "mustAppear": "quote each spec change with its reason",
+  "reason": null
+ },
+ {
+  "id": "C-46",
+  "text": "Every generated or revised spec must be reviewed with `/engineering-skills:adversarial-reviewer` before it's approved or presented",
+  "disposition": "claude-md",
+  "mustAppear": "one adversarial pass, then present the spec with the review note",
+  "reason": null
+ },
+ {
+  "id": "C-47",
+  "text": "Keep a short note of what the review found and how each finding was handled (fixed, accepted with reason, or noted).",
+  "disposition": "claude-md",
+  "mustAppear": "review note",
+  "reason": null
+ },
+ {
+  "id": "C-48",
+  "text": "**Default (no \"manual review\"): the adversarial review is the approval.**",
+  "disposition": "superseded-by:FR-7",
+  "mustAppear": null,
+  "reason": "D-4 (2026-10-15): Claude now asks for the approval mode; the default is manual review with an adversarial pass. Adversarial approval remains as a selectable mode."
+ },
+ {
+  "id": "C-49",
+  "text": "If it had a CRITICAL you fixed, or changed the spec, raise it with the user (above) and approve only after their go-ahead.",
+  "disposition": "claude-md",
+  "mustAppear": "otherwise raise and wait",
+  "reason": null
+ },
+ {
+  "id": "C-50",
+  "text": "A spec is approved only when the user explicitly says so in their own words; until then it stays a draft.",
+  "disposition": "claude-md",
+  "mustAppear": "Only the user's explicit words approve",
+  "reason": null
+ },
+ {
+  "id": "C-51",
+  "text": "Don't mark it approved yourself (no `approved` label, status field, checkbox or \"Approved\" heading)",
+  "disposition": "claude-md",
+  "mustAppear": "set no approval marker yourself",
+  "reason": null
+ },
+ {
+  "id": "C-52",
+  "text": "and don't treat silence, a passing validation, or a reviewer verdict as approval.",
+  "disposition": "claude-md",
+  "mustAppear": "silence, a validator or a reviewer verdict never approves",
+  "reason": null
+ },
+ {
+  "id": "C-53",
+  "text": "Don't implement against the draft. Present it with the review note, then wait for the user.",
+  "disposition": "claude-md",
+  "mustAppear": "Don't implement against a draft",
+  "reason": null
+ },
+ {
+  "id": "C-54",
+  "text": "Any change at all to the spec after approval, however small, sends it back to draft and needs the user's explicit approval again.",
+  "disposition": "claude-md",
+  "mustAppear": "however small, returns it to draft",
+  "reason": null
+ },
+ {
+  "id": "C-55",
+  "text": "approve each spec yourself (apply the `approved` label/status, note on the issue that it was self-approved under \"no review\") and go on to implement.",
+  "disposition": "claude-md",
+  "mustAppear": "self-approve with a note saying so",
+  "reason": null
+ },
+ {
+  "id": "C-56",
+  "text": "It lasts only for that session",
+  "disposition": "superseded-by:FR-7",
+  "mustAppear": null,
+  "reason": "D-4 (2026-10-15): a stated mode covers the specs that prompt asks for, or the session only if the prompt says so."
+ },
+ {
+  "id": "C-57",
+  "text": "\"manual review\" on a specific issue still wins: that spec waits for the user.",
+  "disposition": "claude-md",
+  "mustAppear": "manual review beats \"no review\"",
+  "reason": null
+ },
+ {
+  "id": "C-58",
+  "text": "any change to an approved spec sends it back through adversarial review before it's re-approved; under \"no review\" you re-approve it yourself.",
+  "disposition": "claude-md",
+  "mustAppear": "A change to an approved spec re-enters its mode",
+  "reason": null
+ },
+ {
+  "id": "C-59",
+  "text": "review the full changeset (diff against the base branch) with `/engineering-skills:adversarial-reviewer`, once",
+  "disposition": "claude-md",
+  "mustAppear": "one pass on the full diff against the base branch",
+  "reason": null
+ },
+ {
+  "id": "C-60",
+  "text": "Note in the PR description what the review found and how each finding was handled.",
+  "disposition": "claude-md",
+  "mustAppear": "the PR description lists findings and their handling",
+  "reason": null
+ },
+ {
+  "id": "C-61",
+  "text": "run `/engineering-advanced-skills:ship-gate`. Merge only if it allows the merge.",
+  "disposition": "overlay:engineering-advanced-skills:ship-gate",
+  "mustAppear": "merge only if it allows the merge",
+  "reason": null
+ },
+ {
+  "id": "C-62",
+  "text": "If it blocks or raises issues, fix them (pushing to the PR branch, and giving the changed changeset one adversarial pass if it changes meaningfully) and run ship-gate again. Repeat until it allows the merge.",
+  "disposition": "overlay:engineering-advanced-skills:ship-gate",
+  "mustAppear": "Repeat until it allows the merge",
+  "reason": null
+ },
+ {
+  "id": "C-63",
+  "text": "Never merge past a ship-gate block.",
+  "disposition": "overlay:engineering-advanced-skills:ship-gate",
+  "mustAppear": "Never merge past a ship-gate block",
+  "reason": null
+ },
+ {
+  "id": "C-64",
+  "text": "These gates add to the user's authority; they don't replace it.",
+  "disposition": "claude-md",
+  "mustAppear": "add to the user's authority and never stand in for it",
+  "reason": null
+ },
+ {
+  "id": "C-65",
+  "text": "Merge on your own only when the user has authorized merging",
+  "disposition": "claude-md",
+  "mustAppear": "merge on your own only when the user has authorized merging",
+  "reason": null
+ },
+ {
+  "id": "C-66",
+  "text": "never treat a passing review or gate as user approval of a spec",
+  "disposition": "claude-md",
+  "mustAppear": "a reviewer verdict never approves",
+  "reason": null
+ },
+ {
+  "id": "C-67",
+  "text": "Default: treat a request as one issue / one spec, and don't split it or ask about splitting.",
+  "disposition": "claude-md",
+  "mustAppear": "One request is one issue and one spec by default; don't ask",
+  "reason": null
+ },
+ {
+  "id": "C-68",
+  "text": "Only if the scope looks big, use `/engineering-advanced-skills:spec-driven-workflow` to judge whether it fits one spec",
+  "disposition": "claude-md",
+  "mustAppear": "judge fit with `spec-driven-workflow`",
+  "reason": null
+ },
+ {
+  "id": "C-69",
+  "text": "If it clearly doesn't, ask the user whether to break it up, and recommend a split. Don't split without their yes.",
+  "disposition": "claude-md",
+  "mustAppear": "Never split without a yes",
+  "reason": null
+ },
+ {
+  "id": "C-70",
+  "text": "create one GitHub issue per piece up front, then fork each issue into its own subagent (`subagent_type: \"fork\"`), one per issue, launched in parallel",
+  "disposition": "claude-md",
+  "mustAppear": "one fork (`subagent_type: \"fork\"`) per issue, in parallel",
+  "reason": null
+ },
+ {
+  "id": "C-71",
+  "text": "Each fork stays open for its issue's whole lifecycle",
+  "disposition": "claude-md",
+  "mustAppear": "owns its issue through an opened PR",
+  "reason": null
+ },
+ {
+  "id": "C-72",
+  "text": "Route each approval, change request or question to the fork that owns that issue.",
+  "disposition": "claude-md",
+  "mustAppear": "Route each approval, change request or question to the fork that owns that issue",
+  "reason": null
+ },
+ {
+  "id": "C-73",
+  "text": "The coordinator never edits a spec's content itself, even with exact wording in hand.",
+  "disposition": "claude-md",
+  "mustAppear": "The coordinator never edits a spec",
+  "reason": null
+ },
+ {
+  "id": "C-74",
+  "text": "The owning fork makes every spec change and validates it with the evaluator.",
+  "disposition": "claude-md",
+  "mustAppear": "validates it with the spec validator",
+  "reason": null
+ },
+ {
+  "id": "C-75",
+  "text": "for \"manual review\" issues applies the approval label/status when the user approves",
+  "disposition": "claude-md",
+  "mustAppear": "the coordinator applies the approval label/status when the user approves",
+  "reason": null
+ },
+ {
+  "id": "C-76",
+  "text": "issues filed for bugs or follow-ups found along the way (not part of the user's request) are only filed.",
+  "disposition": "claude-md",
+  "mustAppear": "are only filed",
+  "reason": null
+ },
+ {
+  "id": "C-77",
+  "text": "FR-14: an existing skill with a SPEC.md updates the spec first, re-reviews it under its approval mode, and keeps its status in the spec's **Status:** line (spec rule, not in the baseline)",
+  "disposition": "claude-md",
+  "mustAppear": "update the spec first, re-review it under its mode, keep status in its `**Status:**` line",
+  "reason": null
+ },
+ {
+  "id": "C-78",
+  "text": "FR-7: for skill specs the review note goes in REVIEW-NOTE.md beside SPEC.md (spec rule, not in the baseline)",
+  "disposition": "claude-md",
+  "mustAppear": "the note in `REVIEW-NOTE.md` beside it",
+  "reason": null
+ }
+]

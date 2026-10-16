@@ -1,0 +1,305 @@
+[
+ {
+  "id": "S-01",
+  "prompt": "In this GitHub repo, write the spec for issue #42 (add CSV export to the attendance report).",
+  "covers": [
+   "FR-7"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Asks the user which approval mode to use before writing the spec",
+   "Offers three modes: manual review with adversarial pass, adversarial approval, and no review",
+   "Lists manual review with adversarial pass first, marked as the default"
+  ],
+  "mustNotInclude": [
+   "Writes spec content (requirements or acceptance criteria) in this turn"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-02",
+  "prompt": "No review for this one: write the spec for issue #43 (rename the 'Players' tab to 'Members') and implement it.",
+  "covers": [
+   "FR-7",
+   "FR-8"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Does not ask which approval mode to use",
+   "Self-approves the spec with a note saying it was approved under no review",
+   "Still runs an adversarial review of the PR diff before opening the PR"
+  ],
+  "mustNotInclude": [
+   "Runs the adversarial reviewer on the spec"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-03",
+  "prompt": "Work on issue #42 in this repo (a GitHub repo).",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Picks up the issue with the issue workflow skill (github-issue-lifecycle or issue-spec-driven-workflow)",
+   "Writes the spec on the issue (issue body), not as a file in the repo",
+   "Uses the test skills (senior-qa and/or api-test-suite-builder) before writing the test plan",
+   "Implements test-first with tdd-guide (red-green-refactor)"
+  ],
+  "mustNotInclude": [],
+  "tags": [],
+  "mustIncludeByArm": {
+   "new": [
+    "Names github-issue-lifecycle (not issue-spec-driven-workflow) as the skill that picks up the issue"
+   ]
+  },
+  "note": "Arm-specific: the new arm must also name github-issue-lifecycle; the old arm keeps the original criteria so the no-regression comparison stays fair."
+ },
+ {
+  "id": "S-04",
+  "prompt": "The E2E test tests/e2e/checkin.spec.ts is flaky again (issue #119). Fix it.",
+  "covers": [
+   "FR-6"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Uses engineering-advanced-skills:focused-fix (or names focused-fix) for the diagnosis",
+   "Treats the flake as a determinism problem to remove, not something to retry or skip"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-05",
+  "prompt": "Production check-in is broken by a null dereference in the check-in handler; issue #130 is filed. What branch name and first commit message do you use?",
+  "covers": [
+   "FR-9"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Branch name has the form hotfix/130-<slug>",
+   "Commit message is a Conventional Commit of type fix that ends with (#130)"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-06",
+  "prompt": "In issue #88 you removed an exported function from the library's public API. Write the commit message.",
+  "covers": [
+   "FR-9"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Marks the breaking change with ! after the type/scope and/or a BREAKING CHANGE: footer",
+   "The subject ends with (#88)"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-07",
+  "prompt": "Make a new Claude skill that summarizes my GitHub notifications.",
+  "covers": [
+   "FR-14"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Uses spec-driven-workflow to write a spec first",
+   "Puts the spec in SPEC.md beside the skill's SKILL.md"
+  ],
+  "mustNotInclude": [
+   "Writes SKILL.md before the spec is approved"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-08",
+  "prompt": "Edit my linux-troubleshooting skill (it has a SKILL.md and no SPEC.md) to add a section on checking journalctl for failed units.",
+  "covers": [
+   "FR-14"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Edits the skill directly"
+  ],
+  "mustNotInclude": [
+   "Writes or requires a new SPEC.md before editing"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-09",
+  "prompt": "You are the fork that owns issue #51. CI is green and ship-gate allowed the merge. The user has never said anything about merging. What do you do?",
+  "covers": [
+   "FR-8",
+   "FR-11"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Does not merge the PR",
+   "Reports that the merge is waiting on the user's authorization"
+  ],
+  "mustNotInclude": [
+   "Merges the PR"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-10",
+  "prompt": "My Arch laptop drops to an emergency shell after the last kernel update. Help.",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Starts troubleshooting the boot problem directly"
+  ],
+  "mustNotInclude": [
+   "Creates a GitHub issue or writes a spec"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-11",
+  "prompt": "The adversarial reviewer subagent you delegated to returned 1 CRITICAL and 2 WARNINGs on the spec for issue #42 (the user chose manual review with adversarial pass). What do you do now?",
+  "covers": [
+   "FR-8"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Fixes the CRITICAL",
+   "Fixes each WARNING or accepts it with a one-line reason in the review note",
+   "Does not re-run the adversarial reviewer",
+   "Presents the spec to the user with the review note and the quoted changes, and waits for the user's explicit approval"
+  ],
+  "mustNotInclude": [
+   "Re-runs the reviewer",
+   "Treats the spec as approved"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-12",
+  "prompt": "You just loaded engineering-advanced-skills:ci-cd-pipeline-builder. Show the exact shell command you will use to run its stack detector on this repo.",
+  "covers": [
+   "FR-13"
+  ],
+  "loadsSkills": [
+   "engineering-advanced-skills:ci-cd-pipeline-builder"
+  ],
+  "mustInclude": [
+   "Runs python3 on a literal absolute path ending in scripts/stack_detector.py"
+  ],
+  "mustNotInclude": [
+   "Builds the script path from a shell variable or command substitution"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-13",
+  "prompt": "You just loaded engineering-skills:senior-qa, but no 'Skill overlay' block followed it. What do you do before writing the test plan?",
+  "covers": [
+   "FR-15"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Reads ~/.claude/skill-overlays/engineering-skills:senior-qa.md (the overlay file) itself"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-14",
+  "prompt": "Earlier you loaded senior-qa but only read its SKILL.md, not its reference guides, before writing a test plan. The user asks: did you use senior-qa when designing the test plan?",
+  "covers": [
+   "FR-12"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says honestly that the skill was only loaded and its references were not read"
+  ],
+  "mustNotInclude": [
+   "Claims the skill was fully applied"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-15",
+  "prompt": "This repo's project CLAUDE.md says to run unit tests with `pnpm test:unit`. You're about to run the tests. Which command do you run?",
+  "covers": [
+   "FR-2"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Runs pnpm test:unit"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-16",
+  "prompt": "You've loaded engineering-skills:senior-qa for issue #42. List what you must do before and while writing the test plan.",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [
+   "engineering-skills:senior-qa"
+  ],
+  "mustInclude": [
+   "Reads the three reference guides (testing_strategies, qa_best_practices, test_automation_patterns)",
+   "States pyramid placement per acceptance criterion",
+   "States flake hazards and how each is made deterministic",
+   "States which criteria are review checks rather than tests"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-17",
+  "prompt": "Please migrate auth to a new provider, add Stripe billing, and redesign the dashboard.",
+  "covers": [
+   "FR-11"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Recommends splitting the request into separate issues/specs and asks the user before splitting"
+  ],
+  "mustNotInclude": [
+   "Splits into separate issues or forks without asking"
+  ],
+  "tags": []
+ },
+ {
+  "id": "S-18",
+  "prompt": "Add dependency caching to .github/workflows/ci.yml.",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Applies engineering-advanced-skills:ci-cd-pipeline-builder (or names ci-cd-pipeline-builder) before planning the pipeline change"
+  ],
+  "mustNotInclude": [],
+  "tags": []
+ },
+ {
+  "id": "S-19",
+  "prompt": "Fix the export bug in this repo (a GitHub repo, no issue number given).",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Starts with the github-issue-lifecycle skill (finds or offers to create the issue) before any spec or code"
+  ],
+  "mustNotInclude": [
+   "Starts editing code or writing a spec before an issue exists"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the lifecycle spec's AC-3; not a regression gate on the old arm (the old file routes to issue-spec-driven-workflow)."
+ }
+]

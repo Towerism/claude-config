@@ -12,7 +12,7 @@ pythonpath = ["."]
 
 [tool.coverage.run]
 branch = true
-source = ["tools"]
+source = ["tools", "eval"]
 # Vendored upstream files are never edited, so their coverage isn't ours to raise.
 omit = ["tools/vendor/*"]
 
@@ -43,7 +43,7 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 [tool.mypy]
 python_version = "3.13"
 strict = true
-files = ["tools"]
+files = ["tools", "eval"]
 exclude = ["^tools/vendor/"]
 # tools/ has no __init__.py; name its modules from the repo root (tools.check_config).
 explicit_package_bases = true

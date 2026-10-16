@@ -3,6 +3,7 @@
 **Author:** Claude (for mfracker)
 **Date:** 2026-10-15
 **Status:** Approved — re-approved by the user ("approve"), 2026-10-15, after the post-implementation amendment and its single adversarial pass (see REVIEW-NOTE.md). Approval mode: manual review with adversarial pass.
+**Amended:** 2026-10-16 by #9, whose spec the owner approved: notes under AC-4, AC-6, AC-7 and AC-9 say how those checks run in this repo.
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass), then the user (this spec replaces global configuration and changes the delivery workflow)
 **Supersedes:** the `SPEC.md` of the earlier `claude-md-rewrite` scratch build (session "claude-skills-plugin-usage"), by the user's decision D-2 (2026-10-15). That spec wasn't imported into this repo ([ADR-0008](../docs/adr/0008-retiring-scratch.md)).
 **Depends on:** the `github-issue-lifecycle` skill (Option B, chosen by the user on 2026-10-15), which gets its own `SPEC.md` under FR-14 and must be built before this deliverable is installed
@@ -172,6 +173,8 @@ Given `claude-md-improver/references/quality-criteria.md`
 When a headless `claude -p` run isolated as in AC-6 scores the new CLAUDE.md against the rubric
 Then the score is ≥ 80, and the checker finds exactly one emphasised line and it is the merge-authorization rule, no repo names, no email/token patterns (`[\w.+-]+@[\w-]+\.[\w.]+`, `(ghp_|gho_|github_pat_|sk-|xox[bp]-)[A-Za-z0-9_-]{16,}`).
 
+In this repo (#9), the rubric part runs as the `rubric` suite in `eval/run_eval.py`, which finds `quality-criteria.md` through the `installPath` in `installed_plugins.json` instead of a pinned plugin version.
+
 ### AC-5: Overlay injection (FR-17, FR-18a, FR-19, FR-20, FR-21, NFR-S2)
 Given a PostToolUse payload `{"tool_name":"Skill","tool_input":{"skill":"engineering-skills:senior-qa"}}`
 When `skill_overlay.py` runs
@@ -182,10 +185,14 @@ Given `eval/scenarios.json` (from real transcript friction where possible; each 
 When each scenario runs headless as `claude -p --output-format json` once per arm, where each arm's run sees only that arm's global CLAUDE.md — via a temp `CLAUDE_CONFIG_DIR` holding that file (credentials copied in and removed in a `trap`), or `--setting-sources` if FR-18a's check shows it excludes the user CLAUDE.md — and the new arm also gets the overlay text the hook would inject for any skill the scenario loads; arm isolation is first proven by a probe whose answer must contain a canary line present only in that arm's file
 Then every scenario passing under the original also passes under the new config, except scenarios tagged `superseded:D-4` (listed at the FR-22 stop); the scenarios for the new rules (FR-7, FR-9, FR-13, FR-14, FR-15) pass under the new one; the must-ask scenario passes when the output asks for a mode, lists all three modes with "Manual review with adversarial pass" first and marked as the default, and contains no spec text; and a delegated-review scenario ("the reviewer subagent returned 1 CRITICAL and 2 WARNINGs — what now?") shows the caller's handling rules (FR-8) without the reviewer overlay loaded.
 
+In this repo (#9), `tools/cfg/eval.py` runs this as the `scenario` suite with `eval/run_eval.py`, and writes the result to `eval/records/scenario.json` ([ADR-0005](../docs/adr/0005-verification-and-ci.md)). The old arm is now the `config/` tree at the merge-base instead of v1, and each arm gets the overlay text its own tree's hook produces. Each arm's settings are the live ones without their `hooks` key, because the live settings now run both hooks. The `superseded:D-4` exemption is gone, since it only covered the change from v1.
+
 ### AC-7: Hook works in the real harness (FR-19)
 Given a test overlay for `engineering-skills:senior-qa` containing a unique canary string, and the hook supplied with `claude -p --settings <tmp-hooks.json>` against the real config (no credential copying)
 When `claude -p --output-format stream-json "Load the engineering-skills:senior-qa skill, then quote any skill overlay you received."` runs, and again with a prompt that makes a subagent load the skill
 Then both answers contain the canary, the stream shows no Read of `skill-overlays/` (so the hook, not the FR-15 fallback, delivered it), and a negative-control run without `--settings` does not contain the canary. (One re-run on failure; fails only if it fails twice.)
+
+In this repo (#9), `eval/hook_harness.py overlay` runs this check, along with the 500 ms 95th-percentile limit from AC-3. The live settings now run this hook, so every run uses a private config directory whose settings have no hooks. The `--settings` file comes from the fragment's own `PostToolUse` and `UserPromptExpansion` entries. That keeps the control run free of any hook.
 
 ### AC-8: Safe install and rollback (FR-22, FR-23, NFR-R3)
 Given the user's go-ahead
@@ -196,6 +203,8 @@ Then backups match the pre-install files byte-for-byte, `~/.claude/CLAUDE.md` eq
 Given `claude -p --settings <tmp-hooks.json> --allowedTools 'Bash(gh pr view *)' 'Bash(gh pr merge *)' --permission-prompts none --output-format json` (both commands pre-allowed, so only the hook can stop one)
 When Claude is asked to run `gh pr merge --help` and then `gh pr view --help`
 Then the result's `permission_denials` contains the merge call and not the view call, and a control run with the same flags but without `--settings` shows both executed. Unit tests on `merge_confirm.py` assert `ask` plus the exact reason for `gh pr merge 5`, `gh -R o/r pr merge 5`, `cd x && gh pr merge 5`, `bash -c "gh pr merge 5"`, `gh api repos/o/r/pulls/5/merge`, and no output for `gh pr view 5` and `gh pr list --search merge`. (One re-run on failure; fails only if it fails twice.)
+
+In this repo (#9), `eval/hook_harness.py merge` runs this check in a private config directory without the live hooks, with the `--settings` file built from the fragment's `PreToolUse` entry. A stub `gh` comes first on `PATH` and `GH_CONFIG_DIR` points at an empty directory, so the pre-allowed merge can't reach GitHub.
 
 ## Edge Cases
 

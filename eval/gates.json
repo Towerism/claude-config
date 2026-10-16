@@ -1,0 +1,93 @@
+{
+  "suites": {
+    "scenario": {
+      "runner": "scenario",
+      "paths": [
+        "config/CLAUDE.global.md",
+        "config/skill-overlays/**",
+        "config/hooks/skill_overlay.py",
+        "eval/scenarios.json",
+        "eval/clauses.json"
+      ],
+      "harness": [
+        "eval/run_eval.py"
+      ],
+      "compareBase": true
+    },
+    "rubric": {
+      "runner": "rubric",
+      "paths": [
+        "config/CLAUDE.global.md"
+      ],
+      "harness": [
+        "eval/run_eval.py"
+      ]
+    },
+    "hook-overlay": {
+      "runner": "hook-overlay",
+      "paths": [
+        "config/hooks/skill_overlay.py"
+      ],
+      "selectors": [
+        {
+          "file": "config/settings.fragment.json",
+          "pointer": "/hooks/PostToolUse"
+        },
+        {
+          "file": "config/settings.fragment.json",
+          "pointer": "/hooks/UserPromptExpansion"
+        }
+      ],
+      "harness": [
+        "eval/hook_harness.py"
+      ]
+    },
+    "hook-merge": {
+      "runner": "hook-merge",
+      "paths": [
+        "config/hooks/merge_confirm.py"
+      ],
+      "selectors": [
+        {
+          "file": "config/settings.fragment.json",
+          "pointer": "/hooks/PreToolUse"
+        }
+      ],
+      "harness": [
+        "eval/hook_harness.py"
+      ]
+    },
+    "lifecycle-trigger": {
+      "runner": "script",
+      "script": "config/skills/github-issue-lifecycle/evals/run_trigger_evals.py",
+      "paths": [
+        "config/skills/github-issue-lifecycle/evals/trigger-evals.json"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/github-issue-lifecycle/SKILL.md",
+          "part": "description"
+        }
+      ],
+      "harness": [
+        "config/skills/github-issue-lifecycle/evals/run_trigger_evals.py"
+      ]
+    },
+    "lifecycle-behaviour": {
+      "runner": "script",
+      "script": "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py",
+      "paths": [
+        "config/skills/github-issue-lifecycle/evals/evals.json"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/github-issue-lifecycle/SKILL.md",
+          "part": "body"
+        }
+      ],
+      "harness": [
+        "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py"
+      ]
+    }
+  }
+}

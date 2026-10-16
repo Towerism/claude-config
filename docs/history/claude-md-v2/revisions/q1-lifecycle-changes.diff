@@ -1,0 +1,37 @@
+--- SPEC.pre-q1.md	2026-10-15 21:23:36.540276644 -0500
++++ SPEC.md	2026-10-15 21:24:19.476317237 -0500
+@@ -2,7 +2,7 @@
+ 
+ **Author:** Claude (for mfracker)
+ **Date:** 2026-10-15
+-**Status:** Approved — by the user ("approve"), 2026-10-15. Approval mode: manual review with adversarial pass; single adversarial pass done (run in the same context; see REVIEW-NOTE.md).
++**Status:** Draft — amended for user decision Q-1 (install location of the old skill); approval mode manual review with adversarial pass; single adversarial pass on this change pending, then the user's re-approval
+ **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass), then the user
+ **Related specs:** `~/dev/scratch/claude-md-v2/SPEC.md` (approved CLAUDE.md v2: FR-4, FR-7, FR-8, FR-9, FR-11, FR-14, FR-17, FR-23, FR-24); `~/.claude/skills/issue-spec-driven-workflow/SPEC.md` (the skill this one replaces)
+ 
+@@ -69,7 +69,7 @@
+   - `expected_outputs/` (the sample-run outputs `script_tester.py` compares against).
+ 
+   Every reference MUST be linked directly from SKILL.md, one level deep.
+-- FR-3: Until the v2 install step (v2 FR-23), SKILL.md and its bundle MUST be built in a staging directory, `~/dev/scratch/claude-md-v2/staging/github-issue-lifecycle/`. Only `SPEC.md` and `REVIEW-NOTE.md` live in `~/.claude/skills/github-issue-lifecycle/` before then. That way the new and old skills never both trigger on "#42". Install copies the staged bundle in during the same step that moves `issue-spec-driven-workflow` out. The approved v2 FR-23 doesn't list that copy yet, so it is a v2 amendment for the user to approve (see Open questions). Until then, the v2 checker runs with `--skill-root ~/dev/scratch/claude-md-v2/staging` so the name resolves.
++- FR-3: Until the v2 install step (v2 FR-23), SKILL.md and its bundle MUST be built in a staging directory, `~/dev/scratch/claude-md-v2/staging/github-issue-lifecycle/`. Only `SPEC.md` and `REVIEW-NOTE.md` live in `~/.claude/skills/github-issue-lifecycle/` before then. That way the new and old skills never both trigger on "#42". Install copies the staged bundle in during the same step that moves `issue-spec-driven-workflow` to `~/.old-claude/skills/` (v2 FR-23 step 4, user decision Q-1). Until then, the v2 checker runs with `--skill-root ~/dev/scratch/claude-md-v2/staging` so the name resolves.
+ 
+ ### Start: issue selection and claiming
+ - FR-4: An issue key in the prompt MUST select that issue. Accepted forms: `#N`, `GH-N`, `issue N`, `owner/repo#N`, an issue URL. With no key, the skill MUST search open issues, then all issues, and ask the user to choose. The question offers at most 3 candidates plus an always-present `Create a new issue` option, even when there is one clear match.
+@@ -346,7 +346,7 @@
+ - OS-3: Branch protection, commitlint and git hooks. These are repo setup, filed as follow-ups (v2 OS-4).
+ - OS-4: Renaming existing `{N}-slug` branches.
+ - OS-5: The merge-confirm hook itself (v2 FR-24) and the merge authorization rule (v2 FR-8). This skill only respects them.
+-- OS-6: Deleting `issue-spec-driven-workflow`. v2 FR-23 moves it out at install and deletes it only after the user confirms.
++- OS-6: Deleting `issue-spec-driven-workflow`. v2 FR-23 moves it to `~/.old-claude/skills/` at install; Claude never deletes it.
+ - OS-7: Release and tag creation, which belongs to semantic-release.
+ 
+ ---
+@@ -400,5 +400,5 @@
+ - That the description doesn't over-trigger in real use (watched for the first two weeks).
+ 
+ ## Open questions for the user
+-- **Q-1 (v2 amendment):** v2 FR-23's install step needs one more action: "copy the staged `github-issue-lifecycle` bundle into `~/.claude/skills/` in the same step that moves `issue-spec-driven-workflow` out". Changing the approved v2 spec sends it back to draft for your approval. Alternative: install this skill on its own first, which means a window where both skills trigger on "#42".
+-- **Q-2 (manual-mode label):** The coordinator's brief said "Claude never sets `approved` in manual mode". This spec instead lets Claude apply `approved` only to record your explicit approval words, with a quoting comment (FR-11), matching v2's coordinator relay. The alternative is that you always apply the label yourself in GitHub. Which do you want?
++- **Q-1 (resolved 2026-10-15):** install copies this bundle into `~/.claude/skills/` and moves the old skill to `~/.old-claude/skills/`; v2 FR-23 amended accordingly.
++- **Q-2 (resolved 2026-10-15; the user confirmed: "your assumption is correct" — FR-11 stands):** The coordinator's brief said "Claude never sets `approved` in manual mode". This spec instead lets Claude apply `approved` only to record your explicit approval words, with a quoting comment (FR-11), matching v2's coordinator relay. The alternative is that you always apply the label yourself in GitHub. Which do you want?

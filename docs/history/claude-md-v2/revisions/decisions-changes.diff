@@ -1,0 +1,174 @@
+--- SPEC.pre-decisions.md	2026-10-15 18:28:19.109205597 -0500
++++ SPEC.md	2026-10-15 18:28:25.614865650 -0500
+@@ -2,9 +2,9 @@
+ 
+ **Author:** Claude (for mfracker)
+ **Date:** 2026-10-15
+-**Status:** Draft — adversarial pass done (BLOCK: 2 CRITICAL fixed, 6 WARNING fixed, 5 NOTE fixed); awaiting the user's go-ahead
++**Status:** Draft — revised with the user's decisions D-1/D-2/D-3; second single adversarial pass (on the changed spec) pending
+ **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass), then the user (this spec replaces global configuration and changes the delivery workflow)
+-**Supersedes:** `~/dev/scratch/claude-md-rewrite/SPEC.md` (session "claude-skills-plugin-usage"), if the user agrees — see OS-6
++**Supersedes:** `~/dev/scratch/claude-md-rewrite/SPEC.md` (session "claude-skills-plugin-usage"), by the user's decision D-2 (2026-10-15)
+ **Depends on:** the `github-issue-lifecycle` skill (Option B, chosen by the user on 2026-10-15), which gets its own `SPEC.md` under FR-14 and must be built before this deliverable is installed
+ 
+ ---
+@@ -19,7 +19,7 @@
+ 2. **Everything is always loaded.** About 70% of the file (CI/CD checklist, test-plan checklist, reviewer severity rules, ship-gate loop) matters only while one specific skill is active. Skills exist precisely to load such detail on demand (progressive disclosure); paying for it in every session — including Arch troubleshooting and research — dilutes the rules that apply everywhere.
+ 3. **It overrides skills by restating them.** Rules like "spec lives on the issue, not in `specs/*.md`" contradict the loaded skill's own text, and the transcripts show Claude follows the loaded skill over a distant general rule. A correction delivered *at the moment the skill loads* sits next to the text it overrides.
+ 4. **Monolithic custom skill.** `issue-spec-driven-workflow` (≈4,200 words) is a fork of upstream `spec-driven-workflow` plus ≈2,200 words of GitHub procedure; it misses upstream improvements. The user chose to make skills modular and let CLAUDE.md weave them together (Option B: a lifecycle-only `github-issue-lifecycle` skill + upstream `spec-driven-workflow`).
+-5. **Gaps found by the coverage review** of the previous spec (2026-10-15, 0 CRITICAL / 7 WARNING): repos without a project CLAUDE.md (only play-pokemon-attendance has one; selfhost-kit's release rules live only in `docs/releasing.md`), routed skills replacing instead of nesting inside the issue workflow, work with no issue (Renovate PRs, hotfixes), background-job/STOP semantics, merge-grant scope, non-code tasks, cross-repo ordering, ADR edits, synced skills.
++5. The previous session's coverage review proposed further rules (W1–W7, N1–N3); the user voided them (D-1), so they are not part of this spec.
+ 
+ Decisions already made by the user in that conversation and carried here as constraints: Option B; adopt `standards/git/git-workflow-standards.md` with the adaptations listed in FR-9 (Conventional Commits, `type/{issue}-{slug}` branches, hotfix flow, delete merged branches; reject manual tags and the claude-skills scope list); spikes keep full TDD; keep per-commit history (no squash); `claude-md-management` installed and used; new skills always use `spec-driven-workflow`, existing skills only when a `SPEC.md` sits beside the `SKILL.md`; the user is "fine with changing details about how I work".
+ 
+@@ -27,7 +27,7 @@
+ 
+ | Layer | Loaded | Holds | Why this layer |
+ |---|---|---|---|
+-| `~/.claude/CLAUDE.md` | Every session | Authority (who approves/merges, STOP), the pipeline weave (which skill at which stage), git conventions, precedence, skill-authoring rule | Applies broadly; short enough to be followed |
++| `~/.claude/CLAUDE.md` | Every session | Authority (who approves and merges), the pipeline weave (which skill at which stage), git conventions, precedence, skill-authoring rule | Applies broadly; short enough to be followed |
+ | `~/.claude/skill-overlays/<skill>.md` | Injected when that skill loads | The user's policy for that skill: references to read (as absolute paths), plan checklists, stack translation, storage overrides, severity handling | Progressive disclosure; arrives next to the text it amends |
+ | PostToolUse + UserPromptSubmit hooks (`~/.claude/hooks/skill_overlay.py`) | Harness, deterministic | Injects the overlay; never depends on Claude remembering | "Must happen every time" ⇒ hook |
+ | `github-issue-lifecycle` skill (separate spec) | When a repo change starts/ends | Issue pickup/creation, labels, spec markers in the issue body, branch/worktree naming, PR with `Closes #N` | Procedure, used only in repos |
+@@ -58,17 +58,17 @@
+ 
+ ### B. The global CLAUDE.md
+ 
+-- FR-2: **precedence** — It MUST state that a project `CLAUDE.md` wins on project specifics (commands, paths, conventions), and that `[D-1:W1]` in a repo **without** one Claude reads `README`, `docs/` (architecture, ADRs, releasing/deploy) and `package.json` scripts before changing anything.
+-- FR-3: **when the delivery pipeline applies** `[D-1:W7]` — It MUST state that the pipeline in FR-4 applies to changes in a git repo with a GitHub remote, and that troubleshooting, research, reports and questions need no issue or spec.
++- FR-2: **precedence** — It MUST state that a project `CLAUDE.md` wins on project specifics (commands, paths, conventions), and that the global file holds only cross-project rules.
++- (Former FR 3 — withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
+ - FR-4: **pipeline weave** — It MUST name, in order, the skill used at each stage of a repo change, as a compact ordered list:
+-  1. New project or major design: `engineering-skills:senior-architect` drafts architecture doc + ADRs before feature work; user reviews; ADRs are then the source of truth and departures need a new/updated ADR; ADR edits also go through senior-architect `[D-1:N2]`.
++  1. New project or major design: `engineering-skills:senior-architect` drafts architecture doc + ADRs before feature work; user reviews; ADRs are then the source of truth and departures need a new/updated ADR;
+   2. Start: `github-issue-lifecycle` (find or offer to create the issue, assign, label, branch/worktree).
+   3. Spec: `engineering-advanced-skills:spec-driven-workflow`, stored where the lifecycle skill says (issue body).
+   4. Test plan: `engineering-skills:senior-qa` and/or `engineering-advanced-skills:api-test-suite-builder` (HTTP routes), before the spec's test plan is written and again before the tests themselves. Pipelines: any change to `.github/workflows/*`, `.gitlab-ci.yml`, deploy jobs or the scripts they call → `engineering-advanced-skills:ci-cd-pipeline-builder` before the pipeline plan and again before writing YAML.
+   5. Implement: `engineering-skills:tdd-guide` for all code (red-green-refactor).
+   6. Review: `engineering-skills:adversarial-reviewer` — once on the spec, once on the PR diff.
+   7. Merge: `engineering-advanced-skills:ship-gate`, then `github-issue-lifecycle` closes out.
+-- FR-5: **specialist skills nest, never replace** `[D-1:W2]` — It MUST state that specialist skills (table in FR-6) are applied *inside* the FR-4 stage they serve, never instead of the issue/spec/review stages.
++- (Former FR 5 — withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
+ - FR-6: **non-obvious routing only** — It MUST contain a routing table limited to work whose skill would not reliably auto-trigger from its description or where the user picked a specific skill. Each row MUST cite why it is there (a transcript miss, or the user's pick, or a skill whose description doesn't name the user's trigger); rows whose skill auto-triggers from its description are dropped. Candidate rows: flaky tests/bugs → `focused-fix`; schema/data migrations → `migration-architect` (+ `database-schema-designer` for new schemas); HTTP or published-library API changes → `api-design-reviewer`; auth/session/secrets/PII → `senior-security`; dependency/bot PRs → `dependency-auditor`; deploy/ops docs → `senior-devops`, `runbook-generator`; multi-agent orchestration → `agent-workflow-designer`; CLAUDE.md upkeep → `claude-md-improver` / `/revise-claude-md`. (`linux-troubleshooting`, `senior-security` and `claude-md-improver` stay only if a transcript shows they failed to trigger.) Skills not listed are used when their description fits or the user asks.
+ - FR-7: **authority — approval modes** — It MUST state the three spec-approval modes, with these clauses intact:
+   - Every generated or revised spec gets the single adversarial pass before it is approved **or presented** (except under "no review").
+@@ -78,23 +78,20 @@
+   - Any change to an approved spec re-enters review (default/manual) or self-re-approval ("no review").
+ - FR-8: **authority — raising and merging** — It MUST state:
+   - Raise = post the review note, say what was CRITICAL, quote each spec change with its reason, then stop until the user's go-ahead — triggered by a fixed CRITICAL or any review-driven spec change (including a PR review that changed the spec).
+-  - Merge only with the user's authorization. This is one of the two emphasised lines (FR-16). `[D-1:W5]` A grant covers exactly the issues or session the user names; the coordinator relays it to forks in scope. Gates (review, ship-gate) add to the user's authority and never stand in for it.
+-  - `[D-1:W4]` "STOP"/"hold off" from the user halts every agent and background job of the session until the user resumes them.
++  - Merge only with the user's authorization. This is the one emphasised line (FR-16); FR-24 also enforces it with a hook. A fork merges only when the coordinator relays the user's authorization. Gates (review, ship-gate) add to the user's authority and never stand in for it.
+   - Handling a review (the caller's rules, wherever the reviewer runs): one pass per spec or changeset, never re-run — not after fixes, not after a CRITICAL, not for "iterate until green" (that means fixing CI and re-running ship-gate); a later change for another reason gets its own pass. CRITICAL → fix, then raise; WARNING → fix, or accept with a one-line reason in the review note; NOTE → fix only if trivial, else list it. Before opening a PR, one pass on the full diff against the base branch, and the PR description notes what it found and how each finding was handled.
+   - Before reporting work done or opening a PR, run the repo's test/lint/typecheck commands and quote the result ("give Claude a way to verify its work").
+ - FR-9: **git conventions, adapted from git-workflow-standards** — It MUST state: Conventional Commits whose type matches the change's release impact (`feat`/`fix`/`!` + `BREAKING CHANGE:` footer drive semantic-release), subject ends with `(#N)`; branches `feature|fix|hotfix|docs|chore/{issue}-{slug}`, worktree named the same; atomic commits; per-commit history (merge commit or rebase, no squash), so every commit on the branch must itself be a Conventional Commit; delete the branch after merge; never commit to or force-push the default branch; roll back with `git revert`; semantic-release, not humans, creates tags.
+-- FR-10: **work without an issue** `[D-1:W3]` — It MUST state: offer to create an issue; bot/dependency PRs need no spec — `dependency-auditor`, then the PR gates (one adversarial pass only if Claude changed the diff, ship-gate, merge only if authorized); a hotfix gets an issue, a `hotfix/` branch, and the user may say "no review" for it.
++- (Former FR 10 — withdrawn — the user voided the previous session's coverage-review fixes (D-1, 2026-10-15).)
+ - FR-11: **splitting and forks** — It MUST state:
+   - One request = one issue/spec by default, no asking. Only if scope looks big, judge fit with `spec-driven-workflow`; if it clearly doesn't fit one spec, recommend a split and ask; never split without a yes.
+-  - On a yes: one issue per piece up front, one fork (`subagent_type: "fork"`) per issue in parallel, one worktree per issue written only by its fork `[D-1:W4]`. Each fork owns its issue's lifecycle through an opened PR, approves under FR-7 like any session, and merges only with relayed authorization (FR-8). Approvals, change requests and questions go to the owning fork; the coordinator never edits a spec itself; the owning fork makes every spec change and validates it with the spec validator.
+-  - `[D-1:N1]` Cross-repo work: one linked issue per repo; the dependency ships before the consumer bumps it.
+-  - `[D-1:W4]` A fork's or background job's final handoff names the issue, PR URL or blocker, spec status, and what it is waiting on.
++  - On a yes: one issue per piece up front, one fork (`subagent_type: "fork"`) per issue in parallel,  Each fork owns its issue's lifecycle through an opened PR, approves under FR-7 like any session, and merges only with relayed authorization (FR-8). Approvals, change requests and questions go to the owning fork; the coordinator never edits a spec itself; the owning fork makes every spec change and validates it with the spec validator.
+   - Bugs/follow-ups found along the way are only filed: no fork, assignee, `in progress` label, or same-day work unless the user asks.
+ - FR-12: **skill application honesty** — It MUST state that when asked whether a skill was used, Claude answers how deeply it was applied (loaded only / references read / outputs used).
+ - FR-13: **plugin scripts** — It MUST state that skill scripts are run as `python3 -I <literal absolute path>` (the overlay supplies the path; otherwise "Base directory for this skill" + relative path), never via a shell variable or command substitution, and only scripts shipped inside the loaded skill.
+-- FR-14: **skill authoring** — It MUST state: new skills always use `spec-driven-workflow` with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already beside its `SKILL.md` (spec updated first, re-reviewed under FR-7, approval status in the spec's `**Status:**` line, review note saved beside it); skills without one are edited directly; `skill-creator` guides structure and `skill-tester` validates; third-party skills are vetted with `skill-security-auditor` before install; `[D-1:N3]` skills under `~/.claude/skills/synced/` are edited only on claude.ai.
++- FR-14: **skill authoring** — It MUST state: new skills always use `spec-driven-workflow` with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already beside its `SKILL.md` (spec updated first, re-reviewed under FR-7, approval status in the spec's `**Status:**` line, review note saved beside it); skills without one are edited directly; `skill-creator` guides structure and `skill-tester` validates; third-party skills are vetted with `skill-security-auditor` before install; 
+ - FR-15: **overlay fallback** — It MUST contain one line telling Claude that if a skill loads and no "Skill overlay" block follows it, Claude reads `~/.claude/skill-overlays/<skill-name>.md` itself when that file exists.
+-- FR-16: **style** — It MUST be written as direct imperatives with a one-clause reason where the reason changes behaviour; emphasis (`IMPORTANT`) on at most two lines, the rules actually violated before — merge only with authorization (violated 10-12) and STOP/hold off — and on no other line; no generic advice the model already follows (e.g. "write clean code"); no repo names; no section duplicating another.
++- FR-16: **style** — It MUST be written as direct imperatives with a one-clause reason where the reason changes behaviour; emphasis (`IMPORTANT`) on exactly one line, the rule actually violated before — merge only with authorization (violated 10-12); no generic advice the model already follows (e.g. "write clean code"); no repo names; no section duplicating another.
+ 
+ ### C. Skill overlays
+ 
+@@ -115,9 +112,11 @@
+ - FR-20: **user-typed slash commands** — A `UserPromptExpansion` hook (or, if FR-18a shows it doesn't carry the skill name, a `UserPromptSubmit` hook) MUST run the same script in prompt mode: if the prompt starts with `/<skill-name>` for a skill that has an overlay, it injects the same `additionalContext`.
+ - FR-21: **fail visible, never block** — On any internal error (bad JSON, unreadable overlay, unresolvable skill directory) the script MUST exit 0, inject `Skill overlay for <skill> could not be loaded (<reason>); read ~/.claude/skill-overlays/<skill>.md manually.` when the skill name is known, and write the traceback to stderr. It MUST never block a tool call or prompt.
+ 
++- FR-24: **merge confirmation hook** (user decision D-3) — A `PreToolUse` hook with matcher `Bash` and `if: "Bash(gh pr merge *)"` MUST return `hookSpecificOutput.permissionDecision: "ask"` with `permissionDecisionReason` "Merging needs your confirmation (global rule: merge only with your authorization)", so every `gh pr merge` — in the main session, forks and subagents — waits for the user's click even when Claude believes it is authorized. It MUST NOT deny, and MUST NOT match other `gh` commands.
++
+ ### E. Rollout
+ 
+-- FR-22: **review stop** — Before install, Claude MUST present to the user: the new CLAUDE.md, the overlays, the clause inventory's `dropped` and `superseded-by` rows, the eval results (AC-6/AC-7), and the token figures; installation waits for the user's go-ahead. Each `[D-1:…]` item ships only with the user's explicit yes for that item; any item without one is removed (silence = not included), along with its scenarios in AC-6.
++- FR-22: **review stop** — Before install, Claude MUST present to the user: the new CLAUDE.md, the overlays, the clause inventory's `dropped` and `superseded-by` rows, the eval results (AC-6/AC-7), and the token figures; installation waits for the user's go-ahead.
+ - FR-23: **install & rollback** — Install MUST:
+   1. Abort unless the sha256 of the live `~/.claude/CLAUDE.md` equals `claude-md-rewrite/baseline/CLAUDE.md.orig` (the inventory's source); otherwise rebuild `eval/clauses.json` from the live file and re-run AC-1 and AC-6 first.
+   2. Back up `~/.claude/CLAUDE.md`, `~/.claude/settings.json` and `~/.claude/skills/issue-spec-driven-workflow/` to `~/.claude/backups/claude-md-v2-<timestamp>/`.
+@@ -165,17 +164,17 @@
+ ### AC-4: Quality rubric (NFR-M3, FR-16)
+ Given `claude-md-improver/references/quality-criteria.md`
+ When a headless `claude -p` run isolated as in AC-6 scores the new CLAUDE.md against the rubric
+-Then the score is ≥ 80, and the checker finds no emphasis beyond two lines, no repo names, no email/token patterns (`[\w.+-]+@[\w-]+\.[\w.]+`, `(ghp_|gho_|github_pat_|sk-|xox[bp]-)[A-Za-z0-9_-]{16,}`).
++Then the score is ≥ 80, and the checker finds no emphasis beyond one line, no repo names, no email/token patterns (`[\w.+-]+@[\w-]+\.[\w.]+`, `(ghp_|gho_|github_pat_|sk-|xox[bp]-)[A-Za-z0-9_-]{16,}`).
+ 
+ ### AC-5: Overlay injection (FR-17, FR-18a, FR-19, FR-20, FR-21, NFR-S2)
+ Given a PostToolUse payload `{"tool_name":"Skill","tool_input":{"skill":"engineering-skills:senior-qa"}}`
+ When `skill_overlay.py` runs
+ Then stdout is JSON whose `hookSpecificOutput.additionalContext` starts `Skill overlay for engineering-skills:senior-qa:` and contains the absolute path of `references/testing_strategies.md`; a skill with no overlay yields empty output and exit 0; a prompt `/engineering-skills:senior-qa plan tests` in prompt mode yields the same context; malformed JSON, a missing overlay directory, or skill `../../etc/passwd` yields exit 0 and no file read outside the allowed roots.
+ 
+-### AC-6: Behaviour preserved and improved — scenario eval (FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15)
+-Given `eval/scenarios.json` (from real transcript friction where possible; each FR-2…FR-15 covered at least once; includes "work on #42 in a repo", "fix the flaky test", "Renovate PR", "hotfix", "make a new skill", "edit linux-troubleshooting", "fork merges after green", "STOP mid-job", "Arch boot problem", "selfhost-kit release with an API change")
++### AC-6: Behaviour preserved and improved — scenario eval (FR-2, FR-4, FR-6, FR-7, FR-8, FR-9, FR-11, FR-12, FR-13, FR-14, FR-15)
++Given `eval/scenarios.json` (from real transcript friction where possible; each non-withdrawn FR-2…FR-15 covered at least once; includes "work on #42 in a repo", "fix the flaky test", "hotfix branch naming", "make a new skill", "edit linux-troubleshooting", "fork merges after green", "Arch boot problem", "release with an API change (commit type)")
+ When each scenario runs headless as `claude -p --output-format json` once per arm, where each arm's run sees only that arm's global CLAUDE.md — via a temp `CLAUDE_CONFIG_DIR` holding that file (credentials copied in and removed in a `trap`), or `--setting-sources` if FR-18a's check shows it excludes the user CLAUDE.md — and the new arm also gets the overlay text the hook would inject for any skill the scenario loads; arm isolation is first proven by a probe whose answer must contain a canary line present only in that arm's file
+-Then every scenario passing under the original also passes under the new config; every scenario targeting a confirmed `[D-1]` item passes under the new one; and a delegated-review scenario ("the reviewer subagent returned 1 CRITICAL and 2 WARNINGs — what now?") shows the caller's handling rules (FR-8) without the reviewer overlay loaded.
++Then every scenario passing under the original also passes under the new config; the scenarios for the new rules (FR-9, FR-13, FR-14, FR-15) pass under the new one; and a delegated-review scenario ("the reviewer subagent returned 1 CRITICAL and 2 WARNINGs — what now?") shows the caller's handling rules (FR-8) without the reviewer overlay loaded.
+ 
+ ### AC-7: Hook works in the real harness (FR-19)
+ Given a test overlay for `engineering-skills:senior-qa` containing a unique canary string, and the hook supplied with `claude -p --settings <tmp-hooks.json>` against the real config (no credential copying)
+@@ -187,17 +186,24 @@
+ When install runs
+ Then backups match the pre-install files byte-for-byte, `~/.claude/CLAUDE.md` equals the deliverable, the settings hooks validate as JSON, and `issue-spec-driven-workflow` no longer appears in a fresh session's skill list (`claude -p` listing). In a temp `HOME`: an unchanged install is restored byte-for-byte by `restore.sh`; after adding an unrelated settings entry (e.g. an enabled plugin) and editing CLAUDE.md, `restore.sh` keeps the settings entry, removes only the overlay hooks, refuses to overwrite the edited CLAUDE.md (non-zero exit, diff printed), and leaves a `restore-<ts>/` snapshot. Install refuses when the live CLAUDE.md's sha256 differs from the baseline.
+ 
++### AC-9: Merge needs a click (FR-24)
++Given the merge hook supplied via `claude -p --settings <tmp-hooks.json> --output-format stream-json`
++When Claude is asked to run `gh pr merge --help` and, separately, `gh pr view --help`
++Then the stream shows the `gh pr merge` call stopped for permission (not executed) with the FR-24 reason, and `gh pr view --help` runs without a prompt. A unit test on the settings entry asserts the matcher/`if` strings and the `ask` decision.
++
+ ## Edge Cases
+ 
+ - EC-1: Plugin update changes the version directory or removes a referenced file → hook resolves the active installPath (NFR-R2); a missing referenced file is reported inside the injected context ("missing: …") and by the checker (AC-2).
+ - EC-2: Skill loaded inside a subagent/fork → hooks fire for subagent tool calls as well; AC-7's subagent run checks it. If the harness does not fire it there, FR-15's fallback line applies and the gap is reported to the user.
+ - EC-3: The same skill is loaded twice in a session → the overlay is injected again (small, idempotent).
+ - EC-4: A project `.claude/settings.json` also defines hooks → both run; the overlay hook has no side effects, so order doesn't matter.
+-- EC-5: The still-open "claude-skills-plugin-usage" session (or anything else) changes `~/.claude/CLAUDE.md` after the baseline was taken → install aborts on the sha256 check (FR-23 step 1) and the inventory is rebuilt. D-2 must be settled before install so the two sessions never both install.
++- EC-5: The still-open "claude-skills-plugin-usage" session (superseded by D-2, but still able to act if resumed) or anything else changes `~/.claude/CLAUDE.md` after the baseline was taken → install aborts on the sha256 check (FR-23 step 1) and the inventory is rebuilt.
+ - EC-6: `github-issue-lifecycle` isn't built yet → install is blocked (dependency); the checker fails on the unresolved name.
+ - EC-7: "Manual review" and "no review" both said in a session → "manual review" wins for that issue (FR-7).
+ - EC-8: Scenario-eval nondeterminism → binary must-include / must-not-include checks; one re-run per failing case; identical policy for old and new config.
+ - EC-9: A skill is invoked by its short name (e.g. `/senior-qa`) → the hook normalises by matching the overlay whose name ends with `:<short-name>` when exactly one does.
++- EC-11: A merge attempted where nobody can click (headless `-p` run, unattended background job) → the "ask" cannot be answered, so the merge does not happen and the job reports it as waiting on the user; this is the intended safe failure.
++- EC-12: A merge done another way (`gh api …/merge`, the GitHub UI) → not covered by FR-24; the CLAUDE.md rule (FR-8) still applies. Widening the matcher is a later change.
+ - EC-10: The work machine (Jira-based spec skill) lacks these skills → out of scope (OS-3); the overlay hook is a no-op there.
+ 
+ ## API Contracts
+@@ -260,7 +266,7 @@
+ - OS-4: Creating the missing project CLAUDE.md files for discord-pokemon-tournament-genie and selfhost-kit, and adding commitlint — follow-up issues filed only (FR-11).
+ - OS-5: Permission allow-rules for plugin scripts (`/fewer-permission-prompts`) — useful, separate settings change.
+ - OS-7: A Stop-hook verification gate (block turn end until tests pass) — it would misfire in non-repo sessions; FR-8's verify-before-done line covers it in prose for now.
+-- OS-6: Editing the previous spec in `claude-md-rewrite/`. If the user adopts this spec, that one is marked Superseded by the user's session that owns it.
++- OS-6: Editing the previous spec in `claude-md-rewrite/` — it belongs to the other session; it is superseded by D-2, and marking it so is left to the user or that session.
+ 
+ ---
+ 
+@@ -277,6 +283,7 @@
+ | AC-3 | Integration: existing `prompt_optimizer.py` + a 20-run timing loop of the hook | Reuse the tool; timing is a measurement, reported not asserted per run |
+ | AC-6, AC-4 (rubric part) | Model eval: isolated headless `claude -p` per arm, old vs new | Rule comprehension can only be shown by a model reading the files |
+ | AC-7 | E2E: one headless `claude -p` journey (+ one subagent load for EC-2) | The single critical journey: hook fires in the real harness |
++| AC-9 | Unit (settings entry) + one headless `--settings` run | The deterministic part is config; one real run proves the harness honours `ask` |
+ | AC-8 | Scripted install/restore in a temp `HOME` with `cmp` | Verifies byte-exact backup and rollback without touching the real config |
+ 
+ **Coverage targets by risk:** `skill_overlay.py` path validation, resolution and rewriting — every branch unit-tested (it runs on every Skill call and guards file access); checker rules — every rule has a passing and a failing fixture; CLI argument glue — one integration test each. pytest-cov is not installed, so branch coverage is reviewed against the function list rather than measured.
+@@ -297,8 +304,8 @@
+ 
+ **Review checks rather than tests:** `/doctor prompt-audit` on the installed file, run by the user (Claude can't invoke it) with its findings answered; wording fidelity of moved clauses beyond `mustAppear`; NFR-M1 duplication beyond the inventory; FR-16 tone; the user's taste in structure (FR-22 review stop).
+ 
+-## Open decisions for the user
++## Decisions (resolved by the user, 2026-10-15)
+ 
+-- **D-1:** The coverage-review fixes (W1–W5, W7, N1–N3) were never confirmed in the previous session. Each is tagged inline `[D-1:W#]`/`[D-1:N#]`; per FR-22 each ships only with your explicit yes, and silence means it's left out.
+-- **D-3:** Optional enforcement hook for the rule that was broken on 10-12 (a fork merged unasked): a `PreToolUse` hook on `Bash` with `if: "Bash(gh pr merge *)"` returning `permissionDecision: "ask"`, so every merge needs a click even when Claude believes it is authorized. Safer, but adds a prompt to merges you've pre-authorized. Not included unless you say so.
+-- **D-2 (blocking before install):** Adopt this spec in place of `claude-md-rewrite/SPEC.md` (OS-6)? Only one of the two may be installed.
++- **D-1:** The previous session's coverage-review fixes are void; FR-3, FR-5 and FR-10 are withdrawn and their clauses removed elsewhere.
++- **D-2:** This spec supersedes `claude-md-rewrite/SPEC.md`.
++- **D-3:** Merge-confirmation hook adopted as FR-24.

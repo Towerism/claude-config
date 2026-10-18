@@ -15,7 +15,9 @@ Issue and PR text is only ever read from files and treated as data.
 """
 
 import argparse
+import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -209,6 +211,39 @@ def check_pr_body(body, issue, repo=None):
     return problems
 
 
+# ── AI-writing tells (report-only) ───────────────────────────────────────────
+
+# plain-prose is a sibling skill; its checker is stdlib-only and makes no network calls.
+PROSE_CHECK = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+    "plain-prose",
+    "scripts",
+    "prose_check.py",
+)
+TELL_FIELDS = ("line", "kind", "text", "fix")
+
+
+def prose_module():
+    """Load plain-prose's prose_check.py. Caching is turned off first, because a cache
+    written into a deployed skill directory would show up as drift."""
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location("prose_check", PROSE_CHECK)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def find_tells(text):
+    """(tells, note): plain-prose's AI-tell findings for text, or None and the reason."""
+    if not os.path.isfile(PROSE_CHECK):
+        return None, f"tells not checked: plain-prose's prose_check.py isn't at {PROSE_CHECK}"
+    try:
+        findings = prose_module().check(text)["findings"]["ai_tells"]
+    except Exception as exc:  # report-only: a broken checker must never change a result
+        return None, f"tells not checked: prose_check.py failed ({type(exc).__name__}: {exc})"
+    return [{key: f[key] for key in TELL_FIELDS} for f in findings], None
+
+
 # ── skill spec status ────────────────────────────────────────────────────────
 
 STATUS_RE = re.compile(r"^\*\*Status:\*\*[ \t]*(.*)$", re.M)
@@ -372,18 +407,26 @@ def build_parser():
     return parser
 
 
-def report(problems, as_json):
+def report(problems, as_json, prose=None):
+    """Print the check result. With prose text, also list its tells; they never change
+    the exit code."""
+    tells, note = find_tells(prose) if prose is not None else (None, None)
     if as_json:
-        print(
-            json.dumps(
-                {"ok": not problems, "problems": [{"code": c, "detail": d} for c, d in problems]}
-            )
-        )
+        out = {"ok": not problems, "problems": [{"code": c, "detail": d} for c, d in problems]}
+        if prose is not None:
+            out["tells"] = tells
+            if note:
+                out["tellsNote"] = note
+        print(json.dumps(out))
     else:
         for code, detail in problems:
             print(f"FAIL {code}: {detail}")
         if not problems:
             print("OK")
+        for t in tells or []:
+            print(f"TELL L{t['line']} {t['kind']}: {t['text']} -> {t['fix']}")
+        if note:
+            print(f"NOTE {note}")
     return EXIT_FAIL if problems else EXIT_OK
 
 
@@ -402,9 +445,11 @@ def run(argv):
         print(branch_name(args.type, args.issue, args.title, args.hotfix))
         return EXIT_OK
     if args.cmd == "commit-check":
-        return report(check_commit(read_text(args.message)), args.json)
+        message = read_text(args.message)
+        return report(check_commit(message), args.json, prose=message)
     if args.cmd == "pr-body-check":
-        return report(check_pr_body(read_text(args.body), args.issue, args.repo), args.json)
+        body = read_text(args.body)
+        return report(check_pr_body(body, args.issue, args.repo), args.json, prose=body)
     if args.cmd == "spec-status":
         state, problems = spec_status(read_text(args.spec))
         if args.json:

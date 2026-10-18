@@ -81,3 +81,19 @@ This section records the single adversarial review of the owner's next change re
 - **The runner has to change.** `eval/skill_evals.py` still applies the 90% accuracy rule, its docstring says so, and its tests check it. They change with the trigger cases after approval.
 - **Each trigger run costs more.** 25 queries at 3 runs each is 75 model runs, up from 60.
 - **The near-miss set stays at 10.** Nothing breaks: 5 text-for-Claude cases and 3 chat-only questions leave 2 free.
+
+# Fourth review: tuning the description by hand (2026-10-17)
+
+This section records the single adversarial review of the change that followed the trigger results. At b8c1122 the owner approved the bar of 13 of 15. The suite then passed at 13 of 15 and, after a harness-only change, failed at 12 of 15. The regex and failing-test queries missed on both runs, and a third query landed on the line. Asked "Which option for #12's trigger suite: A (tune the description to cover coding tasks that touch tests and messages, recommended), B (one counted rerun), C (an 80% bar), or D (rerun as is)?", the owner answered "A".
+
+**What changed:** FR-2 now says the description names the coding work that usually writes text people read later: writing or fixing tests, adding validation or error handling, adding logic that deserves a comment or docstring, and editing CLI or UI strings. It allows the wording to be tuned by hand without touching the cases or the bar. OS-7 now excludes only automatic optimisation with skill-creator's `run_loop`. AC-1 checks the new wording.
+
+**Verdict:** no critical finding. Three warnings, all fixed.
+
+## Warnings
+
+**Fixed: the tuning had no stopping rule.** "Tuned until the trigger suite passes" invites rerunning until chance gives a pass, and the bar has no margin. FR-2 now allows one trigger run per tuned version, puts every run in the PR, and stops after a tuned version fails, so the owner decides what comes next.
+
+**Fixed: the tuning could fit the eval queries instead of the work.** The regex and failing-test queries could simply be paraphrased into the description. FR-2 now asks for kinds of work in general terms and forbids copying the queries' wording.
+
+**Fixed: nothing capped the description's length.** The Agent Skills format limits a description to 1,024 characters, and the current one is already 1,096; the live runs show Claude Code accepts it, but the tuning would make it longer. FR-2 and AC-1 now cap it at 1,024 characters, so the tuning has to tighten the existing text as well.

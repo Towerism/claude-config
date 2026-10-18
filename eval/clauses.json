@@ -551,5 +551,12 @@
   "disposition": "claude-md",
   "mustAppear": "load `plain-prose` once per session before the first text a person will read later",
   "reason": null
+ },
+ {
+  "id": "C-80",
+  "text": "Load the writing-docs skill before the first text a person will read later too; it loads plain-prose itself and adds the reader-first steps (the owner's decision D-1 on #13, 2026-10-17: \"the full live line\"; ADR-0010; not in the v1 CLAUDE.md)",
+  "disposition": "claude-md",
+  "mustAppear": "Load `writing-docs` once before the first such text too",
+  "reason": null
  }
 ]

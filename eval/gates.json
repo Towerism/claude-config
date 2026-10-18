@@ -70,14 +70,18 @@
         }
       ],
       "harness": [
-        "config/skills/github-issue-lifecycle/evals/run_trigger_evals.py"
+        "config/skills/github-issue-lifecycle/evals/run_trigger_evals.py",
+        "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py"
       ]
     },
     "lifecycle-behaviour": {
       "runner": "script",
       "script": "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py",
       "paths": [
-        "config/skills/github-issue-lifecycle/evals/evals.json"
+        "config/skills/github-issue-lifecycle/evals/evals.json",
+        "config/skills/github-issue-lifecycle/scripts/**",
+        "config/skills/github-issue-lifecycle/references/**",
+        "config/skills/github-issue-lifecycle/assets/**"
       ],
       "selectors": [
         {

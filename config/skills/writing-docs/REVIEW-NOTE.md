@@ -98,3 +98,11 @@ The first live run of `writing-docs-behaviour` failed one case of six on its cou
 **Warning, accepted: unlike a tuned description, a rerun changes nothing, so a pass can be chance.** The same skill body runs again, and a single reader's AI-sounding flag decides the failing case. Accepted because the owner chose it knowing that, every run goes in the PR, and the failing flag was on text the skill arm kept unchanged from the draft rather than text it wrote.
 
 **Note: the interpretation is recorded.** "The same number" is read as three runs in total, matching OS-7's three tuned descriptions, with the failed run on 2026-10-17 counting as the first.
+
+# Sixth review: accepting the behaviour suite's failure instead
+
+Before approving the fifth review's change, the owner replaced it: "in that case for the behavior suite, accept the failure", in answer to that review's warning that a bare rerun could pass by chance. FR-27 is back as it was, with one counted rerun per case and no extra runs, and AC-16 records the failed run as accepted by the owner, with its record committed as it is. This change got its own adversarial review.
+
+**Verdict:** no critical finding, one warning accepted, and the review changed nothing.
+
+**Warning, accepted: `eval_records.py verify` will fail on this branch.** The verifier requires every required record to show a passing run and has no way to mark an accepted failure, so it reports `writing-docs-behaviour` and exits 1. Once CI runs it (#10), a PR in this state would fail that job. Accepted because the owner made the decision knowing the result, AC-16 now says exactly which record fails and why, and the failure is limited to this PR: later PRs need the suite only when they change `writing-docs` again, and then they need a fresh run anyway.

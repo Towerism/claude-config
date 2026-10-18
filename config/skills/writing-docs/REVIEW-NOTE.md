@@ -38,3 +38,27 @@ The spec also leaves two decisions to the owner, which the review didn't settle:
 | FR-6, AC-1, AC-18 | Templates "start with a level-1 heading whose text is a `TODO:` placeholder for the title, followed by a paragraph of at least 8 words saying which kind of document the template is for" | The old wording made every template fail its own lint check |
 | FR-8 | "Front matter, fenced code blocks and inline code are skipped for all of them and for the link checks in FR-9" | Link syntax quoted in inline code isn't a link |
 | Section C | "over 100 model runs" in place of "about 90" | The trigger suite alone is 75 runs |
+
+# Second review: the revision for the owner's decisions D-1 and D-2
+
+On 2026-10-17 the owner answered the two decisions the first draft left open: "I agree. Decision 1: is the full live line. Decision 2: your assumption is correct. I agree with the behavior suite you have planned. I approve once it reflects this." The spec was revised to match, and that revision is a new change, so it got its own single adversarial review with `engineering-skills:adversarial-reviewer`. This section records it. The first review above is unchanged.
+
+**What the revision changed.** `writing-docs` now covers every text a person will read later, the same set as `plain-prose`: documents, commit messages, issue and PR text, review notes, code comments and docstrings, assertion and error messages, and CLI or UI text. Document files get all nine steps, a template and `doc_lint.py`; short texts get the steps that fit them. Five parts changed to match: the CLAUDE.md sentence (FR-15), its clause phrase (FR-16), the fourth scenario (FR-19), the trigger cases (FR-24, with a new `code` kind) and the ADR-0010 record (FR-32). FR-33 adds the decision to the plan as Q-18. The trigger numbers (FR-23) and the behaviour suite (FR-28) are the ones the owner accepted.
+
+**Verdict:** no critical finding. Three warnings, each accepted with a reason below, and three notes, listed. The review changed nothing in the spec.
+
+## Warnings, accepted
+
+**`plain-prose`'s scenarios S-20 to S-22 may now see answers that name `writing-docs`.** Each passes only when the answer says it loads `plain-prose`. With the new sentence, an answer might name `writing-docs` alone, which loads `plain-prose` itself, and a strict judge could fail it. Accepted because the CLAUDE.md line still tells Claude to load `plain-prose` in its own sentence. AC-16 also requires S-20 to S-23 to keep passing, so a failure stops the work and goes to the owner.
+
+**The trigger suite counts only `writing-docs` loads, while both descriptions now cover the same texts.** For a commit message or a test fix, Claude may load `plain-prose` alone, because its description is explicit about coding work. That is a miss under FR-14, so the 7 `prose` and `code` queries are the likeliest to fail the 13-of-15 bar. Accepted because the owner chose both the scope and the bar, and the spec already says what happens on a failure: one hand-tuned description, one run, then a stop to report (OS-7, OS-10).
+
+**"The full live line" is read as the whole of `plain-prose`'s scope.** The live line names docs, issues, PRs, commits, code comments and review notes. The spec also includes assertion and error messages and CLI or UI text, following the owner's #12 rule for text a person reads later. Accepted because the live prototype the owner installed already covers "text a page or app shows (page copy, artifact pages, UI labels, user-facing errors, even inside code or data files)", so this reading matches what the owner runs today. The owner sees the reading in this note and in the PR.
+
+## Notes, listed
+
+**A long issue body, such as a spec stored on an issue, counts as a short text.** It gets the short-text steps and `plain-prose`'s check, not `doc_lint.py`. That matches ADR-0010, which gives the prose of specs on issues to `plain-prose`, but a long structured issue body would also benefit from the heading checks. A later change can widen the gate if that turns out to matter.
+
+**No new scenario guards the old arm.** The first draft's commit-message scenario was the only new one without the `new-rule-only` tag. After D-1 it tests the new rule, so all four new scenarios are new-rule-only. S-01 to S-19 still guard the old arm.
+
+**No new trust boundary.** The closest one is that the commit-message scenario might lead a model to act on a repo. Scenario runs use `--tools ""` in a temporary working directory, so they can't.

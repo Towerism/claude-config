@@ -1,8 +1,8 @@
-# Spec: the `writing-docs` skill, its chaining overlays and its CLAUDE.md half-line
+# Spec: the `writing-docs` skill, its chaining overlays and its CLAUDE.md sentence
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-17
-**Status:** Draft, reviewed once (see `REVIEW-NOTE.md`) and waiting for the owner's approval. Approval mode: manual review with an adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial. work on each one sequentially."). Only the owner's explicit words approve it.
+**Status:** Draft, revised on 2026-10-17 for the owner's answers to decisions D-1 and D-2, and reviewed again for that change (see `REVIEW-NOTE.md`). The owner answered: "I agree. Decision 1: is the full live line. Decision 2: your assumption is correct. I agree with the behavior suite you have planned. I approve once it reflects this." Approval mode: manual review with an adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial. work on each one sequentially."). Only the owner's explicit words approve it.
 **Issue:** [#13](https://github.com/Towerism/claude-config/issues/13)
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Decided by:** [ADR-0010](../../../docs/adr/0010-prose-for-people.md) (the skill, its nine steps, `doc_lint.py`, the overlays, the evals), [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) (eval gates and records), [ADR-0002](../../../docs/adr/0002-repo-layout.md) (where specs live)
@@ -11,30 +11,33 @@
 
 ## Context
 
-The owner wants documentation that a reader with no context can use, usually the owner months later ([ADR-0010](../../../docs/adr/0010-prose-for-people.md)). ADR-0010 splits the work between two skills. `plain-prose`, built in #12, holds the clarity and anti-AI-tell rules for any text a person will read later. `writing-docs` adds the steps that only documents need: naming the reader and their task, choosing one kind of document, putting the answer first, making commands runnable, giving the structure meaning, and checking links and headings. It ends by applying `plain-prose`.
+The owner wants documentation, and every other text a person reads later, to be usable by a reader with no context, usually the owner months later ([ADR-0010](../../../docs/adr/0010-prose-for-people.md)). ADR-0010 splits the work between two skills. `plain-prose`, built in #12, holds the clarity and anti-AI-tell rules for any text a person will read later. `writing-docs` covers the same texts and adds reader-first steps on top: naming the reader and their task, putting the answer first, being concrete, and giving the structure meaning. Document files get the full set, which also includes choosing one kind of document, a template, and a lint for headings and links. The skill loads `plain-prose` first and ends by applying it.
 
 A prototype has been installed in `~/.claude/skills/writing-docs/` since 2026-10-16. This issue builds the real skill in `config/skills/writing-docs/` and wires it in. The prototype stays live until a deploy or adoption replaces it (#7 and #8, both waiting on the held #6).
 
-Like #12, this spec covers more than the skill directory: two overlays, the `writing-docs` half of the global CLAUDE.md prose line, scenarios, two eval suites and a new eval runner module. One spec means one approval for one PR. Section F lists every change outside the skill directory, and the same PR updates `config/SPEC.md`, as [ADR-0002](../../../docs/adr/0002-repo-layout.md) requires for coordination changes.
+Like #12, this spec covers more than the skill directory: two overlays, the `writing-docs` sentence in the global CLAUDE.md prose line, scenarios, two eval suites and a new eval runner module. One spec means one approval for one PR. Section F lists every change outside the skill directory, and the same PR updates `config/SPEC.md`, as [ADR-0002](../../../docs/adr/0002-repo-layout.md) requires for coordination changes.
 
-### The scope question (owner decision D-1)
+### The scope (owner decision D-1, settled 2026-10-17)
 
-Two sources disagree about what `writing-docs` covers.
+Two sources disagreed about what `writing-docs` covers.
 
-- [ADR-0010](../../../docs/adr/0010-prose-for-people.md), accepted 2026-10-16, and the text of #13 limit it to **documentation**: "Markdown documents for people: READMEs, everything under `docs/`, ADRs, architecture docs, runbooks, how-to guides, tutorials, setup guides and changelog prose."
-- The owner's live `~/.claude/CLAUDE.md`, written later the same day, says to load `writing-docs` "once before the first doc, issue, PR, commit, code comment or review note". The live prototype's description is just as broad.
+- [ADR-0010](../../../docs/adr/0010-prose-for-people.md), accepted 2026-10-16, and the text of #13 limited it to **documentation**: "Markdown documents for people: READMEs, everything under `docs/`, ADRs, architecture docs, runbooks, how-to guides, tutorials, setup guides and changelog prose."
+- The owner's live `~/.claude/CLAUDE.md`, written later the same day, says to load `writing-docs` "once before the first doc, issue, PR, commit, code comment or review note". The live prototype's description is just as broad, and includes text a page or app shows. The approved `plain-prose` spec (#12) followed the live line and said "#13 extends it to the full live line".
 
-The approved `plain-prose` spec (#12) followed the live line and said "#13 extends it to the full live line". Since then the owner has set `plain-prose`'s scope as any text a person will read later (#12, ADR-0010). Under the broad reading, `writing-docs` would cover exactly what `plain-prose` covers, so the two skills would compete for every commit message and code comment. Its trigger eval couldn't tell a right load from a wrong one, and most of its nine steps (choose a Diátaxis kind, make commands runnable, check links) don't apply to a commit message.
+The first draft of this spec followed ADR-0010 and asked the owner to choose. The owner chose the live line: "Decision 1: is the full live line."
 
-**This spec follows ADR-0010: `writing-docs` covers document files, and `plain-prose` alone covers commits, issue and PR text, comments, review notes and strings in code.** If the owner chooses the broad reading instead, FR-2, FR-15 and FR-24 change, along with the trigger cases, and FR-32's record in ADR-0010 becomes an amendment of its scope list.
+**So `writing-docs` covers every text a person will read later, the same set as `plain-prose` under the rule the owner set in #12:** documents, commit messages, issue and PR text, review notes, code comments and docstrings, assertion, error and log messages, and text a CLI or web page will show. The chat reply itself and text written for Claude stay out, as they do for `plain-prose`.
 
-A "document file" here means a file whose main job is to be read later by a person. The types are READMEs, pages under `docs/`, architecture docs, ADRs, runbooks, how-to guides, tutorials, setup guides, CONTRIBUTING files, changelogs and release notes. Editing or rewriting such a file counts too.
+The two skills chain instead of competing. `writing-docs` loads `plain-prose` before drafting, so a session that loads `writing-docs` has both. What `writing-docs` adds depends on the text:
+
+- A **document file** gets all nine steps, a template and `doc_lint.py`. A document file is one whose main job is to be read later by a person: a README, a page under `docs/`, an architecture doc, an ADR, a runbook, a how-to guide, a tutorial, a setup guide, a CONTRIBUTING file, a changelog or release notes. Editing or rewriting one counts too.
+- A **short text**, such as a commit message, a PR description, an issue comment, a review note, a code comment or an error message, gets the steps that make sense at that length: name the reader and what they need, put the answer first, be concrete, define terms, and link to the source of truth. Choosing a kind of document, templates and `doc_lint.py` don't apply; `plain-prose`'s own procedure is its check.
 
 ### How `writing-docs` gets used
 
 | Path | Mechanism |
 |---|---|
-| A task asks for a document | The skill's description (FR-2), plus the `writing-docs` half of the CLAUDE.md prose line (FR-15) |
+| A task will write a document or any other text a person reads later | The skill's description (FR-2), plus the `writing-docs` sentence of the CLAUDE.md prose line (FR-15) |
 | `senior-architect` writes an architecture doc or ADR | Its overlay says to load `writing-docs` before writing the file (FR-17) |
 | `runbook-generator` writes a runbook | Its overlay says the same (FR-18) |
 | `writing-docs` itself | Its body loads `plain-prose` first if it isn't in context, so the prose rules are present while drafting (FR-3) |
@@ -64,23 +67,26 @@ ADR-0010 records why the last row matters: on 2026-10-16, three subagents told t
 
 - FR-1: The skill MUST live in `config/skills/writing-docs/` with this layout: `SKILL.md`, `SPEC.md`, `REVIEW-NOTE.md`, `scripts/doc_lint.py`, `references/reader-first.md`, `references/templates/{readme,how-to,tutorial,reference,explanation,adr,changelog}.md`, `evals/{trigger-evals.json,behaviour-evals.json}` and `tests/`.
 - FR-2: `SKILL.md` MUST have frontmatter with `name: writing-docs` and a `description` that:
-  - says what the skill does: guides writing and revising documents people read later, so a reader with no context can act on them;
-  - names the document types from the Context section (README, `docs/` pages, architecture docs, ADRs, runbooks, how-to guides, tutorials, setup guides, changelogs and release notes), and says it covers both new documents and edits to existing ones;
+  - says what the skill does: guides writing and revising any text a person will read later, so a reader with no context can act on it;
+  - names the document types from the Context section (at least README, ADR, runbook, how-to guide and changelog), and says it covers both new documents and edits to existing ones;
+  - names the short texts it also covers: commit messages, issue and PR text, review notes, code comments and docstrings, assertion and error messages, and CLI or UI text;
+  - says coding work that writes or changes such text needs it too, in the general terms `plain-prose`'s description uses (tests, validation or error handling, logic worth a comment, CLI or UI strings);
   - says to use it whenever the user asks for documentation of a system, process or decision, even without the word "doc";
   - says it loads `plain-prose` first;
-  - says to load it once per session and not again while its instructions are in context;
-  - says that commit messages, issue and PR text, review notes, code comments and docstrings, and strings in code are `plain-prose`'s alone, and excludes the chat reply itself and files written for Claude (`CLAUDE.md`, `SKILL.md`, overlays, memory, subagent prompts);
+  - says to load it once per session, before the first such text, and not again while its instructions are in context;
+  - excludes the chat reply itself, code itself, identifiers, machine-read formats, and files written for Claude (`CLAUDE.md`, `SKILL.md`, overlays, memory, subagent prompts);
   - stays at or under 1,024 characters, the description limit in the Agent Skills format.
 - FR-3: The `SKILL.md` body MUST hold these parts, in this order:
   1. the goal: a document succeeds when a reader with no context can use it to do or decide something;
   2. the load-once rule, naming the same scope as the description;
   3. load `plain-prose` first, before reading sources or drafting, unless its `Base directory for this skill:` block is already in context, because its rules must govern the drafting, not be applied afterwards;
   4. the nine steps from [ADR-0010](../../../docs/adr/0010-prose-for-people.md)'s "Skill 2" section, each in one or two sentences, with `references/reader-first.md` named for the detail;
-  5. templates: use `references/templates/<type>.md` for the document's kind, unless another loaded skill (such as `senior-architect` or `runbook-generator`) supplies its own template, which then wins on structure while these steps still apply;
-  6. the gate: no version of a document goes to a reviewer, a commit, a PR or the user until `doc_lint.py` has run on that version, and again after every revision;
-  7. the report: say which documents were checked and list any findings left as they are, with a reason.
+  5. short texts: for a commit message, issue or PR text, a review note, a code comment or docstring, or a message or string in code, apply the steps that fit that length (name the reader and what they need, answer first, be concrete, define terms, link to the source of truth), and skip choosing a kind, the templates and `doc_lint.py`; `plain-prose`'s procedure is the check;
+  6. templates: for a document file, use `references/templates/<type>.md` for the document's kind, unless another loaded skill (such as `senior-architect` or `runbook-generator`) supplies its own template, which then wins on structure while these steps still apply;
+  7. the gate: no version of a document file goes to a reviewer, a commit, a PR or the user until `doc_lint.py` has run on that version, and again after every revision;
+  8. the report: say which documents were checked and list any findings left as they are, with a reason.
 - FR-4: The body MUST give the lint command as `python3 -I <this skill's base directory>/scripts/doc_lint.py <file.md or -> [--json]`, never through a shell variable.
-- FR-5: `references/reader-first.md` MUST expand each of the nine steps with a short good and bad example, and say how to run the fresh-reader check from step 8 (a subagent that sees only the document and answers "can I now do X?"). It MUST stay under 300 lines, or carry a table of contents.
+- FR-5: `references/reader-first.md` MUST expand each of the nine steps with a short good and bad example, and say how to run the fresh-reader check from step 8 (a subagent that sees only the document and answers "can I now do X?"). A short section MUST show how the steps apply to a commit message, a PR description and a code comment, with one before-and-after example each. It MUST stay under 300 lines, or carry a table of contents.
 - FR-6: Each template in `references/templates/` MUST start with a level-1 heading whose text is a `TODO:` placeholder for the title, followed by a paragraph of at least 8 words saying which kind of document the template is for and when to use it. It then gives the section headings in the order a reader needs them. Every placeholder is a `TODO:` marker, so `doc_lint.py` catches any left behind.
 
 ### B. `doc_lint.py`
@@ -108,22 +114,26 @@ The runners from #12 install only the skill under test and compare it with no sk
 
 - FR-12: `eval/doc_evals.py` MUST provide two runners, `doc-trigger` and `doc-reader`. A suite that uses them names its skill, its case file and a `companions` list (here `["plain-prose"]`). `tools/cfg/eval.py` and `tools/cfg/eval_records.py` MUST accept the two runner names and the `companions` field, and refuse a suite for these runners that lacks `skill`, `cases` or a non-empty `companions` list.
 - FR-13: Every model run MUST keep the isolation from FR-23 of the `plain-prose` spec: a private config directory outside the repo and `$HOME`, live settings without hooks, a private credentials copy removed afterwards, this session's `CLAUDE*` variables stripped, tools set with `--tools`, a stub `gh` first on `PATH` and an empty `GH_CONFIG_DIR`. The `skills/` directory holds the HEAD commit's copies of exactly the skills that run needs. Each run's `system`/`init` event MUST list each installed skill exactly once and each other skill under test or companion not at all; otherwise the suite stops with an isolation error and writes no record.
-- FR-14: The `doc-trigger` runner MUST work like the `trigger` runner (three runs per query as `claude -p` with `stream-json` output, `--max-turns 4`, `--tools "Skill,Read,Agent"`, an empty CLAUDE.md, two triggering runs of three trigger the query, a delegated case counts only a load inside a subagent), with one difference: the companions are installed too. The skill under test then competes with `plain-prose` for every query, as it will after deploying. The pass rule is the same per-class rule: at least 85% of the should-trigger queries trigger, no should-not-trigger query triggers, and every delegated query triggers. Overall accuracy is reported as information only.
+- FR-14: The `doc-trigger` runner MUST work like the `trigger` runner (three runs per query as `claude -p` with `stream-json` output, `--max-turns 4`, `--tools "Skill,Read,Agent"`, an empty CLAUDE.md, two triggering runs of three trigger the query, a delegated case counts only a load inside a subagent), with one difference: the companions are installed too. The skill under test then competes with `plain-prose` for every query, as it will after deploying. Both descriptions cover the same texts, so a run that loads only `plain-prose` is a miss: the trigger suite measures whether Claude also reaches for `writing-docs`, which brings `plain-prose` with it. The pass rule is the same per-class rule: at least 85% of the should-trigger queries trigger, no should-not-trigger query triggers, and every delegated query triggers. Overall accuracy is reported as information only.
 
 ### D. Wiring into the global configuration
 
 - FR-15: In `config/CLAUDE.global.md`, the prose line #12 added MUST be extended to name `writing-docs`, so it reads:
-  > Prose, alongside every step: load `plain-prose` once per session before the first text a person will read later: code comments, docstrings, assertion and error messages, CLI and UI text, commits, issue and PR text, docs and review notes (not the chat reply itself, and not text written for Claude). Load `writing-docs` once before the first document file (a README, a `docs/` page, an ADR, a runbook, a guide or a changelog); it loads `plain-prose` itself. Their rules then cover every later such text. Never re-invoke one while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
-- FR-16: `eval/clauses.json` MUST gain one `claude-md` row for the new sentence. Its `text` cites ADR-0010 and #13, and its `mustAppear` is "Load `writing-docs` once before the first document file". The existing `plain-prose` row keeps its phrase, which still appears.
+  > Prose, alongside every step: load `plain-prose` once per session before the first text a person will read later: code comments, docstrings, assertion and error messages, CLI and UI text, commits, issue and PR text, docs and review notes (not the chat reply itself, and not text written for Claude). Load `writing-docs` once before the first such text too; it loads `plain-prose` itself and adds the reader-first steps, with templates and a lint for document files. Their rules then cover every later such text. Never re-invoke one while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
+
+  This keeps the live line's shape (both skills named, `writing-docs` for docs, issues, PRs, commits, code comments and review notes) with the scope the owner set in #12, so the chat reply stays out.
+- FR-16: `eval/clauses.json` MUST gain one `claude-md` row for the new sentence. Its `text` cites ADR-0010, #13 and the owner's decision D-1, and its `mustAppear` is "Load `writing-docs` once before the first such text too". The existing `plain-prose` row (C-79) keeps its phrase, which still appears.
 - FR-17: A new overlay, `config/skill-overlays/engineering-skills:senior-architect.md`, MUST tell Claude to load `writing-docs` before writing an architecture doc or ADR file, and say that its steps apply to every document the skill produces. Like the existing overlays, it starts with "User policy for this skill." and names no paths.
 - FR-18: A new overlay, `config/skill-overlays/engineering-advanced-skills:runbook-generator.md`, MUST tell Claude to load `writing-docs` before writing the runbook file, and say that the runbook's own template wins on structure while the `writing-docs` steps still apply.
-- FR-19: `eval/scenarios.json` MUST gain four scenarios. The first three are tagged `new-rule-only`, because the merge-base has neither the overlays nor the `writing-docs` sentence:
+- FR-19: `eval/scenarios.json` MUST gain four scenarios, all tagged `new-rule-only`, because the merge-base has neither the overlays nor the `writing-docs` sentence:
   1. "Draft the architecture doc for the new export service", with `loadsSkills: ["engineering-skills:senior-architect"]`: the answer loads `writing-docs` before writing the document;
   2. "Write the runbook for restoring the nightly database backup", with `loadsSkills: ["engineering-advanced-skills:runbook-generator"]`: the answer loads `writing-docs` before writing the runbook;
   3. "Write a README for this repo's command-line tool": the answer loads `writing-docs` before writing;
-  4. "Write the commit message for this change: the export column ts is renamed to created_at": the answer doesn't load `writing-docs`. It isn't tagged, so it also guards the old arm.
+  4. "Write the commit message for this change: the nightly backup now retries a failed upload three times before giving up": the answer loads `writing-docs` before writing, because a commit message is in its scope (decision D-1).
+
+  The first draft's fourth scenario said a commit message must not load `writing-docs`. D-1 reversed that, so it is replaced by the fourth one above. It uses a different change from S-21, `plain-prose`'s commit-message scenario, so the two don't share a prompt.
 - FR-20: `hosts/personal.json` MUST list `writing-docs` in `skills`.
-- FR-21: In the same PR, `config/SPEC.md` MUST change in three places: FR-15a describes the extended line and drops "`writing-docs` joins this line in #13"; FR-17's overlay list gains the two new overlays and their required content; and its amendment line names #13.
+- FR-21: In the same PR, `config/SPEC.md` MUST change in three places: FR-15a describes the extended line, including that `writing-docs` covers the same texts as `plain-prose` and loads it itself, and drops "`writing-docs` joins this line in #13"; FR-17's overlay list gains the two new overlays and their required content; and its amendment line names #13 and quotes the owner's decision D-1.
 
 ### E. Evals
 
@@ -132,10 +142,10 @@ The runners from #12 install only the skill under test and compare it with no sk
   - `writing-docs-behaviour`, runner `doc-reader`, required when the `writing-docs` `SKILL.md` body changes, or anything under its `scripts/` or `references/`, or its `evals/behaviour-evals.json`.
 
   Both list `eval/doc_evals.py`, `eval/skill_evals.py` and `eval/run_eval.py` as harness files. `scenario` and `rubric` already cover `config/CLAUDE.global.md`, and `scenario` covers the overlays.
-- FR-23: The `doc-trigger` suite MUST pass under FR-14's rule. Its numbers are the owner's to set (decision D-2). This spec proposes the same as `plain-prose`: 15 should-trigger queries, 10 near misses, a recall of at least 85% (13 of 15), no false trigger, and every delegated query triggering.
+- FR-23: The `doc-trigger` suite MUST pass under FR-14's rule, with the numbers the owner accepted for decision D-2 ("Decision 2: your assumption is correct"): 15 should-trigger queries, 10 near misses, a recall of at least 85% (13 of 15), no false trigger, and every delegated query triggering. These are the same numbers as `plain-prose`'s suite.
 - FR-24: `writing-docs`' `trigger-evals.json` MUST hold 25 queries, each with a `kind`.
-  - Fifteen should trigger: at least 8 of kind `new-doc` (writing a new document, across at least 5 of the document types in FR-2), at least 3 of kind `doc-edit` (revising or restructuring an existing document), and 2 delegated (the user asks a subagent to write the document). At least 2 should not use the word "doc" or "documentation", such as "write up how to restore the backup so the on-call person can follow it".
-  - Ten are near misses: at least 4 of kind `prose` (a commit message, a PR description, an issue comment, a docstring), which are `plain-prose`'s alone; at least 3 of kind `for-claude` (a `CLAUDE.md` edit, a `SKILL.md` edit, a subagent prompt); and at least 2 of kind `chat-only` (explain something in chat, with no file written).
+  - Fifteen should trigger, split as 6 of kind `new-doc` (writing a new document, across at least 4 of the document types in FR-2), 2 of kind `doc-edit` (revising or restructuring an existing document), 4 of kind `prose` (a commit message, a PR description, an issue comment and a review note), and 3 of kind `code` (coding work that writes or changes text a person reads: a docstring or comment, a test fix that touches assertion messages, and a CLI help or UI string). Two of the fifteen, of any kind, are delegated: the user asks a subagent to write the text. At least 2 should not use the word "doc" or "documentation", such as "write up how to restore the backup so the on-call person can follow it".
+  - Ten are near misses, as in `plain-prose`'s suite: at least 5 of kind `for-claude` (a `CLAUDE.md` edit, a `SKILL.md` edit, a subagent prompt, an overlay, a memory note) and at least 3 of kind `chat-only` (a question answered in chat, with no file or text kept for later). No near miss writes or changes a document, a commit, issue or PR text, a comment, or any string a person will see. After D-1, commit messages and PR text are should-trigger cases, not near misses.
 - FR-25: The `doc-reader` runner MUST grade each case in `behaviour-evals.json` with three arms and a reader:
   - **Skill arm:** `writing-docs` and `plain-prose` installed, told "Load the writing-docs skill first, then do this task", with `--tools "Skill,Read,Bash"` and a pre-approval only for running the installed `doc_lint.py` and `prose_check.py` with `python3 -I`.
   - **Baseline arm:** only `plain-prose` installed, told "Load the plain-prose skill first, then do this task", with the same tools and a pre-approval only for `prose_check.py`. For a rewrite case, both arms rewrite the same draft, so the baseline is `plain-prose`'s own rewrite.
@@ -149,17 +159,18 @@ The runners from #12 install only the skill under test and compare it with no sk
   - its stream shows a `Skill` tool use for `writing-docs` and one for `plain-prose`.
 
   A failing case is rerun once and the rerun counted, as in the `cold-reader` runner. The suite passes when every case passes. `prose_check.py`'s rates and the detectability score are recorded for every text as diagnostics that don't affect the result.
-- FR-28: `writing-docs`' `behaviour-evals.json` MUST hold at least six cases: three write cases (a README for a small command-line tool, a runbook for restoring a database backup, and an ADR recording a decision between two options) and three rewrite cases (a how-to guide, a README whose answer is buried, and release notes). The facts are invented and name no real person, repo or path.
+- FR-28: `writing-docs`' `behaviour-evals.json` MUST hold at least six cases: three write cases (a README for a small command-line tool, a runbook for restoring a database backup, and an ADR recording a decision between two options) and three rewrite cases (a how-to guide, a README whose answer is buried, and release notes). The facts are invented and name no real person, repo or path. The cases stay document cases after D-1: the owner accepted this suite as planned ("I agree with the behavior suite you have planned"), and short texts are graded by `plain-prose`'s behaviour suite (OS-9).
 
 ### F. The repo's own files
 
 - FR-29: `pyproject.toml` MUST lint, format-check and type-check `doc_lint.py`, `eval/doc_evals.py` and the skill's tests, and branch coverage MUST measure `doc_lint.py`.
 - FR-30: The repo's `CLAUDE.md` MUST give the command for the skill's tests with coverage.
 - FR-31: [ADR-0005](../../../docs/adr/0005-verification-and-ci.md)'s gates table MUST gain a row saying that a change to `writing-docs`' scripts, references or behaviour cases requires `writing-docs-behaviour`, its trigger cases or `plain-prose`'s description require `writing-docs-trigger`, and both run through `eval/doc_evals.py`. Its amendment line names #13.
-- FR-32: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record, with an amendment line naming #13:
-  - the scope decision D-1 as the owner makes it, quoted. If the owner keeps ADR-0010's scope, its scope list stays as it is and only gains a sentence saying commits, issue and PR text and comments are `plain-prose`'s alone;
+- FR-32: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record, with an amendment line on its Status naming #13:
+  - the scope decision D-1, quoting the owner ("Decision 1: is the full live line"). The summary paragraph and the "Skill 2" section's heading and scope paragraph change to say that `writing-docs` covers every text a person reads later, the same set as `plain-prose`, with document files getting the full nine steps, templates and `doc_lint.py`, and short texts getting the steps that fit them. The "How `plain-prose` gets used" row for `writing-docs` says it loads `plain-prose` before drafting and applies it last. The Evals paragraph says `writing-docs` must trigger on the same texts as `plain-prose`;
   - that `doc_lint.py` takes acronyms and bare requirement IDs from `prose_check.py`'s report instead of checking them twice;
   - that the behaviour suite compares `writing-docs` with `plain-prose` alone, not with no skill, and adds `doc_lint.py`'s findings as a pass condition, which is how it grades "against the nine steps".
+- FR-33: [The build plan](../../../docs/architecture/plan.md) MUST gain a resolved question, Q-18, recording decision D-1 with the owner's words and a link to ADR-0010, the way Q-9 records `plain-prose`'s scope.
 
 ## Non-Functional Requirements
 
@@ -192,7 +203,7 @@ The runners from #12 install only the skill under test and compare it with no sk
 ### AC-1: The package has its files and frontmatter (FR-1, FR-2, FR-3, FR-4, FR-6, NFR-P1)
 Given the skill directory at HEAD
 When the package test runs
-Then every file named in FR-1 exists. The frontmatter parses with `name: writing-docs`; the description names README, ADR, runbook, how-to and changelog, says it loads `plain-prose`, names commit messages and code comments as `plain-prose`'s, excludes `CLAUDE.md` and `SKILL.md`, and is at most 1,024 characters. The body names the lint command in the form FR-4 gives, names `plain-prose`, links `references/reader-first.md`, and is at most 1,000 estimated tokens. Each template starts with a `TODO:` title followed by a paragraph naming its kind. Whether the body's parts follow FR-3's order is a review check.
+Then every file named in FR-1 exists. The frontmatter parses with `name: writing-docs`; the description names README, ADR, runbook, how-to and changelog, names commit messages, PR text, code comments and error messages as covered, names tests and CLI or UI strings as coding work that needs it, says it loads `plain-prose`, excludes the chat reply, `CLAUDE.md` and `SKILL.md`, never says commit messages or code comments are `plain-prose`'s alone, and is at most 1,024 characters. The body names the lint command in the form FR-4 gives, names `plain-prose`, links `references/reader-first.md`, never claims chat replies are covered, and is at most 1,000 estimated tokens. Each template starts with a `TODO:` title followed by a paragraph naming its kind. Whether the body's parts follow FR-3's order is a review check.
 
 ### AC-2: Exit codes are report-only (FR-7, NFR-R1)
 Given a document with findings of every kind
@@ -257,7 +268,7 @@ Then the baseline arm's config holds only `plain-prose` and the skill arm's hold
 ### AC-14: Case files are well formed (FR-24, FR-28, NFR-S3)
 Given the two case files
 When the eval-data test runs
-Then the trigger file has 25 queries with the kinds and counts FR-24 sets, including at least 2 should-trigger queries without "doc" in them, and the behaviour file has at least three write and three rewrite cases, each with facts, questions and `mustKeep`.
+Then the trigger file has 25 queries with the kinds and counts FR-24 sets (15 should trigger: 6 `new-doc`, 2 `doc-edit`, 4 `prose`, 3 `code`, 2 of them delegated; 10 near misses: at least 5 `for-claude` and 3 `chat-only`), including at least 2 should-trigger queries without "doc" in them, and the behaviour file has at least three write and three rewrite cases, each with facts, questions and `mustKeep`.
 
 ### AC-15: The repo's checks cover the new code (FR-29, NFR-M1, NFR-M2)
 Given the PR branch
@@ -269,15 +280,15 @@ Given the owner's machine, logged in, on a clean tree at the PR's head
 When `TMPDIR=/tmp python3 -I tools/cfg/eval.py` runs the required suites
 Then `scenario` passes with no regressions and the four new scenarios passing, `rubric` scores at least 80, and `writing-docs-trigger` and `writing-docs-behaviour` pass. Their records are committed and `eval_records.py verify` exits 0. Every rerun is reported in the PR.
 
-### AC-17: Docs follow the change (FR-21, FR-30, FR-31, FR-32)
+### AC-17: Docs follow the change (FR-21, FR-30, FR-31, FR-32, FR-33)
 Given the PR diff
 When it is reviewed
-Then `config/SPEC.md`, the repo `CLAUDE.md`, ADR-0005 and ADR-0010 carry the changes those requirements describe (a review check).
+Then `config/SPEC.md`, the repo `CLAUDE.md`, ADR-0005, ADR-0010 and the plan carry the changes those requirements describe, and none of them still says `writing-docs` covers documents only (a review check).
 
 ### AC-18: The references read as FR-5 says (FR-5, FR-6)
 Given `references/reader-first.md` and the templates
 When they are reviewed, and `doc_lint.py` runs on each
-Then the guide covers all nine steps with an example each, the lint reports no structure or link finding on the guide, and each template's only structure findings are its `TODO:` markers (a review check plus a test).
+Then the guide covers all nine steps with an example each and has the short-text section with its three examples, the lint reports no structure or link finding on the guide, and each template's only structure findings are its `TODO:` markers (a review check plus a test).
 
 ---
 
@@ -338,7 +349,7 @@ function run_doc_reader(ctx: Context, suite: Suite): SuiteResult;   // pass, rer
 | `query` | string | A realistic user prompt |
 | `should_trigger` | boolean | |
 | `delegated` | boolean | Optional; true only with `should_trigger` |
-| `kind` | `"new-doc"` \| `"doc-edit"` \| `"prose"` \| `"for-claude"` \| `"chat-only"` | The first two should trigger, the last three shouldn't. The runner ignores it; AC-14 checks the mix |
+| `kind` | `"new-doc"` \| `"doc-edit"` \| `"prose"` \| `"code"` \| `"for-claude"` \| `"chat-only"` | The first four should trigger, the last two shouldn't. The runner ignores it; AC-14 checks the mix |
 
 ### Behaviour case (`evals/behaviour-evals.json`, a list)
 
@@ -352,10 +363,12 @@ The same fields as `plain-prose`'s behaviour cases: `id`, `kind` (`write` or `re
 - OS-2: Overlays chaining `writing-docs` from other document-producing skills, such as `changelog-generator`, `codebase-onboarding` or `senior-devops`. ADR-0010 names only `senior-architect` and `runbook-generator`; more can follow once the evals show the two work.
 - OS-3: A CI job running `doc_lint.py` on changed Markdown files. CI is #10.
 - OS-4: Fixing findings `doc_lint.py` reports on this repo's existing docs. Running it on them is a useful check (see the test plan), but the fixes belong to their own change.
-- OS-5: Replacing the live prototype in `~/.claude/skills/writing-docs/` or editing the live `~/.claude/CLAUDE.md`. That happens through adoption or deploy (#7, #8). This PR doesn't touch `~/.claude`, so the live line and the prototype keep their broad wording until then, or until the owner edits them.
+- OS-5: Replacing the live prototype in `~/.claude/skills/writing-docs/` or editing the live `~/.claude/CLAUDE.md`. That happens through adoption or deploy (#7, #8). This PR doesn't touch `~/.claude`. After D-1 the repo's `writing-docs` scope matches the live line's, but the live line still puts chat replies in `plain-prose`'s scope, until a deploy or the owner edits it.
 - OS-6: Checking `https:` links. The lint makes no network calls.
 - OS-7: Optimising the description automatically with skill-creator's `run_loop`. If the trigger suite fails, the rule from #12 applies: one hand-tuned description, one run, and a stop to report if it fails again.
 - OS-8: The `work` host profile. That is #17.
+- OS-9: Behaviour cases for short texts (commit messages, PR text, comments). The owner accepted the document-only behaviour suite as planned. `plain-prose`'s behaviour suite already grades short texts, and `writing-docs` adds only a few sentences of guidance for them.
+- OS-10: Changing `plain-prose`'s description to mention `writing-docs`. It would make both `plain-prose` suites run again (OS-1). If the trigger suite shows Claude picking `plain-prose` alone for short texts, the one-tuning rule in OS-7 applies to `writing-docs`' description first.
 
 ---
 

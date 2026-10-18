@@ -106,3 +106,30 @@ Before approving the fifth review's change, the owner replaced it: "in that case
 **Verdict:** no critical finding, one warning accepted, and the review changed nothing.
 
 **Warning, accepted: `eval_records.py verify` will fail on this branch.** The verifier requires every required record to show a passing run and has no way to mark an accepted failure, so it reports `writing-docs-behaviour` and exits 1. Once CI runs it (#10), a PR in this state would fail that job. Accepted because the owner made the decision knowing the result, AC-16 now says exactly which record fails and why, and the failure is limited to this PR: later PRs need the suite only when they change `writing-docs` again, and then they need a fresh run anyway.
+
+# Seventh review: a behaviour suite that doesn't depend on chance
+
+Instead of accepting the failure, the owner asked for the suite itself to be fixed: "either the test data or the approach needs fixing so that tests aren't flaky. senior-qa skill would have warned you about this had you referenced its reference docs". The owner was right that the `senior-qa` guides were skipped when the tests were written. Read now, their guide on flaky tests names the causes this suite had: non-deterministic data, an external dependency deciding the result, and retries that hide flakiness instead of removing it.
+
+The redesign, in FR-25 to FR-28, AC-13, AC-14, AC-16 and EC-13:
+
+- each case lists `mustContain` patterns for its commands, error strings and numbers, checked in code, in place of the judge's lost-facts verdict;
+- each text gets three reader and judge passes, and an answer counts as right only when two of three judges agree;
+- the suite decides on totals, with no reruns;
+- every rewrite task now says what must survive and what may be cut, because all three rewrite drafts held text outside their fact lists (history, opinions, promotional wording) under a bare "Keep every fact".
+
+**Verdict:** one critical finding, fixed in the spec, two warnings accepted and one note. Because the review changed the spec, the owner sees each change below before approving.
+
+## Critical, fixed
+
+**The draft still compared the two arms on the AI-sounding flag, which made the suite a coin toss.** Both arms run `plain-prose`, the skill that owns that criterion. Where `writing-docs` adds nothing to it, "the skill arm is flagged no more often than the baseline" fails about as often as it passes, even with votes and totals. The same holds for "at least as many right answers as the baseline" when both arms read equally well. That contradicts the owner's requirement that the tests not be flaky. FR-27 now says: "summed over the cases, the skill arm gets at least 90% of all questions right", a fixed bar instead of a comparison, and "Whether a text reads as AI-written is recorded for both arms as a diagnostic and never decides this suite". The lint comparison stays, because only the skill arm has the templates and the lint, so the arms really differ there. AC-13, FR-32 and the test plan changed to match.
+
+## Warnings, accepted
+
+**A `mustContain` pattern can reject a faithful paraphrase.** "Three times" could become "3x". Accepted because FR-28 limits the patterns to commands, error strings and numbers, which a faithful text copies as they are, and EC-13 makes the data test reject a pattern that doesn't match the case's own facts or draft.
+
+**A fixed 90% bar could pass a skill that reads worse than the baseline.** If both arms score 95%, the bar can't tell them apart. Accepted because reading quality is what `plain-prose` already gates, the diagnostic figures for both arms stay in the record and the PR, and the bar is high enough to catch a skill that hurts comprehension.
+
+## Note, listed
+
+**A suite run costs about twice as much.** Three reader and judge passes per text mean about 84 model runs per suite run instead of about 36, in exchange for no reruns.

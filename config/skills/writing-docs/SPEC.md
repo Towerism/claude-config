@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-17
-**Status:** Draft again (2026-10-17), waiting for the owner's approval of two changes: up to three hand-tuned descriptions in total for the trigger suite (OS-7), and the owner's acceptance of the behaviour suite's failed run (AC-16). The owner first approved this spec on 2026-10-17 after answering decisions D-1 and D-2 ("I agree. Decision 1: is the full live line. Decision 2: your assumption is correct. I agree with the behavior suite you have planned. I approve once it reflects this."). The live trigger suite then failed twice, the second time on its one tuned description, and the owner chose the option "D. Allow a second tuned description, aimed at delegated and short-comment work" with the answer "D", then added "3 total tuned descriptions are allowed". The behaviour suite had also failed one case of six on its counted rerun, and the owner first answered "allow the same number of counted runs for the behavior suite", then, after the review warned that a bare rerun could pass by chance, "in that case for the behavior suite, accept the failure". Each change has its own adversarial review (see `REVIEW-NOTE.md`). Approval mode: manual review with an adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial. work on each one sequentially."). Only the owner's explicit words approve it.
+**Status:** Draft again (2026-10-17), waiting for the owner's approval of two changes: up to three hand-tuned descriptions in total for the trigger suite (OS-7), and a redesign of the behaviour suite so its result doesn't depend on chance (FR-25, FR-27, FR-28, AC-13, AC-16). The owner first approved this spec on 2026-10-17 after answering decisions D-1 and D-2 ("I agree. Decision 1: is the full live line. Decision 2: your assumption is correct. I agree with the behavior suite you have planned. I approve once it reflects this."). The live trigger suite then failed twice, the second time on its one tuned description, and the owner chose the option "D. Allow a second tuned description, aimed at delegated and short-comment work" with the answer "D", then added "3 total tuned descriptions are allowed". The behaviour suite had also failed one case of six on its counted rerun, and the owner first answered "allow the same number of counted runs for the behavior suite", then, after the review warned that a bare rerun could pass by chance, "in that case for the behavior suite, accept the failure", and finally "either the test data or the approach needs fixing so that tests aren't flaky. senior-qa skill would have warned you about this had you referenced its reference docs". Each change has its own adversarial review (see `REVIEW-NOTE.md`). Approval mode: manual review with an adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial. work on each one sequentially."). Only the owner's explicit words approve it.
 **Issue:** [#13](https://github.com/Towerism/claude-config/issues/13)
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Decided by:** [ADR-0010](../../../docs/adr/0010-prose-for-people.md) (the skill, its nine steps, `doc_lint.py`, the overlays, the evals), [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) (eval gates and records), [ADR-0002](../../../docs/adr/0002-repo-layout.md) (where specs live)
@@ -149,17 +149,16 @@ The runners from #12 install only the skill under test and compare it with no sk
 - FR-25: The `doc-reader` runner MUST grade each case in `behaviour-evals.json` with three arms and a reader:
   - **Skill arm:** `writing-docs` and `plain-prose` installed, told "Load the writing-docs skill first, then do this task", with `--tools "Skill,Read,Bash"` and a pre-approval only for running the installed `doc_lint.py` and `prose_check.py` with `python3 -I`.
   - **Baseline arm:** only `plain-prose` installed, told "Load the plain-prose skill first, then do this task", with the same tools and a pre-approval only for `prose_check.py`. For a rewrite case, both arms rewrite the same draft, so the baseline is `plain-prose`'s own rewrite.
-  - **Reader and judge:** the same as the `cold-reader` runner, in fresh config directories with no skills. Each case's questions ask what a reader of the document needs: what it's for, what to run or do first, how to tell it worked, and what to do when it doesn't.
-- FR-26: For each text, the runner MUST also run the HEAD commit's `doc_lint.py` on it through stdin and record the number of structure and link findings.
-- FR-27: A `doc-reader` case MUST pass only when all of these hold for the skill arm:
-  - it gets at least as many answers right as the baseline;
-  - it loses or distorts no `mustKeep` fact;
-  - it is flagged as AI-sounding no more often than the baseline;
-  - it has no more structure and link findings from `doc_lint.py` than the baseline;
-  - its stream shows a `Skill` tool use for `writing-docs` and one for `plain-prose`.
+  - **Readers and judges:** the reader and judge prompts of the `cold-reader` runner, in fresh config directories with no skills, but each text gets three independent reader passes, each followed by its own judge. An answer counts as right when at least two of the three judges mark it right, and a text counts as AI-sounding when at least two of the three readers flag it. One reader's yes or no never decides a result on its own. Each case's questions ask what a reader of the document needs: what it's for, what to run or do first, how to tell it worked, and what to do when it doesn't.
+- FR-26: For each text, the runner MUST also run the HEAD commit's `doc_lint.py` on it through stdin and record the number of structure and link findings, and check each of the case's `mustContain` patterns against it in code (Python regular expressions, case-insensitive), recording any that don't match. Both checks are deterministic: the same text always gets the same result.
+- FR-27: The `doc-reader` suite MUST decide on the whole suite, not case by case, and MUST NOT rerun anything. It passes only when all of these hold:
+  - every skill-arm stream shows a `Skill` tool use for `writing-docs` and one for `plain-prose`;
+  - every skill-arm text matches every `mustContain` pattern of its case;
+  - summed over the cases, the skill arm gets at least 90% of all questions right, by the two-of-three rule in FR-25;
+  - summed over the cases, the skill arm has no more structure and link findings from `doc_lint.py` than the baseline.
 
-  A failing case is rerun once and the rerun counted, as in the `cold-reader` runner. The suite passes when every case passes. `prose_check.py`'s rates and the detectability score are recorded for every text as diagnostics that don't affect the result.
-- FR-28: `writing-docs`' `behaviour-evals.json` MUST hold at least six cases: three write cases (a README for a small command-line tool, a runbook for restoring a database backup, and an ADR recording a decision between two options) and three rewrite cases (a how-to guide, a README whose answer is buried, and release notes). The facts are invented and name no real person, repo or path. The cases stay document cases after D-1: the owner accepted this suite as planned ("I agree with the behavior suite you have planned"), and short texts are graded by `plain-prose`'s behaviour suite (OS-9).
+  The first two are deterministic checks on each skill-arm run. The third is a fixed bar, not a comparison: two arms that read about equally well would fail a "no fewer right answers than the baseline" rule about as often as they passed it. The fourth compares totals where the arms really differ, since only the skill arm has the templates and the lint. Whether a text reads as AI-written is recorded for both arms as a diagnostic and never decides this suite: both arms run `plain-prose`, which owns that criterion and has its own behaviour suite, so comparing them on it would be close to a coin toss. ADR-0010 grades `writing-docs` against its nine steps. Each case's figures are recorded as diagnostics, along with `prose_check.py`'s rates and the detectability score, and the record reports every unparsable reply; a text whose three reader passes don't give two parsable answers for a question counts that answer as wrong. This replaces the per-case verdict and the counted rerun of the first draft, because retries hide flakiness instead of removing it (the `senior-qa` guide on flaky tests, which the owner pointed to).
+- FR-28: `writing-docs`' `behaviour-evals.json` MUST hold at least six cases: three write cases (a README for a small command-line tool, a runbook for restoring a database backup, and an ADR recording a decision between two options) and three rewrite cases (a how-to guide, a README whose answer is buried, and release notes). The facts are invented and name no real person, repo or path. Each case's data MUST admit one right shape: a write case says "Use only these facts", and a rewrite case's task names what must survive (every command, value, step and instruction for using the thing) and what may be cut (history, opinions and promotional wording), so a faithful writer never has to guess. Every fact a question asks about MUST be in the case's `facts`, every `mustKeep` fact MUST be reachable from the draft or the facts, and each case MUST list `mustContain` patterns for the commands, error strings and numbers a faithful text has to include. The cases stay document cases after D-1: the owner accepted this suite as planned ("I agree with the behavior suite you have planned"), and short texts are graded by `plain-prose`'s behaviour suite (OS-9).
 
 ### F. The repo's own files
 
@@ -169,7 +168,8 @@ The runners from #12 install only the skill under test and compare it with no sk
 - FR-32: [ADR-0010](../../../docs/adr/0010-prose-for-people.md) MUST record, with an amendment line on its Status naming #13:
   - the scope decision D-1, quoting the owner ("Decision 1: is the full live line"). The summary paragraph and the "Skill 2" section's heading and scope paragraph change to say that `writing-docs` covers every text a person reads later, the same set as `plain-prose`, with document files getting the full nine steps, templates and `doc_lint.py`, and short texts getting the steps that fit them. The "How `plain-prose` gets used" row for `writing-docs` says it loads `plain-prose` before drafting and applies it last. The Evals paragraph says `writing-docs` must trigger on the same texts as `plain-prose`;
   - that `doc_lint.py` takes acronyms and bare requirement IDs from `prose_check.py`'s report instead of checking them twice;
-  - that the behaviour suite compares `writing-docs` with `plain-prose` alone, not with no skill, and adds `doc_lint.py`'s findings as a pass condition, which is how it grades "against the nine steps".
+  - that the behaviour suite compares `writing-docs` with `plain-prose` alone, not with no skill, and adds `doc_lint.py`'s findings as a pass condition, which is how it grades "against the nine steps";
+  - that the behaviour suite keeps chance out of its verdict: deterministic `mustContain` and lint checks, two-of-three votes among three reader and judge passes, a fixed bar of 90% right answers instead of a comparison with the baseline, the AI-sounding flag as a diagnostic only (both arms run `plain-prose`, which owns it), and a decision on suite totals with no reruns, after the first design's single-reader, per-case verdict failed on a reader's flag the owner judged flaky.
 - FR-33: [The build plan](../../../docs/architecture/plan.md) MUST gain a resolved question, Q-18, recording decision D-1 with the owner's words and a link to ADR-0010, the way Q-9 records `plain-prose`'s scope.
 
 ## Non-Functional Requirements
@@ -263,12 +263,12 @@ Then the config directory holds both skills; a stream that lists `plain-prose` t
 ### AC-13: Reader scoring against `plain-prose` (FR-25, FR-26, FR-27, NFR-R2)
 Given faked writer, reader and judge replies and a fixed `doc_lint` result per text
 When the `doc-reader` runner scores a case
-Then the baseline arm's config holds only `plain-prose` and the skill arm's holds both; the case fails if the skill arm gets fewer answers right, drops a `mustKeep` fact, is flagged as AI-sounding when the baseline isn't, has more lint findings than the baseline, or lacks a `Skill` call for either skill; it passes otherwise; one rerun is counted; and an unparsable reply fails the case with the reason recorded. Every run's command has the FR-25 tool list and pre-approvals, `PATH` starts with the stub `gh`, and `GH_CONFIG_DIR` is empty.
+Then the baseline arm's config holds only `plain-prose` and the skill arm's holds both; each text gets three reader passes and three judges; an answer is right only with two of three judges, and a text is recorded as AI-sounding only with two of three readers; the suite fails when any skill-arm run lacks a `Skill` call for either skill or misses a `mustContain` pattern, when the skill arm gets under 90% of all questions right, or when its total lint findings exceed the baseline's; an AI-sounding skill arm never fails the suite and is reported as a diagnostic; nothing is rerun; and unparsable replies are recorded and count as wrong answers. Every run's command has the FR-25 tool list and pre-approvals, `PATH` starts with the stub `gh`, and `GH_CONFIG_DIR` is empty.
 
 ### AC-14: Case files are well formed (FR-24, FR-28, NFR-S3)
 Given the two case files
 When the eval-data test runs
-Then the trigger file has 25 queries with the kinds and counts FR-24 sets (15 should trigger: 6 `new-doc`, 2 `doc-edit`, 4 `prose`, 3 `code`, 2 of them delegated; 10 near misses: at least 5 `for-claude` and 3 `chat-only`), including at least 2 should-trigger queries without "doc" in them, and the behaviour file has at least three write and three rewrite cases, each with facts, questions and `mustKeep`.
+Then the trigger file has 25 queries with the kinds and counts FR-24 sets (15 should trigger: 6 `new-doc`, 2 `doc-edit`, 4 `prose`, 3 `code`, 2 of them delegated; 10 near misses: at least 5 `for-claude` and 3 `chat-only`), including at least 2 should-trigger queries without "doc" in them, and the behaviour file has at least three write and three rewrite cases, each with facts, questions, `mustKeep` and at least two `mustContain` patterns that compile and that match the case's own facts or draft; every rewrite task names what may be cut.
 
 ### AC-15: The repo's checks cover the new code (FR-29, NFR-M1, NFR-M2)
 Given the PR branch
@@ -278,9 +278,9 @@ Then all pass, and `doc_lint.py` and `eval/doc_evals.py` are at 100% branch cove
 ### AC-16: Live evals pass (FR-15, FR-17, FR-18, FR-19, FR-23, FR-27, NFR-P3)
 Given the owner's machine, logged in, on a clean tree at the PR's head
 When `TMPDIR=/tmp python3 -I tools/cfg/eval.py` runs the required suites
-Then `scenario` passes with no regressions and the four new scenarios passing, `rubric` scores at least 80, and `writing-docs-trigger` passes. Their records are committed. Every rerun is reported in the PR.
+Then `scenario` passes with no regressions and the four new scenarios passing, `rubric` scores at least 80, and `writing-docs-trigger` and `writing-docs-behaviour` pass. Their records are committed and `eval_records.py verify` exits 0. Every rerun is reported in the PR.
 
-`writing-docs-behaviour` is the exception the owner accepted on 2026-10-17 ("in that case for the behavior suite, accept the failure"). Its first run failed one case of six on the counted rerun: in `rewrite-buried-readme` the reader flagged two sentences the skill arm kept word for word from the draft, while both arms answered every question right, kept every fact and had no lint findings. That run's record is committed as it is, failed result included, and the PR quotes the owner's acceptance. Because the repo has no way to mark an accepted failure, `eval_records.py verify` on this branch reports that one record as not passing and exits 1; every other required record must verify.
+The first run of `writing-docs-behaviour`, on the first design, failed one case of six on its counted rerun, and is reported in the PR. The owner first accepted that failure, then asked for the suite to be fixed instead, which FR-25 to FR-28 now do.
 
 ### AC-17: Docs follow the change (FR-21, FR-30, FR-31, FR-32, FR-33)
 Given the PR diff
@@ -305,7 +305,8 @@ Then the guide covers all nine steps with an example each and has the short-text
 - EC-7: A heading is written in setext style (underlined with `===` or `---`). This lint only reads `#` headings, so such a document reports "no title". The templates and the guide use `#` headings only, and the finding's text says setext headings aren't read.
 - EC-8: The sibling `plain-prose` skill is missing, as in a partial deploy. FR-10's error message appears and the structure and link checks still run.
 - EC-9: A trigger run hits `--max-turns` before a subagent loads anything. That run doesn't trigger.
-- EC-10: The skill arm loads `writing-docs` but not `plain-prose`. The case fails, with the reason "the skill arm never loaded plain-prose".
+- EC-10: A skill-arm run loads `writing-docs` but not `plain-prose`. The suite fails, with the reason "the skill arm never loaded plain-prose" and the case named.
+- EC-13: A `mustContain` pattern doesn't compile, or matches neither the case's facts nor its draft. The eval-data test fails before any model run, so a broken pattern can't fail a live suite.
 - EC-11: The model replies with the whole document wrapped in one code fence. When the reply's first non-blank line opens a fence labelled `markdown`, `md` or nothing, and its last non-blank line closes it, that outer fence is removed before linting and grading, in both arms, so neither is penalised for it. Fences inside the document are never touched.
 - EC-12: `claude` isn't on `PATH`, or isn't logged in. Like the existing suites, `eval.py` refuses before any run and writes no record.
 
@@ -329,7 +330,7 @@ interface DocReport {
 
 // eval/doc_evals.py, called by tools/cfg/eval.py like the other runners
 function run_doc_trigger(ctx: Context, suite: Suite): SuiteResult;  // pass, recall, falseTriggers, accuracy (info), cases
-function run_doc_reader(ctx: Context, suite: Suite): SuiteResult;   // pass, rerunsUsed, cases (each with lint counts and diagnostics)
+function run_doc_reader(ctx: Context, suite: Suite): SuiteResult;   // pass, rightShare, lint totals per arm, AI-sounding counts per arm (diagnostic), missing loads and patterns, unparsable replies, cases
 ```
 
 ## Data Models
@@ -355,7 +356,7 @@ function run_doc_reader(ctx: Context, suite: Suite): SuiteResult;   // pass, rer
 
 ### Behaviour case (`evals/behaviour-evals.json`, a list)
 
-The same fields as `plain-prose`'s behaviour cases: `id`, `kind` (`write` or `rewrite`), `task`, `facts`, `draft` (rewrite cases only), `questions` (3 or 4) and `mustKeep`.
+The same fields as `plain-prose`'s behaviour cases: `id`, `kind` (`write` or `rewrite`), `task`, `facts`, `draft` (rewrite cases only), `questions` (3 or 4) and `mustKeep`, plus `mustContain`: a list of at least two case-insensitive Python regular expressions for the commands, error strings and numbers a faithful text must include.
 
 ---
 
@@ -390,7 +391,7 @@ This plan follows the overlay for `senior-qa`; the guides' React and Jest exampl
 **Coverage by risk.** 100% branch coverage for `doc_lint.py` and `eval/doc_evals.py`. The runners decide whether a PR may merge, and a wrong link or anchor finding would send Claude chasing problems that aren't there. The templates and the guide are text, checked by AC-18.
 
 **Flake hazards and how they're removed.**
-- Model variance: unit and integration tests never call a model; the fake `claude` returns canned streams chosen by prompt. Live variance is handled by the two-of-three trigger rule and one counted rerun per behaviour case, both reported.
+- Model variance: unit and integration tests never call a model; the fake `claude` returns canned streams chosen by prompt. Live variance is handled by the two-of-three trigger rule, and in the behaviour suite by deterministic `mustContain` and lint checks, two-of-three reader and judge votes, a fixed 90% bar for right answers, the AI-sounding flag kept out of the verdict, and a verdict on suite totals instead of per case, with no reruns. The voting and totalling logic is unit-tested with faked replies, so it can't be flaky itself.
 - Wall-clock time: no test asserts a duration. NFR-P2 is measured once and quoted.
 - Filesystem: link tests build their files in `tmp_path`, so nothing depends on the repo's own docs. A separate, non-gating test runs `doc_lint.py` on every Markdown file in `docs/` and only asserts that each exits 0 with a report; the findings are printed for the PR (OS-4).
 - Temporary directories and environment: `tmp_path` and `monkeypatch` for `HOME`, `TMPDIR` and `PATH`; a teardown check confirms no eval directory or credentials copy is left.

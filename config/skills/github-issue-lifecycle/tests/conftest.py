@@ -85,13 +85,14 @@ def make_repo(tmp_path, files_on_branch):
     return repo
 
 
-FAKE_GH = r'''
+FAKE_GH = r"""
 import json, os, sys
 args = sys.argv[1:]
 with open(os.environ["GH_LOG"], "a") as f:
     f.write(json.dumps(args) + "\n")
 state = os.environ["GH_STATE"]
-fail = json.load(open(os.path.join(state, "fail.json"))) if os.path.exists(os.path.join(state, "fail.json")) else {}
+fail_path = os.path.join(state, "fail.json")
+fail = json.load(open(fail_path)) if os.path.exists(fail_path) else {}
 key = " ".join(args[:2])
 if key in fail:
     sys.stderr.write(fail[key] + "\n")
@@ -100,7 +101,7 @@ if args[:2] == ["label", "create"] and os.path.exists(os.path.join(state, "label
     sys.stderr.write("label already exists\n")
     sys.exit(1)
 sys.exit(0)
-'''
+"""
 
 
 class FakeGh:
@@ -126,10 +127,20 @@ class FakeGh:
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
     def run_bash(self, script: str):
-        env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}",
-               "GH_LOG": str(self.log), "GH_STATE": str(self.state)}
-        return subprocess.run(["bash", "-c", script], env=env, cwd=self.tmp,
-                              capture_output=True, text=True, timeout=30)
+        env = {
+            **os.environ,
+            "PATH": f"{self.bin}:{os.environ['PATH']}",
+            "GH_LOG": str(self.log),
+            "GH_STATE": str(self.state),
+        }
+        return subprocess.run(
+            ["bash", "-c", script],
+            env=env,
+            cwd=self.tmp,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
 
 
 @pytest.fixture

@@ -3,7 +3,8 @@
 
 For each case in evals/evals.json it:
   1. builds an isolated Claude config dir: credentials and ~/.claude.json copied in, plugins linked,
-     this skill copied in, the competing issue-spec-driven-workflow skill and the global CLAUDE.md left
+     this skill copied in, the competing issue-spec-driven-workflow skill and the global CLAUDE.md
+     left
      out; the dir (and the credential copy) is removed when the run ends, whatever happens;
   2. proves isolation with a canary probe that reads the skill list from the stream-json init event;
   3. creates a throwaway git repo with a local bare `origin`, a recording fake `gh` and a recording
@@ -12,7 +13,8 @@ For each case in evals/evals.json it:
      against the recorded gh/git calls, Bash commands and final answers. A failing case is re-run
      once and fails only if it fails twice.
 
-Usage: python3 -I evals/run_behaviour_evals.py [--model M] [--ids 1,2] [--workers 4] [--out results.json]
+Usage: python3 -I evals/run_behaviour_evals.py [--model M] [--ids 1,2] [--workers 4]
+                                               [--out results.json]
 """
 
 import argparse
@@ -35,7 +37,7 @@ EXCLUDED_SKILLS = {"issue-spec-driven-workflow", "github-issue-lifecycle"}
 ALLOWED_TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
 TURN_TIMEOUT = 900
 
-FAKE_GH = r'''#!/usr/bin/env python3
+FAKE_GH = r"""#!/usr/bin/env python3
 import json, os, re, sys
 args = sys.argv[1:]
 state = os.environ["GH_STATE"]
@@ -43,7 +45,8 @@ entry = {"args": args}
 for flag in ("--body-file", "-F"):
     if flag in args and args.index(flag) + 1 < len(args):
         try:
-            entry["body"] = open(args[args.index(flag) + 1], encoding="utf-8", errors="replace").read()
+            path = args[args.index(flag) + 1]
+            entry["body"] = open(path, encoding="utf-8", errors="replace").read()
         except OSError:
             pass
 if "--body" in args and args.index("--body") + 1 < len(args):
@@ -80,27 +83,42 @@ for i, r in enumerate(responses):
         sys.stderr.write(r["stderr"] + "\n")
     sys.exit(r.get("exit", 0))
 sys.exit(0)
-'''
+"""
 
-FAKE_GIT = r'''#!/usr/bin/env python3
+FAKE_GIT = r"""#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["GIT_LOG"], "a") as f:
     f.write(json.dumps(sys.argv[1:]) + "\n")
 os.execv(os.environ["REAL_GIT"], [os.environ["REAL_GIT"], *sys.argv[1:]])
-'''
+"""
 
 DEFAULT_GH = [
-    {"match": r"^auth status", "stdout": "github.com\n  ✓ Logged in to github.com account mfracker"},
+    {
+        "match": r"^auth status",
+        "stdout": "github.com\n  ✓ Logged in to github.com account mfracker",
+    },
     {"match": r"^api user", "stdout": json.dumps({"login": "mfracker"})},
     {"match": r"^api repos/.*/events", "stdout": "[]"},
-    {"match": r"^repo view", "stdout": json.dumps({"defaultBranchRef": {"name": "main"}, "nameWithOwner": "o/r"})},
-    {"match": r"^issue view", "stdout": "", "stderr": "GraphQL: Could not resolve to an issue", "exit": 1},
+    {
+        "match": r"^repo view",
+        "stdout": json.dumps({"defaultBranchRef": {"name": "main"}, "nameWithOwner": "o/r"}),
+    },
+    {
+        "match": r"^issue view",
+        "stdout": "",
+        "stderr": "GraphQL: Could not resolve to an issue",
+        "exit": 1,
+    },
     {"match": r"^issue list", "stdout": "[]"},
     {"match": r"^issue create", "stdout": "https://github.com/o/r/issues/99"},
     {"match": r"^pr list", "stdout": "[]"},
     {"match": r"^pr create", "stdout": "https://github.com/o/r/pull/42"},
-    {"match": r"^pr view", "stdout": json.dumps({"number": 42, "state": "OPEN",
-                                                "closingIssuesReferences": [{"number": 42}]})},
+    {
+        "match": r"^pr view",
+        "stdout": json.dumps(
+            {"number": 42, "state": "OPEN", "closingIssuesReferences": [{"number": 42}]}
+        ),
+    },
 ]
 
 
@@ -133,25 +151,41 @@ def isolated_config(root, v2=False):
         for entry in (HOME_CLAUDE / "skills").iterdir():
             if entry.name not in EXCLUDED_SKILLS:
                 (skills / entry.name).symlink_to(entry)
-        shutil.copytree(SKILL_DIR, skills / "github-issue-lifecycle",
-                        ignore=shutil.ignore_patterns("tests", "evals", "__pycache__", ".pytest_cache"))
+        shutil.copytree(
+            SKILL_DIR,
+            skills / "github-issue-lifecycle",
+            ignore=shutil.ignore_patterns("tests", "evals", "__pycache__", ".pytest_cache"),
+        )
         if v2:
             shutil.copy2(V2_DELIVERABLE / "CLAUDE.md", cfg / "CLAUDE.md")
-            shutil.copytree(V2_DELIVERABLE / "skill-overlays", cfg / "skill-overlays",
-                            ignore=shutil.ignore_patterns("__pycache__"))
+            shutil.copytree(
+                V2_DELIVERABLE / "skill-overlays",
+                cfg / "skill-overlays",
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
         yield cfg
     finally:
         shutil.rmtree(cfg, ignore_errors=True)
 
 
 def claude(prompt, cwd, env, model=None, resume=None):
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
-           "--allowedTools", ALLOWED_TOOLS]
+    cmd = [
+        "claude",
+        "-p",
+        prompt,
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--allowedTools",
+        ALLOWED_TOOLS,
+    ]
     if model:
         cmd += ["--model", model]
     if resume:
         cmd += ["--resume", resume]
-    proc = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=TURN_TIMEOUT)
+    proc = subprocess.run(
+        cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=TURN_TIMEOUT
+    )
     events = []
     for line in proc.stdout.splitlines():
         try:
@@ -175,8 +209,16 @@ def claude(prompt, cwd, env, model=None, resume=None):
                 bash.append(block.get("input", {}).get("command", ""))
             elif block.get("type") == "tool_use" and block.get("name") == "Skill":
                 loaded.append(block.get("input", {}).get("skill", ""))
-    return {"session": session, "answer": answer or "\n".join(texts), "bash": bash, "skills": skills, "loaded": loaded, "tools": tools,
-            "stderr": proc.stderr[-2000:], "code": proc.returncode}
+    return {
+        "session": session,
+        "answer": answer or "\n".join(texts),
+        "bash": bash,
+        "skills": skills,
+        "loaded": loaded,
+        "tools": tools,
+        "stderr": proc.stderr[-2000:],
+        "code": proc.returncode,
+    }
 
 
 def base_env(cfg):
@@ -189,18 +231,25 @@ def probe(cfg, tmp, model):
     out = claude("Reply with the single word OK.", tmp, base_env(cfg), model)
     names = [s if isinstance(s, str) else s.get("name", "") for s in out["skills"]]
     joined = " ".join(names)
-    return {"skills_seen": len(names),
-            "has_new": "github-issue-lifecycle" in joined,
-            "has_old": "issue-spec-driven-workflow" in joined,
-            "ok": "github-issue-lifecycle" in joined and "issue-spec-driven-workflow" not in joined}
+    return {
+        "skills_seen": len(names),
+        "has_new": "github-issue-lifecycle" in joined,
+        "has_old": "issue-spec-driven-workflow" in joined,
+        "ok": "github-issue-lifecycle" in joined and "issue-spec-driven-workflow" not in joined,
+    }
 
 
 def make_workspace(case, root):
     real_git = shutil.which("git")
     ws = root / "ws"
     origin = root / "origin.git"
-    env = {**os.environ, "GIT_AUTHOR_NAME": "Eval", "GIT_AUTHOR_EMAIL": "eval@example.invalid",
-           "GIT_COMMITTER_NAME": "Eval", "GIT_COMMITTER_EMAIL": "eval@example.invalid"}
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "Eval",
+        "GIT_AUTHOR_EMAIL": "eval@example.invalid",
+        "GIT_COMMITTER_NAME": "Eval",
+        "GIT_COMMITTER_EMAIL": "eval@example.invalid",
+    }
 
     def git(*args, cwd=ws):
         subprocess.run([real_git, *args], cwd=cwd, env=env, check=True, capture_output=True)
@@ -230,7 +279,7 @@ def make_workspace(case, root):
 
 
 def git_subcommand(args):
-    """Drop git's global options (-c k=v, -C dir, --no-optional-locks, ...) so grading sees the subcommand."""
+    """Drop git's global options (-c k=v, -C dir, ...) so grading sees the subcommand."""
     args = list(args)
     while args and args[0].startswith("-"):
         takes_value = args[0] in ("-c", "-C", "--git-dir", "--work-tree", "--namespace")
@@ -244,8 +293,14 @@ def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=()):
     results = []
     for exp in expectations:
         try:
-            results.append({"text": exp, "passed": bool(check(exp, gh_calls, gh_strs, git_strs, answer, bash,
-                                                               loaded, tools))})
+            results.append(
+                {
+                    "text": exp,
+                    "passed": bool(
+                        check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded, tools)
+                    ),
+                }
+            )
         except re.error as exc:
             results.append({"text": exp, "passed": False, "error": f"bad pattern: {exc}"})
     return results
@@ -263,10 +318,14 @@ def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=()):
     elif kind == "gh-order":
         first, _, second = arg.partition(" ||| ")
         idx = [i for i, s in enumerate(gh_strs) if re.search(first, s)]
-        ok = bool(idx) and any(re.search(second, s) for s in gh_strs[idx[0] + 1:])
+        ok = bool(idx) and any(re.search(second, s) for s in gh_strs[idx[0] + 1 :])
     elif kind in ("gh-body-matches", "gh-body-not-matches"):
         call_re, _, body_re = arg.partition(" ::: ")
-        hits = [c.get("body", "") for c, s in zip(gh_calls, gh_strs) if re.search(call_re, s)]
+        hits = [
+            c.get("body", "")
+            for c, s in zip(gh_calls, gh_strs, strict=True)
+            if re.search(call_re, s)
+        ]
         found = any(re.search(body_re, b) for b in hits)
         ok = found if kind == "gh-body-matches" else (bool(hits) and not found)
     elif kind == "git-called":
@@ -314,9 +373,15 @@ def _run_case_in(case, cfg, model):
             (bin_dir / name).chmod(0o755)
         (state / "responses.json").write_text(json.dumps(case.get("fake_gh", []) + DEFAULT_GH))
         env = base_env(cfg)
-        env.update({"PATH": f"{bin_dir}:{env['PATH']}", "GH_STATE": str(state),
-                    "GH_LOG": str(root / "gh.log"), "GIT_LOG": str(root / "git.log"),
-                    "REAL_GIT": shutil.which("git")})
+        env.update(
+            {
+                "PATH": f"{bin_dir}:{env['PATH']}",
+                "GH_STATE": str(state),
+                "GH_LOG": str(root / "gh.log"),
+                "GIT_LOG": str(root / "git.log"),
+                "REAL_GIT": shutil.which("git"),
+            }
+        )
         session, answers, bash, turn1, loaded, tools = None, [], [], None, [], []
         for n, prompt in enumerate(case["turns"]):
             out = claude(prompt, ws, env, model, resume=session)
@@ -326,21 +391,44 @@ def _run_case_in(case, cfg, model):
             loaded += out["loaded"]
             tools += out["tools"]
             if n == 0 and case.get("turn1_expectations"):
-                turn1 = grade(case["turn1_expectations"], read_log(root / "gh.log"),
-                              read_log(root / "git.log"), out["answer"], out["bash"])
+                turn1 = grade(
+                    case["turn1_expectations"],
+                    read_log(root / "gh.log"),
+                    read_log(root / "git.log"),
+                    out["answer"],
+                    out["bash"],
+                )
         gh_calls, git_calls = read_log(root / "gh.log"), read_log(root / "git.log")
-        results = (turn1 or []) + grade(case["expectations"], gh_calls, git_calls, "\n\n".join(answers), bash,
-                                        loaded, tools)
-        return {"passed": all(r["passed"] for r in results), "expectations": results,
-                "gh_calls": [" ".join(c["args"]) for c in gh_calls],
-                "skills_loaded": loaded, "tools_used": tools, "answers": [a[-2500:] for a in answers],
-                "git_calls": [git_subcommand(c) for c in git_calls if not git_subcommand(c).startswith(("config", "status", "remote get-url", "ls-files", "rev-parse"))], "answer": answers[-1][-3000:]}
+        results = (turn1 or []) + grade(
+            case["expectations"], gh_calls, git_calls, "\n\n".join(answers), bash, loaded, tools
+        )
+        return {
+            "passed": all(r["passed"] for r in results),
+            "expectations": results,
+            "gh_calls": [" ".join(c["args"]) for c in gh_calls],
+            "skills_loaded": loaded,
+            "tools_used": tools,
+            "answers": [a[-2500:] for a in answers],
+            "git_calls": [
+                git_subcommand(c)
+                for c in git_calls
+                if not git_subcommand(c).startswith(
+                    ("config", "status", "remote get-url", "ls-files", "rev-parse")
+                )
+            ],
+            "answer": answers[-1][-3000:],
+        }
 
 
 def run_case(case, cfg, model):
     started = time.time()
     first = run_case_once(case, cfg, model)
-    result = {"id": case["id"], "name": case["name"], "covers": case.get("covers", []), "attempts": [first]}
+    result = {
+        "id": case["id"],
+        "name": case["name"],
+        "covers": case.get("covers", []),
+        "attempts": [first],
+    }
     if not first["passed"]:
         result["attempts"].append(run_case_once(case, cfg, model))
     result["passed"] = any(a["passed"] for a in result["attempts"])
@@ -350,7 +438,9 @@ def run_case(case, cfg, model):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--model", help="model for claude -p (default: the user's configured model)")
+    parser.add_argument(
+        "--model", help="model for claude -p (default: the user's configured model)"
+    )
     parser.add_argument("--ids", help="comma-separated case ids to run")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--out", default="behaviour-results.json")
@@ -376,8 +466,13 @@ def main():
                     return result
 
                 results = list(pool.map(run_and_save, cases))
-    summary = {"model": args.model or "default", "probe": canary,
-               "passed": sum(r["passed"] for r in results), "total": len(results), "results": results}
+    summary = {
+        "model": args.model or "default",
+        "probe": canary,
+        "passed": sum(r["passed"] for r in results),
+        "total": len(results),
+        "results": results,
+    }
     Path(args.out).write_text(json.dumps(summary, indent=1))
     for r in results:
         print(f"{'PASS' if r['passed'] else 'FAIL'}  {r['id']:>2} {r['name']}  ({r['seconds']}s)")

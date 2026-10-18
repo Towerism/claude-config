@@ -4,13 +4,19 @@ import re
 from pathlib import Path
 
 import pytest
-
 from conftest import SKILL_DIR
 
 SKILL = (SKILL_DIR / "SKILL.md").read_text()
 FRONT = SKILL.split("---")[1]
-LABELS = ["in progress", "draft", "approved", "hotfix",
-          "approval: manual", "approval: adversarial", "approval: no-review"]
+LABELS = [
+    "in progress",
+    "draft",
+    "approved",
+    "hotfix",
+    "approval: manual",
+    "approval: adversarial",
+    "approval: no-review",
+]
 INSTALLED = Path.home() / ".claude/skills/github-issue-lifecycle"
 
 
@@ -31,11 +37,23 @@ def test_skill_md_is_short():
     assert len(SKILL.splitlines()) <= 300
 
 
-@pytest.mark.parametrize("rel", ["SKILL.md", "references/git-workflow.md", "scripts/issue_lifecycle.py",
-                                 "evals/evals.json", "evals/trigger-evals.json",
-                                 "evals/run_behaviour_evals.py", "evals/run_trigger_evals.py",
-                                 "expected_outputs", "README.md", "assets/pr-body-template.md",
-                                 "examples", "references/gh-commands.md"])
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "SKILL.md",
+        "references/git-workflow.md",
+        "scripts/issue_lifecycle.py",
+        "evals/evals.json",
+        "evals/trigger-evals.json",
+        "evals/run_behaviour_evals.py",
+        "evals/run_trigger_evals.py",
+        "expected_outputs",
+        "README.md",
+        "assets/pr-body-template.md",
+        "examples",
+        "references/gh-commands.md",
+    ],
+)
 def test_bundle_files_exist(rel):
     assert (SKILL_DIR / rel).exists()
 
@@ -47,7 +65,10 @@ def test_every_reference_is_linked_from_skill_md():
 
 def test_git_reference_credits_source_and_drops_rejected_parts():
     text = (SKILL_DIR / "references/git-workflow.md").read_text()
-    assert text.startswith("> Adapted from") and "MIT License, Copyright (c) 2025 Alireza Rezvani" in text
+    assert (
+        text.startswith("> Adapted from")
+        and "MIT License, Copyright (c) 2025 Alireza Rezvani" in text
+    )
     for banned in ("--squash", "git tag v", "reset --hard", "push --force"):
         assert banned not in text
     assert len(text.splitlines()) < 300
@@ -72,7 +93,10 @@ def test_claim_is_idempotent_and_assigns(gh):
     calls = gh.calls()
     requested = {c[2] for c in calls if c[:2] == ["label", "create"]}
     assert requested == set(LABELS)
-    assert calls.count(["issue", "edit", "42", "--add-assignee", "@me", "--add-label", "in progress"]) == 2
+    assert (
+        calls.count(["issue", "edit", "42", "--add-assignee", "@me", "--add-label", "in progress"])
+        == 2
+    )
 
 
 def test_claim_on_a_fresh_repo(gh):
@@ -83,6 +107,7 @@ def test_claim_on_a_fresh_repo(gh):
 
 def test_every_eval_expectation_is_a_valid_pattern():
     import json
+
     cases = json.loads((SKILL_DIR / "evals/evals.json").read_text())["evals"]
     for case in cases:
         for exp in case["expectations"] + case.get("turn1_expectations", []):
@@ -94,7 +119,10 @@ def test_every_eval_expectation_is_a_valid_pattern():
 
 def test_eval_harness_refuses_a_temp_root_under_home(monkeypatch):
     import importlib.util
-    spec = importlib.util.spec_from_file_location("harness", SKILL_DIR / "evals/run_behaviour_evals.py")
+
+    spec = importlib.util.spec_from_file_location(
+        "harness", SKILL_DIR / "evals/run_behaviour_evals.py"
+    )
     harness = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(harness)
     monkeypatch.setattr(harness.tempfile, "gettempdir", lambda: str(Path.home() / "tmp"))
@@ -106,13 +134,17 @@ def test_eval_harness_refuses_a_temp_root_under_home(monkeypatch):
 
 def test_one_match_search_case_states_issue_intent():
     import json
+
     cases = {c["id"]: c for c in json.loads((SKILL_DIR / "evals/evals.json").read_text())["evals"]}
     assert cases[2]["turns"] == ["pick up the issue about the export bug"]
 
 
 def _harness():
     import importlib.util
-    spec = importlib.util.spec_from_file_location("harness", SKILL_DIR / "evals/run_behaviour_evals.py")
+
+    spec = importlib.util.spec_from_file_location(
+        "harness", SKILL_DIR / "evals/run_behaviour_evals.py"
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -120,6 +152,7 @@ def _harness():
 
 def test_routed_bare_request_case_uses_the_v2_config():
     import json
+
     cases = {c["id"]: c for c in json.loads((SKILL_DIR / "evals/evals.json").read_text())["evals"]}
     case = cases[23]
     assert case["turns"] == ["fix the export bug"] and case["v2_config"] is True
@@ -129,11 +162,25 @@ def test_routed_bare_request_case_uses_the_v2_config():
 
 def test_grader_checks_skills_loaded_and_tools_used():
     h = _harness()
-    graded = h.grade(["skill-loaded: github-issue-lifecycle", "tool-not-used: ^(Write|Edit)$"],
-                     [], [], "", [], loaded=["github-issue-lifecycle"], tools=["Bash", "Skill"])
+    graded = h.grade(
+        ["skill-loaded: github-issue-lifecycle", "tool-not-used: ^(Write|Edit)$"],
+        [],
+        [],
+        "",
+        [],
+        loaded=["github-issue-lifecycle"],
+        tools=["Bash", "Skill"],
+    )
     assert all(r["passed"] for r in graded)
-    graded = h.grade(["skill-loaded: github-issue-lifecycle", "tool-not-used: ^(Write|Edit)$"],
-                     [], [], "", [], loaded=[], tools=["Edit"])
+    graded = h.grade(
+        ["skill-loaded: github-issue-lifecycle", "tool-not-used: ^(Write|Edit)$"],
+        [],
+        [],
+        "",
+        [],
+        loaded=[],
+        tools=["Edit"],
+    )
     assert not any(r["passed"] for r in graded)
 
 

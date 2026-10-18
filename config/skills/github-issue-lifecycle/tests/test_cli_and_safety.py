@@ -37,8 +37,13 @@ def test_script_is_stdlib_only_and_network_free():
 def test_subprocess_used_only_in_diff_check_and_never_with_shell():
     tree = ast.parse(SCRIPT.read_text())
     for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
-        uses = [n for n in ast.walk(fn) if isinstance(n, ast.Attribute)
-                and isinstance(n.value, ast.Name) and n.value.id == "subprocess"]
+        uses = [
+            n
+            for n in ast.walk(fn)
+            if isinstance(n, ast.Attribute)
+            and isinstance(n.value, ast.Name)
+            and n.value.id == "subprocess"
+        ]
         if uses:
             assert fn.name == "cmd_diff_check", fn.name
     for call in [n for n in ast.walk(tree) if isinstance(n, ast.Call)]:

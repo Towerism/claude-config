@@ -4,8 +4,10 @@ import json
 
 from conftest import make_repo, run
 
-CLEAN = {"src/export.py": "def write_header():\n    return 'a,b'\n",
-         "tests/test_export.py": "def test_export_writes_header():\n    pass\n"}
+CLEAN = {
+    "src/export.py": "def write_header():\n    return 'a,b'\n",
+    "tests/test_export.py": "def test_export_writes_header():\n    pass\n",
+}
 
 
 def check(repo):
@@ -13,8 +15,13 @@ def check(repo):
 
 
 def test_spec_id_in_test_name_and_spec_file_both_reported(tmp_path):
-    repo = make_repo(tmp_path, {"tests/test_x.py": "def test_ac3_rejects_empty():\n    pass\n",
-                                "docs/feature-spec.md": "# Spec\n"})
+    repo = make_repo(
+        tmp_path,
+        {
+            "tests/test_x.py": "def test_ac3_rejects_empty():\n    pass\n",
+            "docs/feature-spec.md": "# Spec\n",
+        },
+    )
     r = check(repo)
     assert r.returncode == 1
     codes = {p["code"] for p in json.loads(r.stdout)["problems"]}
@@ -26,12 +33,15 @@ def test_clean_branch_passes(tmp_path):
 
 
 def test_skill_spec_inspection_doc_and_playwright_spec_are_allowed(tmp_path):
-    repo = make_repo(tmp_path, {
-        ".claude/skills/foo/SKILL.md": "---\nname: foo\n---\n",
-        ".claude/skills/foo/SPEC.md": "# Spec\n- FR-1: x\n",
-        "docs/inspection.md": "# Inspection\n",
-        "e2e/login.spec.ts": "test('login', () => {})\n",
-    })
+    repo = make_repo(
+        tmp_path,
+        {
+            ".claude/skills/foo/SKILL.md": "---\nname: foo\n---\n",
+            ".claude/skills/foo/SPEC.md": "# Spec\n- FR-1: x\n",
+            "docs/inspection.md": "# Inspection\n",
+            "e2e/login.spec.ts": "test('login', () => {})\n",
+        },
+    )
     r = check(repo)
     assert r.returncode == 0, r.stdout
 
@@ -42,8 +52,10 @@ def test_uppercase_hyphenated_id_in_a_comment_is_reported(tmp_path):
 
 
 def test_infra_names_like_ec2_are_not_spec_ids(tmp_path):
-    repo = make_repo(tmp_path, {"infra/main.tf": 'resource "aws_instance" "ec2 box" {}\n',
-                                "src/os2.py": "x = 'os2'\n"})
+    repo = make_repo(
+        tmp_path,
+        {"infra/main.tf": 'resource "aws_instance" "ec2 box" {}\n', "src/os2.py": "x = 'os2'\n"},
+    )
     assert check(repo).returncode == 0
 
 

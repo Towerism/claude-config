@@ -23,10 +23,10 @@ exclude_also = ['if __name__ == "__main__":']
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-# The hooks and the lifecycle skill were imported byte for byte so adoption can
-# compare them with the live files by sha256 (ADR-0004), and they don't pass ruff
-# yet; #20 takes the hooks off this list. Skills built in this repo, such as
-# plain-prose, are linted, except for the upstream files they vendor.
+# The hooks were imported byte for byte so adoption can compare them with the
+# live files by sha256 (ADR-0004), and they don't pass ruff yet; #20 takes them
+# off this list. Every skill is linted, except for the upstream files skills
+# vendor; the lifecycle skill joined in #4.
 # "./" anchors the pattern to the repo root; a bare "config" would also skip any
 # nested directory of that name, such as a future tools/config/.
 # docs/history/ holds frozen copies that are never edited (ADR-0002), so lint
@@ -34,7 +34,6 @@ line-length = 100
 # kept byte for byte, with their hashes in VENDORED.json, for the same reason.
 extend-exclude = [
     "./config/hooks",
-    "./config/skills/github-issue-lifecycle",
     "./config/skills/*/scripts/vendored",
     "./docs/history",
     "./tools/vendor",
@@ -46,8 +45,11 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]
 "config/skills/*/tests/**" = ["S"]
-# The hooks run git and gitleaks from PATH with argument lists and no shell, by design.
+# The hooks run git and gitleaks from PATH with argument lists and no shell, by design,
+# as diff-check runs git and the lifecycle evals run git and claude.
 "tools/git_hooks.py" = ["S603", "S607"]
+"config/skills/github-issue-lifecycle/scripts/issue_lifecycle.py" = ["S603", "S607"]
+"config/skills/github-issue-lifecycle/evals/*.py" = ["S603", "S607"]
 
 [tool.mypy]
 python_version = "3.13"

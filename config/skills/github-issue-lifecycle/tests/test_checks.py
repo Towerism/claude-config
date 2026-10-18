@@ -3,18 +3,33 @@
 import json
 
 import pytest
-
 from conftest import run, write
 
 
 class TestBranchName:
     def test_feat_maps_to_feature_and_title_is_slugged(self):
-        r = run("branch-name", "--type", "feat", "--issue", 42, "--title", "Add CSV export: roster (v2)!")
+        r = run(
+            "branch-name",
+            "--type",
+            "feat",
+            "--issue",
+            42,
+            "--title",
+            "Add CSV export: roster (v2)!",
+        )
         assert r.returncode == 0
         assert r.stdout.strip() == "feature/42-add-csv-export-roster-v2"
 
-    @pytest.mark.parametrize("cc,prefix", [("fix", "fix"), ("docs", "docs"), ("refactor", "chore"),
-                                           ("chore", "chore"), ("ci", "chore")])
+    @pytest.mark.parametrize(
+        "cc,prefix",
+        [
+            ("fix", "fix"),
+            ("docs", "docs"),
+            ("refactor", "chore"),
+            ("chore", "chore"),
+            ("ci", "chore"),
+        ],
+    )
     def test_type_mapping(self, cc, prefix):
         r = run("branch-name", "--type", cc, "--issue", 7, "--title", "x")
         assert r.stdout.strip() == f"{prefix}/7-x"
@@ -70,7 +85,9 @@ class TestCommitCheck:
         assert "missing (#N)" in r.stdout
 
     def test_cross_repo_reference_passes(self, tmp_path):
-        assert self.check(tmp_path, "fix(api): handle 404 (towerism/selfhost-kit#12)").returncode == 0
+        assert (
+            self.check(tmp_path, "fix(api): handle 404 (towerism/selfhost-kit#12)").returncode == 0
+        )
 
     def test_message_from_stdin(self):
         r = run("commit-check", "--message", "-", stdin="docs: explain merge flow (#3)\n")

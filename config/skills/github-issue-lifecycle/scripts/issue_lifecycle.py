@@ -24,8 +24,26 @@ import unicodedata
 START = "<!-- spec:start -->"
 END = "<!-- spec:end -->"
 
-CC_TYPES = ("feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert")
-BRANCH_TYPES = {"feat": "feature", "feature": "feature", "fix": "fix", "docs": "docs", "hotfix": "hotfix"}
+CC_TYPES = (
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "perf",
+    "test",
+    "build",
+    "ci",
+    "chore",
+    "revert",
+)
+BRANCH_TYPES = {
+    "feat": "feature",
+    "feature": "feature",
+    "fix": "fix",
+    "docs": "docs",
+    "hotfix": "hotfix",
+}
 SLUG_MAX = 40
 
 EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_NO_MARKERS, EXIT_MALFORMED = 0, 1, 2, 3, 4
@@ -42,6 +60,7 @@ class MarkerError(Exception):
 
 
 # ── file helpers ─────────────────────────────────────────────────────────────
+
 
 def read_text(path):
     """Read a file (or stdin for "-") preserving every byte, including CRLF."""
@@ -61,6 +80,7 @@ def write_text(path, text):
 
 # ── spec block ───────────────────────────────────────────────────────────────
 
+
 def _line_content(line):
     return line.rstrip("\r\n")
 
@@ -71,9 +91,9 @@ def locate_block(body):
     Only whole lines count as markers; a marker mentioned mid-line is text.
     """
     lines = body.splitlines(keepends=True)
-    start = next((i for i, l in enumerate(lines) if _line_content(l) == START), None)
+    start = next((i for i, line in enumerate(lines) if _line_content(line) == START), None)
     if start is None:
-        if any(_line_content(l) == END for l in lines):
+        if any(_line_content(line) == END for line in lines):
             raise MarkerError(EXIT_MALFORMED, "end marker without a start marker")
         raise MarkerError(EXIT_NO_MARKERS, "no spec markers")
     end = next((i for i in range(start + 1, len(lines)) if _line_content(lines[i]) == END), None)
@@ -84,8 +104,8 @@ def locate_block(body):
 
 def extract_spec(body):
     lines, start, end = locate_block(body)
-    inner = [_line_content(l) for l in lines[start + 1 : end]]
-    return "".join(f"{l}\n" for l in inner)
+    inner = [_line_content(line) for line in lines[start + 1 : end]]
+    return "".join(f"{line}\n" for line in inner)
 
 
 def _clean_spec(spec):
@@ -119,19 +139,24 @@ def replace_spec(body, spec):
         return body + sep + block + nl
     prefix = "".join(lines[:start])
     end_line = lines[end]
-    terminator = end_line[len(_line_content(end_line)):]
+    terminator = end_line[len(_line_content(end_line)) :]
     rest = terminator + "".join(lines[end + 1 :])
     return prefix + block + rest
 
 
 # ── branch names ─────────────────────────────────────────────────────────────
 
+
 def slugify(title, issue):
     ascii_title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()
     slug = re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")
     if len(slug) > SLUG_MAX:
         cut = slug[: SLUG_MAX + 1]
-        slug = cut[:SLUG_MAX] if cut.endswith("-") else (cut.rsplit("-", 1)[0] if "-" in cut else cut[:SLUG_MAX])
+        slug = (
+            cut[:SLUG_MAX]
+            if cut.endswith("-")
+            else (cut.rsplit("-", 1)[0] if "-" in cut else cut[:SLUG_MAX])
+        )
         slug = slug.strip("-")
     return slug or f"issue-{issue}"
 
@@ -145,7 +170,7 @@ def branch_name(cc_type, issue, title, hotfix=False):
 
 # ── commit and PR checks ─────────────────────────────────────────────────────
 
-SUBJECT_RE = re.compile(r"^(?:%s)(?:\([^()\s]+\))?(!)?: \S.*$" % "|".join(CC_TYPES))
+SUBJECT_RE = re.compile(rf"^(?:{'|'.join(CC_TYPES)})(?:\([^()\s]+\))?(!)?: \S.*$")
 ISSUE_REF_RE = re.compile(r"\((?:[\w.-]+/[\w.-]+)?#\d+\)$")
 BREAKING_FOOTER_RE = re.compile(r"^BREAKING[ -]CHANGE: \S", re.M)
 
@@ -156,31 +181,37 @@ def check_commit(message):
     problems = []
     match = SUBJECT_RE.match(subject)
     if not match:
-        problems.append(("not-conventional", f"not conventional: {subject!r} is not 'type(scope)!: subject'"))
+        problems.append(
+            ("not-conventional", f"not conventional: {subject!r} is not 'type(scope)!: subject'")
+        )
     if not ISSUE_REF_RE.search(subject):
         problems.append(("missing-issue-ref", "missing (#N) at the end of the subject"))
     if match and match.group(1) and not BREAKING_FOOTER_RE.search(rest):
-        problems.append(("breaking-needs-footer", "breaking change needs footer 'BREAKING CHANGE: ...'"))
+        problems.append(
+            ("breaking-needs-footer", "breaking change needs footer 'BREAKING CHANGE: ...'")
+        )
     return problems
 
 
 def check_pr_body(body, issue, repo=None):
-    lines = [l.strip() for l in body.replace("\r\n", "\n").split("\n")]
+    lines = [line.strip() for line in body.replace("\r\n", "\n").split("\n")]
     target = f"{repo}#{issue}" if repo else f"#{issue}"
     problems = []
-    if not any(re.fullmatch(r"closes " + re.escape(target), l, re.I) for l in lines):
+    if not any(re.fullmatch(r"closes " + re.escape(target), line, re.I) for line in lines):
         problems.append(("missing-closes", f"needs 'Closes {target}' alone on its own line"))
     spec_targets = "|".join(re.escape(t) for t in {target, f"#{issue}"})
-    if not any(re.fullmatch(r"spec: (?:%s)" % spec_targets, l, re.I) for l in lines):
+    if not any(re.fullmatch(rf"spec: (?:{spec_targets})", line, re.I) for line in lines):
         problems.append(("missing-spec-line", f"needs a 'Spec: {target}' line"))
-    if not any(l.startswith("#") and "review" in l.lower() for l in lines):
+    if not any(line.startswith("#") and "review" in line.lower() for line in lines):
         problems.append(("missing-review", "needs a Review section with the PR-diff review note"))
     return problems
 
 
 # ── diff hygiene ─────────────────────────────────────────────────────────────
 
-SPEC_ID_RE = re.compile(r"(?<![A-Za-z0-9])(?:(?:fr|nfr|ac|ec|os)-\d+(?![0-9])|(?:fr|nfr|ac|ec)\d+(?=_))", re.I)
+SPEC_ID_RE = re.compile(
+    r"(?<![A-Za-z0-9])(?:(?:fr|nfr|ac|ec|os)-\d+(?![0-9])|(?:fr|nfr|ac|ec)\d+(?=_))", re.I
+)
 SPEC_BASENAME_RE = re.compile(r"(^spec(-.+)?\.md$|-spec\.md$|\.spec\.md$)", re.I)
 
 
@@ -244,8 +275,12 @@ class Parser(argparse.ArgumentParser):
 def build_parser():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--json", action="store_true", help="machine-readable output")
-    parser = Parser(prog="issue_lifecycle.py", description=__doc__.split("\n")[0],
-                    formatter_class=argparse.RawDescriptionHelpFormatter, epilog=EPILOG)
+    parser = Parser(
+        prog="issue_lifecycle.py",
+        description=__doc__.split("\n")[0],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=EPILOG,
+    )
     sub = parser.add_subparsers(dest="cmd", parser_class=Parser)
 
     p = sub.add_parser("extract", parents=[common], help="print the spec block")
@@ -255,7 +290,11 @@ def build_parser():
     p.add_argument("--spec", required=True, help="new spec file")
     p.add_argument("--out", required=True, help="where to write the new body")
     p = sub.add_parser("branch-name", parents=[common], help="print the branch name")
-    p.add_argument("--type", required=True, help="Conventional Commit type of the change (feat, fix, docs, ...)")
+    p.add_argument(
+        "--type",
+        required=True,
+        help="Conventional Commit type of the change (feat, fix, docs, ...)",
+    )
     p.add_argument("--issue", required=True, type=int, help="issue number")
     p.add_argument("--title", required=True, help="issue title")
     p.add_argument("--hotfix", action="store_true", help="use the hotfix/ prefix")
@@ -273,8 +312,11 @@ def build_parser():
 
 def report(problems, as_json):
     if as_json:
-        print(json.dumps({"ok": not problems,
-                          "problems": [{"code": c, "detail": d} for c, d in problems]}))
+        print(
+            json.dumps(
+                {"ok": not problems, "problems": [{"code": c, "detail": d} for c, d in problems]}
+            )
+        )
     else:
         for code, detail in problems:
             print(f"FAIL {code}: {detail}")

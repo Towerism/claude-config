@@ -36,8 +36,16 @@ def test_the_frontmatter_names_the_skill_and_its_scope():
                    "once per session"):  # fmt: skip
         assert phrase in covered, phrase
     assert "chat repl" not in covered
+    # The coding work that usually writes text people read later, named in general terms.
+    for work in ("tests", "validation", "error handling", "docstring", "CLI", "UI"):
+        assert work in covered, work
     for phrase in ("chat reply", "CLAUDE.md", "SKILL.md"):
         assert phrase in excluded, phrase
+
+
+def test_the_description_fits_the_agent_skills_limit():
+    fields, _ = frontmatter_and_body()
+    assert len(fields["description"]) <= 1024, len(fields["description"])
 
 
 def test_the_body_links_the_references_and_names_the_checker_command():

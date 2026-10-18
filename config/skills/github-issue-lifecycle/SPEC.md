@@ -4,7 +4,7 @@ This spec says what the `github-issue-lifecycle` skill must do, from picking up 
 
 **Author:** Claude (for mfracker)
 **Date:** 2026-10-15; amended 2026-10-18 for claude-config #4
-**Status:** Draft — the #4 amendment (2026-10-18) is waiting for the owner's approval. Approval mode: manual review with adversarial pass, which the owner chose for this work on 2026-10-18: "work on the implementation plan. manual review + adversarial. work on each one sequentially." The version before this amendment was approved by the user ("approve") on 2026-10-15, after the post-implementation amendment and its single adversarial pass (see REVIEW-NOTE.md).
+**Status:** Approved — the #4 amendment was approved by the owner on 2026-10-18. Asked "Do you approve the #4 spec at d485fbf? And do you accept the recommended answers: D-1 proceed and let #35 handle adoption, D-2 ruff only, and D-3 a default-model record only?", the owner answered: "approve". Decisions recorded with it: D-1, proceed, with #35 tracking adoption; D-2, ruff and ruff format on the skill's Python in #4, no mypy; D-3, record only the default-model behaviour run, with a smaller-model run as an optional diagnostic. Approval mode: manual review with adversarial pass, which the owner chose for this work on 2026-10-18: "work on the implementation plan. manual review + adversarial. work on each one sequentially." The version before this amendment was approved by the user ("approve") on 2026-10-15, after the post-implementation amendment and its single adversarial pass (see REVIEW-NOTE.md).
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass per change), then the user
 **Related specs:** `config/SPEC.md` in this repo, the v2 spec for the global CLAUDE.md and its coordination layer (cited below as "v2 FR-n": FR-4, FR-7, FR-8, FR-9, FR-11, FR-14, FR-17, FR-23, FR-24); `docs/history/retired-skills/issue-spec-driven-workflow/SPEC.md`, the frozen spec of the skill this one replaced
 **Related decisions:** ADR-0002 (where a skill's spec lives), ADR-0003 (repo-relative paths), ADR-0009 (requirement IDs in code), ADR-0010 (prose for people), all in `docs/adr/`
@@ -63,7 +63,7 @@ The skill now lives in the claude-config repo at `config/skills/github-issue-lif
 - **The evals point at scratch and at the live config.** `run_behaviour_evals.py` reads the v2 CLAUDE.md from a scratch path, symlinks every live skill, and copies the live `settings.json`, hooks included. ADR-0003 wants repo-relative paths, and since #9, #12 and #13 the repo's harness builds eval configs from the repo with the hooks removed. FR-27 to FR-30 make the lifecycle evals do the same, and change how they decide pass or fail so a single unlucky run can't flip the verdict, the lesson from #13.
 - **Prose and skill specs.** ADR-0010 has the skill apply the prose rules before every issue, comment, PR and commit, and add report-only lists of AI-writing tells to `commit-check` and `pr-body-check`. ADR-0002 moves a skill's spec out of the issue body into the `SPEC.md` beside its `SKILL.md`, with approval in that file's Status line. FR-24 to FR-26 cover both.
 
-Earlier issues left four things waiting for #4. This amendment closes three: `diff-check` on the scenario `covers` IDs passes once FR-16 lands; the lifecycle suites run from the repo once FR-27 lands; and `tools/check_config.py --path-rule` switches from report to fail once this skill holds no scratch or home paths (FR-31). The fourth, linting the imported skill's Python (167 ruff findings when #2 imported it), is decision D-2 below.
+Earlier issues left four things waiting for #4. This amendment closes three: `diff-check` on the scenario `covers` IDs passes once FR-16 lands; the lifecycle suites run from the repo once FR-27 lands; and `tools/check_config.py --path-rule` switches from report to fail once this skill holds no scratch or home paths (FR-31). The fourth, linting the imported skill's Python (167 ruff findings when #2 imported it), #4 also takes, under decision D-2 (FR-33).
 
 ---
 
@@ -199,7 +199,7 @@ Earlier issues left four things waiting for #4. This amendment closes three: `di
   - ADR-0009, with a dated note under its Consequences that the amendment landed and `diff-check` no longer needs to start as a warning;
   - ADR-0010's table row for this skill, which must say it loads `writing-docs`, which loads `plain-prose` (the owner widened `writing-docs` to the same texts in #13);
   - ADR-0005's gate rows for the lifecycle suites, if FR-30 changes what they say.
-- FR-33: Linting this skill depends on decision D-2. If the owner chooses to lint it in #4, `pyproject.toml` MUST drop `./config/skills/github-issue-lifecycle` from ruff's exclusions, the skill's Python MUST pass `ruff check` and `ruff format --check`, ADR-0005's note about the exclusion MUST change to match, and the `mypy` list stays as it is. If not, the exclusion stays and #20 or a later issue takes it.
+- FR-33: The skill's Python MUST be linted in #4 (decision D-2): `pyproject.toml` MUST drop `./config/skills/github-issue-lifecycle` from ruff's exclusions, the skill's Python MUST pass `ruff check` and `ruff format --check`, ADR-0005's note about the exclusion MUST change to match, and the `mypy` list stays as it is.
 
 ## Non-Functional Requirements
 
@@ -415,7 +415,7 @@ Then it exits 0 with no path problems, and the repo `CLAUDE.md` documents `--pat
 ### AC-30: Documents and lint follow the change (FR-32, FR-33)
 Given the PR's diff
 When the documents are read and the linters run
-Then ADR-0009's Consequences carry a dated note that `diff-check` no longer starts as a warning; ADR-0010's row for this skill names `writing-docs`; no document in `docs/` (outside `docs/history/`), `tools/` or the repo `CLAUDE.md` still says something waits "until #4"; and, if the owner chose to lint the skill under D-2, `pyproject.toml` no longer excludes it and `ruff check .` and `ruff format --check .` exit 0.
+Then ADR-0009's Consequences carry a dated note that `diff-check` no longer starts as a warning; ADR-0010's row for this skill names `writing-docs`; no document in `docs/` (outside `docs/history/`), `tools/` or the repo `CLAUDE.md` still says something waits "until #4"; and `pyproject.toml` no longer excludes the skill from ruff, and `ruff check .` and `ruff format --check .` exit 0 (D-2).
 
 ## Edge Cases
 - EC-1: `gh` not authenticated → FR-22. No writes.
@@ -588,7 +588,7 @@ Each test gets fresh `tmp_path` state, and env vars are restored with monkeypatc
 - **Rewritten:** the FakeGh fixture; AC-9, AC-11 and AC-18 (claim and label blocks); AC-10, AC-19, EC-16 and EC-17 (extraction, now against `extract`); AC-23 (diff grep, now `diff-check`).
 - **Deleted:** AC-2 and AC-3 (byte-copies of upstream; no longer a fork) and the text-presence tests for spec-method phases (AC-4, AC-12, AC-13, AC-22). The old suite moves with the old skill to `~/.old-claude/skills/` (v2 FR-23).
 
-**Multi-model.** Behaviour evals run on the session model and on one smaller model (Sonnet or Haiku, via `--model`). A case that passes only on the larger model is reported to the user, not hidden. (Under the #4 amendment, decision D-3: the smaller-model run becomes an optional diagnostic, and only the default-model run is recorded.)
+**Multi-model.** Behaviour evals run on the session model and on one smaller model (Sonnet or Haiku, via `--model`). A case that passes only on the larger model is reported to the user, not hidden. (Superseded by the #4 amendment, decision D-3: the smaller-model run is an optional diagnostic, and only the default-model run is recorded.)
 
 **Review checks rather than tests.**
 - SKILL.md tone: it explains the why and avoids shouting.
@@ -636,8 +636,8 @@ This plan follows senior-qa's three guides again, read in full on 2026-10-18: `t
 
 ## Open questions for the user
 
-- **D-1 (#4 changes files adoption compares):** the v2 bundle manifest lists this skill's files, and ADR-0004 has adoption (#7) abort unless the repo, the manifest and the live file match. #12 and #13 already changed four manifest-listed files in `config/`, so adoption at HEAD would abort today; this amendment adds the lifecycle skill to that list. Recommended: go ahead, and let #35 (filed 2026-10-18) plan adoption, for example by adopting from #2's import commit and deploying forward. The alternative is to hold #4 until #7 lands, but #7 depends on #6, which is on hold.
-- **D-2 (lint the skill's Python in #4?):** #20 left open whether the imported lifecycle skill gets linted, and by which issue. Recommended: yes, in #4, with ruff and `ruff format` only (FR-33). #4 rewrites most of the skill's Python anyway, and the byte-for-byte reason for excluding it ends with this amendment. The cost is a large formatting diff in the tests; `mypy --strict` stays out (OS-11).
-- **D-3 (the smaller-model run):** the 2026-10-15 test plan runs the behaviour suite on the session model and on one smaller model. Recommended: keep the smaller-model run as an optional diagnostic, reported in the PR if run, and record only the default-model run, as #12 and #13 did. That keeps the gated cost to one pass of 26 cases.
+- **D-1 (resolved 2026-10-18: proceed, with #35 tracking adoption):** the v2 bundle manifest lists this skill's files, and ADR-0004 has adoption (#7) abort unless the repo, the manifest and the live file match. #12 and #13 already changed four manifest-listed files in `config/`, so adoption at HEAD would abort today; this amendment adds the lifecycle skill to that list. Recommended: go ahead, and let #35 (filed 2026-10-18) plan adoption, for example by adopting from #2's import commit and deploying forward. The alternative is to hold #4 until #7 lands, but #7 depends on #6, which is on hold.
+- **D-2 (resolved 2026-10-18: ruff and ruff format in #4, no mypy):** #20 left open whether the imported lifecycle skill gets linted, and by which issue. Recommended: yes, in #4, with ruff and `ruff format` only (FR-33). #4 rewrites most of the skill's Python anyway, and the byte-for-byte reason for excluding it ends with this amendment. The cost is a large formatting diff in the tests; `mypy --strict` stays out (OS-11).
+- **D-3 (resolved 2026-10-18: record only the default-model run):** the 2026-10-15 test plan runs the behaviour suite on the session model and on one smaller model. Recommended: keep the smaller-model run as an optional diagnostic, reported in the PR if run, and record only the default-model run, as #12 and #13 did. That keeps the gated cost to one pass of 26 cases.
 - **Q-1 (resolved 2026-10-15):** install copies this bundle into `~/.claude/skills/` and moves the old skill to `~/.old-claude/skills/`; v2 FR-23 amended accordingly.
 - **Q-2 (resolved 2026-10-15; the user confirmed: "your assumption is correct" — FR-11 stands):** The coordinator's brief said "Claude never sets `approved` in manual mode". This spec instead lets Claude apply `approved` only to record your explicit approval words, with a quoting comment (FR-11), matching v2's coordinator relay. Decision: FR-11 stands; Claude applies `approved` only to record the user's explicit approval words, with a quoting comment.

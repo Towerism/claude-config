@@ -102,11 +102,10 @@ while rest and rest[0].startswith("-"):
 if rest and rest[0] in ("push", "fetch", "pull"):
     words = [a for a in rest[1:] if not a.startswith("-")]
     remote = words[0] if words else "origin"
-    url = remote
-    if "://" not in remote and ":" not in remote:
-        got = subprocess.run([real, "remote", "get-url", remote], capture_output=True, text=True)
-        url = got.stdout.strip() if got.returncode == 0 else remote
-    if "://" in url and not url.startswith("file://") or ("@" in url and ":" in url):
+    got = subprocess.run([real, "remote", "get-url", remote], capture_output=True, text=True)
+    url = got.stdout.strip() if got.returncode == 0 else remote
+    # Only a local path or a file:// URL may pass; anything else could reach a network.
+    if not (url.startswith(("/", "./", "../", "file://")) or os.path.isdir(url)):
         sys.stderr.write(f"eval: git {rest[0]} to {url} refused; evals never reach a network\n")
         sys.exit(1)
 os.execv(real, [real, *args])

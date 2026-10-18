@@ -76,7 +76,10 @@ def copy_skills(tmp_path, prose_check_source=None):
     return root, root / "github-issue-lifecycle" / "scripts" / "issue_lifecycle.py"
 
 
-@pytest.mark.parametrize("source", ["", "raise RuntimeError('broken on purpose')\n"])
+@pytest.mark.parametrize(
+    "source",
+    ["", "raise RuntimeError('broken on purpose')\n", "import sys\nsys.exit(3)\n"],
+)
 def test_tells_are_skipped_with_a_note_when_prose_check_is_missing_or_broken(tmp_path, source):
     _, script = copy_skills(tmp_path, source)
     for message, code in ((TELLING, 0), (TELLING.replace(" (#42)", ""), 1)):

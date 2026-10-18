@@ -146,3 +146,12 @@ def test_a_subfolder_is_not_a_subject_for_a_spec_beside_it(tmp_path):
         base_files={"docs/guide.md": "# Guide\n", "docs/img/diagram.svg": "<svg/>\n"},
     )
     assert [p["code"] for p in problems(repo)] == ["spec-file"]
+
+
+def test_a_doc_line_with_an_unusual_line_separator_still_defines_its_ids(tmp_path):
+    repo = make_repo(
+        tmp_path,
+        {"src/a.py": "# FR-7 keeps the order\n"},
+        base_files={"docs/notes.md": "Intro\u2028then FR-7 applies.\n"},
+    )
+    assert check(repo).returncode == 0, check(repo).stdout

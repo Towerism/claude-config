@@ -239,7 +239,7 @@ def find_tells(text):
         return None, f"tells not checked: plain-prose's prose_check.py isn't at {PROSE_CHECK}"
     try:
         findings = prose_module().check(text)["findings"]["ai_tells"]
-    except Exception as exc:  # report-only: a broken checker must never change a result
+    except (Exception, SystemExit) as exc:  # report-only: a broken checker never changes a result
         return None, f"tells not checked: prose_check.py failed ({type(exc).__name__}: {exc})"
     return [{key: f[key] for key in TELL_FIELDS} for f in findings], None
 
@@ -313,7 +313,9 @@ def cmd_diff_check(base, repo_dir):
         # git grep exits 1 when nothing matches; that just means no IDs are defined.
         out = git("grep", "-I", "-i", "-z", "-E", DOC_ID_GREP, "HEAD", "--", "*.md", ok=(0, 1))
         ids = set()
-        for hit in out.splitlines():
+        # Split on newlines only: str.splitlines() would also break inside a line at
+        # separators such as U+2028, and lose the file name for the rest of it.
+        for hit in out.split("\n"):
             name, _, text = hit.partition("\0")
             path = name.split(":", 1)[-1]
             if FROZEN_SEGMENTS & set(path.split("/")[:-1]):

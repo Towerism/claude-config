@@ -26,14 +26,14 @@ This README is for people. Claude reads `SKILL.md`.
 | Piece | What it does |
 |---|---|
 | `SKILL.md` | The procedure Claude follows |
-| `scripts/issue_lifecycle.py` | Deterministic helpers: `extract`, `replace`, `branch-name`, `commit-check`, `pr-body-check`, `diff-check` (stdlib only, no network) |
+| `scripts/issue_lifecycle.py` | Deterministic helpers: `extract`, `replace`, `branch-name`, `commit-check`, `pr-body-check`, `diff-check`, `spec-status` (stdlib only, no network; the two prose checks also list tells from the sibling `plain-prose` skill) |
 | `references/git-workflow.md` | Commit, branch, merge, hotfix and rollback conventions (adapted from claude-skills, MIT) |
 | `tests/` | pytest suite for the script and the claim block |
 | `evals/` | Trigger and behaviour evals (development only) |
 
 ## Installation
 
-Built in staging and installed by the CLAUDE.md v2 install step, which copies the bundle into `~/.claude/skills/github-issue-lifecycle/` and moves the old `issue-spec-driven-workflow` skill to `~/.old-claude/skills/`. Requirements: Python 3.10+, `git`, and `gh` logged in (`gh auth login`).
+Kept in the claude-config repo at `config/skills/github-issue-lifecycle/` and deployed to `~/.claude/skills/github-issue-lifecycle/`. `plain-prose` and `writing-docs` should be installed beside it. Requirements: Python 3.10+, `git`, and `gh` logged in (`gh auth login`).
 
 ## Usage
 
@@ -52,6 +52,7 @@ python3 -I scripts/issue_lifecycle.py branch-name --type feat --issue 42 --title
 python3 -I scripts/issue_lifecycle.py commit-check --message examples/sample-commit-message.txt
 python3 -I scripts/issue_lifecycle.py pr-body-check --body examples/sample-pr-body.md --issue 42
 python3 -I scripts/issue_lifecycle.py extract --body examples/sample-issue-body.md
+python3 -I scripts/issue_lifecycle.py spec-status --spec SPEC.md
 ```
 
 ## Examples

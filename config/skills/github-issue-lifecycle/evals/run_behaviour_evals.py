@@ -2,16 +2,18 @@
 """Development-only behaviour eval harness for github-issue-lifecycle (never run by the skill).
 
 For each case in evals/evals.json it:
-  1. builds an isolated Claude config dir: credentials and ~/.claude.json copied in, plugins linked,
-     this skill copied in, the competing issue-spec-driven-workflow skill and the global CLAUDE.md
-     left
-     out; the dir (and the credential copy) is removed when the run ends, whatever happens;
+  1. builds an isolated Claude config dir from the repo: this skill copied in, every other skill
+     under the repo's config/skills/ linked in, the live settings.json without its hooks, and
+     credentials, ~/.claude.json and the plugins link from the live config; the dir (and the
+     credential copy) is removed when the run ends, whatever happens;
   2. proves isolation with a canary probe that reads the skill list from the stream-json init event;
   3. creates a throwaway git repo with a local bare `origin`, a recording fake `gh` and a recording
-     pass-through `git` first on PATH;
-  4. runs `claude -p` (resuming the session for later turns) and grades the case's expectations
-     against the recorded gh/git calls, Bash commands and final answers. A failing case is re-run
-     once and fails only if it fails twice.
+     `git` that refuses any network remote, first on PATH, with an empty GH_CONFIG_DIR;
+  4. runs `claude -p` once per turn (resuming the session for later turns) and grades the case's
+     expectations against the recorded gh/git calls, the tool calls in order and the answers.
+
+No case is run twice. The suite passes when every expectation of every critical case passes,
+at least 90% of all other expectations pass, and no other case fails more than half of its own.
 
 Usage: python3 -I evals/run_behaviour_evals.py [--model M] [--ids 1,2] [--workers 4]
                                                [--out results.json]
@@ -31,9 +33,12 @@ from contextlib import contextmanager
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
-HOME_CLAUDE = Path.home() / ".claude"
-V2_DELIVERABLE = Path("/home/mfracker/dev/scratch/claude-md-v2/impl/deliverable")
-EXCLUDED_SKILLS = {"issue-spec-driven-workflow", "github-issue-lifecycle"}
+# The repo's config/ directory: config/skills/<this skill>/evals/ is three levels down. When
+# tools/cfg/eval.py runs this script from an extracted HEAD tree, this is that tree's config/.
+CONFIG_DIR = SKILL_DIR.parents[1]
+HOME = Path.home()
+HOME_CLAUDE = HOME / ".claude"
+OTHER_SHARE = 0.9
 ALLOWED_TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
 TURN_TIMEOUT = 900
 
@@ -86,10 +91,25 @@ sys.exit(0)
 """
 
 FAKE_GIT = r"""#!/usr/bin/env python3
-import json, os, sys
+import json, os, subprocess, sys
+args = sys.argv[1:]
+real = os.environ["REAL_GIT"]
 with open(os.environ["GIT_LOG"], "a") as f:
-    f.write(json.dumps(sys.argv[1:]) + "\n")
-os.execv(os.environ["REAL_GIT"], [os.environ["REAL_GIT"], *sys.argv[1:]])
+    f.write(json.dumps(args) + "\n")
+rest = list(args)
+while rest and rest[0].startswith("-"):
+    rest = rest[2:] if rest[0] in ("-c", "-C") else rest[1:]
+if rest and rest[0] in ("push", "fetch", "pull"):
+    words = [a for a in rest[1:] if not a.startswith("-")]
+    remote = words[0] if words else "origin"
+    url = remote
+    if "://" not in remote and ":" not in remote:
+        got = subprocess.run([real, "remote", "get-url", remote], capture_output=True, text=True)
+        url = got.stdout.strip() if got.returncode == 0 else remote
+    if "://" in url and not url.startswith("file://") or ("@" in url and ":" in url):
+        sys.stderr.write(f"eval: git {rest[0]} to {url} refused; evals never reach a network\n")
+        sys.exit(1)
+os.execv(real, [real, *args])
 """
 
 DEFAULT_GH = [
@@ -132,34 +152,39 @@ def eval_tmp_root():
 
 
 @contextmanager
-def isolated_config(root, v2=False):
-    """A throwaway CLAUDE_CONFIG_DIR. Removed on exit, credentials included.
+def isolated_config(root, global_config=False):
+    """A throwaway CLAUDE_CONFIG_DIR built from the repo. Removed on exit, credentials included.
 
-    v2=True adds the v2 global CLAUDE.md and skill overlays, to test routing into this skill."""
+    global_config=True adds the repo's global CLAUDE.md and skill overlays, to test routing
+    into this skill. With the hooks removed, the overlays are present but not injected."""
     cfg = Path(root) / "config"
     cfg.mkdir(parents=True)
     try:
-        for name in (".credentials.json", "settings.json"):
-            if (HOME_CLAUDE / name).exists():
-                shutil.copy2(HOME_CLAUDE / name, cfg / name)
-        if (Path.home() / ".claude.json").exists():
-            shutil.copy2(Path.home() / ".claude.json", cfg / ".claude.json")
-        os.chmod(cfg / ".credentials.json", 0o600)
+        if (HOME_CLAUDE / ".credentials.json").exists():
+            shutil.copy2(HOME_CLAUDE / ".credentials.json", cfg / ".credentials.json")
+            os.chmod(cfg / ".credentials.json", 0o600)
+        if (HOME_CLAUDE / "settings.json").exists():
+            settings = json.loads((HOME_CLAUDE / "settings.json").read_text())
+            settings.pop("hooks", None)
+            (cfg / "settings.json").write_text(json.dumps(settings, indent=2))
+        if (HOME / ".claude.json").exists():
+            shutil.copy2(HOME / ".claude.json", cfg / ".claude.json")
         (cfg / "plugins").symlink_to(HOME_CLAUDE / "plugins")
+        (cfg / "gh-config").mkdir()
         skills = cfg / "skills"
         skills.mkdir()
-        for entry in (HOME_CLAUDE / "skills").iterdir():
-            if entry.name not in EXCLUDED_SKILLS:
-                (skills / entry.name).symlink_to(entry)
+        for entry in sorted((CONFIG_DIR / "skills").iterdir()):
+            if entry.is_dir() and entry.name != SKILL_DIR.name:
+                (skills / entry.name).symlink_to(entry.resolve())
         shutil.copytree(
             SKILL_DIR,
-            skills / "github-issue-lifecycle",
+            skills / SKILL_DIR.name,
             ignore=shutil.ignore_patterns("tests", "evals", "__pycache__", ".pytest_cache"),
         )
-        if v2:
-            shutil.copy2(V2_DELIVERABLE / "CLAUDE.md", cfg / "CLAUDE.md")
+        if global_config:
+            shutil.copy2(CONFIG_DIR / "CLAUDE.global.md", cfg / "CLAUDE.md")
             shutil.copytree(
-                V2_DELIVERABLE / "skill-overlays",
+                CONFIG_DIR / "skill-overlays",
                 cfg / "skill-overlays",
                 ignore=shutil.ignore_patterns("__pycache__"),
             )
@@ -194,7 +219,7 @@ def claude(prompt, cwd, env, model=None, resume=None):
             continue
     session = next((e.get("session_id") for e in events if e.get("type") == "system"), resume)
     answer = next((e.get("result", "") for e in reversed(events) if e.get("type") == "result"), "")
-    texts, bash, skills, loaded, tools = [], [], [], [], []
+    texts, bash, skills, loaded, tools, calls = [], [], [], [], [], []
     for e in events:
         if e.get("type") == "system" and e.get("subtype") == "init":
             skills = e.get("skills") or e.get("slash_commands") or []
@@ -203,6 +228,7 @@ def claude(prompt, cwd, env, model=None, resume=None):
         for block in e.get("message", {}).get("content", []):
             if block.get("type") == "tool_use":
                 tools.append(block.get("name", ""))
+                calls.append({"name": block.get("name", ""), "input": block.get("input", {})})
             if block.get("type") == "text":
                 texts.append(block["text"])
             elif block.get("type") == "tool_use" and block.get("name") == "Bash":
@@ -216,14 +242,19 @@ def claude(prompt, cwd, env, model=None, resume=None):
         "skills": skills,
         "loaded": loaded,
         "tools": tools,
+        "calls": calls,
         "stderr": proc.stderr[-2000:],
         "code": proc.returncode,
     }
 
 
 def base_env(cfg):
-    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDECODE", "CLAUDE_JOB_DIR")}
+    # Started from inside Claude Code, the environment carries that session's CLAUDE*
+    # variables, which would change how the eval runs behave; only CLAUDE_CONFIG_DIR passes.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
     env["CLAUDE_CONFIG_DIR"] = str(cfg)
+    env["GH_CONFIG_DIR"] = str(Path(cfg) / "gh-config")
+    env["GIT_TERMINAL_PROMPT"] = "0"
     return env
 
 
@@ -287,7 +318,7 @@ def git_subcommand(args):
     return " ".join(args)
 
 
-def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=()):
+def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=(), calls=()):
     gh_strs = [" ".join(c["args"]) for c in gh_calls]
     git_strs = [git_subcommand(c) for c in git_calls]
     results = []
@@ -297,7 +328,7 @@ def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=()):
                 {
                     "text": exp,
                     "passed": bool(
-                        check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded, tools)
+                        check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded, tools, calls)
                     ),
                 }
             )
@@ -306,7 +337,24 @@ def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=()):
     return results
 
 
-def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=()):
+def skill_matches(name, wanted):
+    return name == wanted or name.endswith(":" + wanted)
+
+
+def loaded_before(calls, skill, command_re):
+    """The skill's Skill call comes before the first Bash command matching command_re."""
+
+    def first(match):
+        return next((i for i, c in enumerate(calls) if match(c["name"], c["input"])), None)
+
+    load = first(lambda name, data: name == "Skill" and skill_matches(data.get("skill", ""), skill))
+    run = first(
+        lambda name, data: name == "Bash" and re.search(command_re, data.get("command", ""))
+    )
+    return load is not None and run is not None and load < run
+
+
+def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=(), calls=()):
     kind, _, arg = exp.partition(": ")
     if kind == "gh-called":
         ok = any(re.search(arg, s) for s in gh_strs)
@@ -337,7 +385,10 @@ def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=()):
     elif kind == "answer-not-matches":
         ok = not re.search(arg, answer)
     elif kind == "skill-loaded":
-        ok = any(name == arg or name.endswith(":" + arg) for name in loaded)
+        ok = any(skill_matches(name, arg) for name in loaded)
+    elif kind == "loaded-before":
+        skill, _, command_re = arg.partition(" ||| ")
+        ok = loaded_before(calls, skill, command_re)
     elif kind == "tool-not-used":
         ok = not any(re.search(arg, t) for t in tools)
     elif kind == "cmd-not-run":
@@ -354,10 +405,10 @@ def read_log(path, as_entries=True):
 
 
 def run_case_once(case, cfg, model):
-    if case.get("v2_config"):
-        with tempfile.TemporaryDirectory(prefix="gil-v2cfg-", dir=eval_tmp_root()) as v2root:
-            with isolated_config(v2root, v2=True) as v2cfg:
-                return _run_case_in(case, v2cfg, model)
+    if case.get("global_config"):
+        with tempfile.TemporaryDirectory(prefix="gil-globalcfg-", dir=eval_tmp_root()) as groot:
+            with isolated_config(groot, global_config=True) as gcfg:
+                return _run_case_in(case, gcfg, model)
     return _run_case_in(case, cfg, model)
 
 
@@ -382,7 +433,7 @@ def _run_case_in(case, cfg, model):
                 "REAL_GIT": shutil.which("git"),
             }
         )
-        session, answers, bash, turn1, loaded, tools = None, [], [], None, [], []
+        session, answers, bash, turn1, loaded, tools, calls = None, [], [], None, [], [], []
         for n, prompt in enumerate(case["turns"]):
             out = claude(prompt, ws, env, model, resume=session)
             session = out["session"]
@@ -390,6 +441,7 @@ def _run_case_in(case, cfg, model):
             bash += out["bash"]
             loaded += out["loaded"]
             tools += out["tools"]
+            calls += out["calls"]
             if n == 0 and case.get("turn1_expectations"):
                 turn1 = grade(
                     case["turn1_expectations"],
@@ -400,7 +452,14 @@ def _run_case_in(case, cfg, model):
                 )
         gh_calls, git_calls = read_log(root / "gh.log"), read_log(root / "git.log")
         results = (turn1 or []) + grade(
-            case["expectations"], gh_calls, git_calls, "\n\n".join(answers), bash, loaded, tools
+            case["expectations"],
+            gh_calls,
+            git_calls,
+            "\n\n".join(answers),
+            bash,
+            loaded,
+            tools,
+            calls,
         )
         return {
             "passed": all(r["passed"] for r in results),
@@ -421,19 +480,39 @@ def _run_case_in(case, cfg, model):
 
 
 def run_case(case, cfg, model):
+    """Run a case once. A failure counts as it ran: the suite decides on totals (verdict)."""
     started = time.time()
-    first = run_case_once(case, cfg, model)
-    result = {
+    run = run_case_once(case, cfg, model)
+    return {
         "id": case["id"],
         "name": case["name"],
         "covers": case.get("covers", []),
-        "attempts": [first],
+        "critical": bool(case.get("critical")),
+        **run,
+        "seconds": round(time.time() - started, 1),
     }
-    if not first["passed"]:
-        result["attempts"].append(run_case_once(case, cfg, model))
-    result["passed"] = any(a["passed"] for a in result["attempts"])
-    result["seconds"] = round(time.time() - started, 1)
-    return result
+
+
+def verdict(results):
+    """Every critical expectation passes, at least 90% of the others pass, and no other case
+    fails more than half of its own expectations."""
+    critical = [r["id"] for r in results if r["critical"] and not r["passed"]]
+    others = [r for r in results if not r["critical"]]
+    flags = [e["passed"] for r in others for e in r["expectations"]]
+    collapsed = [
+        r["id"]
+        for r in others
+        if sum(not e["passed"] for e in r["expectations"]) * 2 > len(r["expectations"])
+    ]
+    share = sum(flags) / len(flags) if flags else 1.0
+    return {
+        "pass": not critical and share >= OTHER_SHARE and not collapsed,
+        "criticalFailures": critical,
+        "collapsedCases": collapsed,
+        "otherPassed": sum(flags),
+        "otherTotal": len(flags),
+        "otherShare": round(share, 3),
+    }
 
 
 def main():
@@ -466,18 +545,15 @@ def main():
                     return result
 
                 results = list(pool.map(run_and_save, cases))
-    summary = {
-        "model": args.model or "default",
-        "probe": canary,
-        "passed": sum(r["passed"] for r in results),
-        "total": len(results),
-        "results": results,
-    }
-    Path(args.out).write_text(json.dumps(summary, indent=1))
+    summary = verdict(results)
+    out = {"model": args.model or "default", "probe": canary, "results": results}
+    Path(args.out).write_text(json.dumps({**out, "summary": summary}, indent=1))
     for r in results:
-        print(f"{'PASS' if r['passed'] else 'FAIL'}  {r['id']:>2} {r['name']}  ({r['seconds']}s)")
-    print(f"{summary['passed']}/{summary['total']} passed")
-    return 0 if summary["passed"] == summary["total"] else 1
+        mark = "PASS" if r["passed"] else "FAIL"
+        crit = " (critical)" if r["critical"] else ""
+        print(f"{mark}  {r['id']:>2} {r['name']}{crit}  ({r['seconds']}s)")
+    print(json.dumps(summary))
+    return 0 if summary["pass"] else 1
 
 
 if __name__ == "__main__":

@@ -598,7 +598,7 @@
    "covers": [
     "AC-3"
    ],
-   "v2_config": true,
+   "global_config": true,
    "origin_url": "https://github.com/o/r.git",
    "files": {
     "server/api/roster/export.get.ts": "export default defineEventHandler(() => toCsv(roster()))\n"

@@ -143,12 +143,12 @@ def _harness():
     return module
 
 
-def test_routed_bare_request_case_uses_the_v2_config():
+def test_routed_bare_request_case_uses_the_global_config():
     import json
 
     cases = {c["id"]: c for c in json.loads((SKILL_DIR / "evals/evals.json").read_text())["evals"]}
     case = cases[23]
-    assert case["turns"] == ["fix the export bug"] and case["v2_config"] is True
+    assert case["turns"] == ["fix the export bug"] and case["global_config"] is True
     kinds = {e.split(": ", 1)[0] for e in case["expectations"]}
     assert {"skill-loaded", "gh-called", "tool-not-used"} <= kinds
 
@@ -175,12 +175,3 @@ def test_grader_checks_skills_loaded_and_tools_used():
         tools=["Edit"],
     )
     assert not any(r["passed"] for r in graded)
-
-
-def test_v2_config_adds_claude_md_and_overlays(tmp_path):
-    h = _harness()
-    with h.isolated_config(tmp_path, v2=True) as cfg:
-        assert (cfg / "CLAUDE.md").read_text() == h.V2_DELIVERABLE.joinpath("CLAUDE.md").read_text()
-        assert any((cfg / "skill-overlays").iterdir())
-    with h.isolated_config(tmp_path / "plain", v2=False) as cfg:
-        assert not (cfg / "CLAUDE.md").exists()

@@ -62,8 +62,16 @@ GIT_ENV = {
 }
 
 
-def make_repo(tmp_path, files_on_branch):
-    """Temp git repo: one commit on `main`, then `feature` adding files_on_branch."""
+def _write_files(repo, files):
+    for rel, content in files.items():
+        path = repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+
+
+def make_repo(tmp_path, files_on_branch, base_files=None):
+    """Temp git repo: `main` with README.md plus base_files, then `feature` adding
+    files_on_branch."""
     repo = tmp_path / "repo"
     repo.mkdir()
     env = {**os.environ, **GIT_ENV}
@@ -73,13 +81,11 @@ def make_repo(tmp_path, files_on_branch):
 
     git("init", "-q", "-b", "main")
     (repo / "README.md").write_text("base\n")
+    _write_files(repo, base_files or {})
     git("add", ".")
     git("commit", "-q", "-m", "chore: base (#1)")
     git("switch", "-q", "-c", "feature")
-    for rel, content in files_on_branch.items():
-        path = repo / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
+    _write_files(repo, files_on_branch)
     git("add", ".")
     git("commit", "-q", "-m", "feat: change (#2)")
     return repo

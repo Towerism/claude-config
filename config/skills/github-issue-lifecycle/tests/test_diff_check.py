@@ -76,3 +76,64 @@ def test_bad_base_is_a_usage_error(tmp_path):
     repo = make_repo(tmp_path, CLEAN)
     r = run("diff-check", "--base", "nope", "--repo-dir", repo)
     assert r.returncode == 2
+
+
+def problems(repo):
+    return json.loads(check(repo).stdout)["problems"]
+
+
+def reported_ids(repo):
+    return sorted(p["detail"].rsplit(": ", 1)[1] for p in problems(repo) if p["code"] == "spec-id")
+
+
+LIVING_BASE = {
+    "docs/design.md": "The export follows FR-23 and keeps the header row.\n",
+    "config/settings.json": "{}\n",
+    "config/SPEC.md": "- FR-15a: the fragment renders the home path.\n",
+    "docs/history/old.md": "Frozen copy: AC-9 applied once.\n",
+    "notes/archive/2025.md": "Archived: EC-4.\n",
+}
+CITING_CODE = {
+    "src/export.py": "# FR-23 keeps the header row\nLIMIT = 'FR-15a'\nOLD = 'AC-9'\nX = 'NFR-4'\n",
+    "tests/test_export.py": "def test_fr23_rejects_empty():\n    pass\n",
+    "src/legacy.py": "# EC-4 from the archive\n",
+}
+
+
+def test_ids_that_living_docs_define_are_allowed_but_history_and_archive_do_not_count(tmp_path):
+    repo = make_repo(tmp_path, CITING_CODE, base_files=LIVING_BASE)
+    assert check(repo).returncode == 1
+    assert reported_ids(repo) == ["AC-9", "EC-4", "NFR-4"]
+
+
+def test_a_doc_added_on_the_branch_defines_ids_in_any_spelling(tmp_path):
+    branch = {**CITING_CODE, "docs/more.md": "See NFR4, ac_9 and ec-004 for details.\n"}
+    repo = make_repo(tmp_path, branch, base_files=LIVING_BASE)
+    assert check(repo).returncode == 0, check(repo).stdout
+
+
+def test_an_id_only_inside_a_longer_word_in_docs_is_not_defined(tmp_path):
+    repo = make_repo(
+        tmp_path,
+        {"src/a.py": "# AC-3 behaviour\n"},
+        base_files={"docs/codec.md": "We decode TRAC-3 and MAC3 streams.\n"},
+    )
+    assert reported_ids(repo) == ["AC-3"]
+
+
+def test_a_spec_file_next_to_its_subject_is_accepted_and_one_among_docs_is_not(tmp_path):
+    repo = make_repo(
+        tmp_path,
+        {
+            "config/SPEC.md": "# Spec\n",
+            "tools/foo/SPEC.md": "# Spec\n",
+            "tools/foo/run.py": "print('x')\n",
+            "skills/bar/SKILL.md": "---\nname: bar\n---\n",
+            "skills/bar/SPEC.md": "# Spec\n",
+            "docs/feature-spec.md": "# Spec\n",
+            "specs/login.md": "# Spec\n",
+        },
+        base_files={"config/settings.json": "{}\n", "docs/guide.md": "# Guide\n"},
+    )
+    reported = sorted(p["detail"].split(" ", 1)[0] for p in problems(repo))
+    assert reported == ["docs/feature-spec.md", "specs/login.md"]

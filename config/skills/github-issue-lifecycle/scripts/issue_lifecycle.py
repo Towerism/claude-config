@@ -15,7 +15,6 @@ Issue and PR text is only ever read from files and treated as data.
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
@@ -212,29 +211,62 @@ def check_pr_body(body, issue, repo=None):
 SPEC_ID_RE = re.compile(
     r"(?<![A-Za-z0-9])(?:(?:fr|nfr|ac|ec|os)-\d+(?![0-9])|(?:fr|nfr|ac|ec)\d+(?=_))", re.I
 )
+# In documentation an ID counts in any spelling (FR-23, FR23, fr_23), but only as a
+# word of its own: the prefix may not follow a letter or digit.
+DOC_ID_RE = re.compile(r"(?<![A-Za-z0-9])(nfr|fr|ac|ec|os)[-_]?(\d+)", re.I)
+DOC_ID_GREP = "(nfr|fr|ac|ec|os)[-_]?[0-9]+"
 SPEC_BASENAME_RE = re.compile(r"(^spec(-.+)?\.md$|-spec\.md$|\.spec\.md$)", re.I)
+MARKDOWN = (".md", ".markdown")
+FROZEN_SEGMENTS = {"history", "archive"}
 
 
-def is_spec_file(path, repo_dir):
+def normal_id(text):
+    """The comparable form of an ID: lowercase prefix, hyphen, number without leading zeros."""
+    match = re.match(r"([a-z]+)[-_]?(\d+)", text, re.I)
+    return f"{match.group(1).lower()}-{int(match.group(2))}"
+
+
+def is_spec_name(path):
     if not path.lower().endswith(".md"):
         return False
     parts = path.split("/")
-    if not ("specs" in parts[:-1] or SPEC_BASENAME_RE.search(parts[-1])):
-        return False
-    if parts[-1] == "SPEC.md" and os.path.exists(os.path.join(repo_dir, *parts[:-1], "SKILL.md")):
-        return False
-    return True
+    return "specs" in parts[:-1] or bool(SPEC_BASENAME_RE.search(parts[-1]))
+
+
+def has_subject(listing):
+    """True when a directory listing (`git ls-tree` lines) holds a SKILL.md or any
+    file that isn't Markdown, which makes a spec beside them a living spec."""
+    for entry in listing.splitlines():
+        meta, _, name = entry.partition("\t")
+        if meta.split()[1:2] != ["blob"]:
+            continue
+        if name.rsplit("/", 1)[-1] == "SKILL.md" or not name.lower().endswith(MARKDOWN):
+            return True
+    return False
 
 
 def cmd_diff_check(base, repo_dir):
-    def git(*args):
+    def git(*args, ok=(0,)):
         result = subprocess.run(["git", "-C", repo_dir, *args], capture_output=True, text=True)
-        if result.returncode != 0:
+        if result.returncode not in ok:
             raise UsageError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
         return result.stdout
 
+    def living_ids():
+        # git grep exits 1 when nothing matches; that just means no IDs are defined.
+        out = git("grep", "-I", "-i", "-z", "-E", DOC_ID_GREP, "HEAD", "--", "*.md", ok=(0, 1))
+        ids = set()
+        for hit in out.splitlines():
+            name, _, text = hit.partition("\0")
+            path = name.split(":", 1)[-1]
+            if FROZEN_SEGMENTS & set(path.split("/")[:-1]):
+                continue
+            ids.update(normal_id(m.group(0)) for m in DOC_ID_RE.finditer(text))
+        return ids
+
     diff = git("diff", "--no-color", "--no-ext-diff", "-U0", f"{base}...HEAD")
     added = git("diff", "--name-only", "--diff-filter=A", f"{base}...HEAD").splitlines()
+    defined = None
     problems = []
     current, line_no = None, 0
     for line in diff.splitlines():
@@ -246,11 +278,16 @@ def cmd_diff_check(base, repo_dir):
         elif line.startswith("+") and current:
             if not current.lower().endswith(".md"):
                 for match in SPEC_ID_RE.finditer(line[1:]):
-                    problems.append(("spec-id", f"{current}:{line_no}: {match.group(0)}"))
+                    defined = living_ids() if defined is None else defined
+                    if normal_id(match.group(0)) not in defined:
+                        problems.append(("spec-id", f"{current}:{line_no}: {match.group(0)}"))
             line_no += 1
     for path in added:
-        if is_spec_file(path, repo_dir):
-            problems.append(("spec-file", f"{path} is a spec file; specs live on the issue"))
+        if not is_spec_name(path):
+            continue
+        folder = path.rsplit("/", 1)[0] + "/" if "/" in path else "."
+        if not has_subject(git("ls-tree", "HEAD", "--", folder)):
+            problems.append(("spec-file", f"{path} is a spec file away from its subject"))
     return problems
 
 

@@ -336,3 +336,13 @@ def test_body_never_matches_passes_with_no_matching_call(harness, bodies, passed
     gh_calls = [{"args": ["issue", "edit", "42", "--body-file", "b.md"], "body": b} for b in bodies]
     exp = "gh-body-never-matches: ^issue edit 42 ::: summary names the file"
     assert harness.grade([exp], gh_calls, [], "", [])[0]["passed"] is passed
+
+
+def test_git_in_an_eval_can_use_no_network_transport_at_all(tmp_path, harness, fake_home):
+    with harness.isolated_config(tmp_path / "root") as cfg:
+        env = harness.base_env(cfg)
+    assert env["GIT_ALLOW_PROTOCOL"] == "file"
+    # git checks the transport before connecting, so this needs no network.
+    r = subprocess.run(["git", "ls-remote", "https://example.invalid/o/r.git"], env=env,
+                       capture_output=True, text=True)  # fmt: skip
+    assert r.returncode != 0 and "not allowed" in r.stderr

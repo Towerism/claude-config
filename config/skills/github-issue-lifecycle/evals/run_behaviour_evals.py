@@ -254,6 +254,9 @@ def base_env(cfg):
     env["CLAUDE_CONFIG_DIR"] = str(cfg)
     env["GH_CONFIG_DIR"] = str(Path(cfg) / "gh-config")
     env["GIT_TERMINAL_PROMPT"] = "0"
+    # git refuses every transport but file://, for clone, ls-remote and submodules as well
+    # as push, fetch and pull, so no git command can use the owner's SSH key.
+    env["GIT_ALLOW_PROTOCOL"] = "file"
     return env
 
 

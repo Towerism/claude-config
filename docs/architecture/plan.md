@@ -83,3 +83,4 @@ Questions keep their numbers, because other documents refer to them. Resolved qu
 - **Q-15 (resolved 2026-10-16, from the existing work skill):** work repos are on GitHub, through `gh`, so the merge-confirm hook needs no new patterns.
 - **Q-16 (resolved 2026-10-16):** work repos follow the owner's global git rules, not the team's conventions.
 - **Q-17 (resolved 2026-10-16):** `JIRA_API_TOKEN` is exported for non-interactive shells on the work machine, for example from `~/.zshenv`.
+- **Q-18 (resolved 2026-10-17):** `writing-docs` covers the same texts as `plain-prose`, not only documentation. ADR-0010 had limited it to documents, while the owner's live CLAUDE.md line named docs, issues, PRs, commits, code comments and review notes. Asked during #13, the owner answered: "Decision 1: is the full live line." The chat reply itself and text written for Claude stay out, as for `plain-prose` ([ADR-0010](../adr/0010-prose-for-people.md)).

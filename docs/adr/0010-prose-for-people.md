@@ -1,8 +1,8 @@
 # ADR-0010: Prose a cold reader understands (a `plain-prose` skill for all human-facing text, and a `writing-docs` skill for documentation)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Amended 2026-10-16 by #12, after its first live trigger run: the scope is text a person will read later, not chat replies (see "The scope, as the owner set it after the first eval run").
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Amended 2026-10-16 by #12, after its first live trigger run: the scope is text a person will read later, not chat replies (see "The scope, as the owner set it after the first eval run"). Amended 2026-10-17 by #13: `writing-docs` covers the same texts as `plain-prose`, not only documentation (see "Skill 2"), and its evals run with `plain-prose` beside it.
 
-Everything Claude writes for people should be easy to follow for a reader with no context, and free of the patterns that mark text as AI-written. A small `plain-prose` skill holds those rules for any text a person will read later, from code comments and error messages to commit messages and docs. A second skill, `writing-docs`, adds the steps specific to documentation. One line in the global CLAUDE.md says when to load `plain-prose`, and the lifecycle skill and `writing-docs` call it at the points where they produce prose.
+Everything Claude writes for people should be easy to follow for a reader with no context, and free of the patterns that mark text as AI-written. A small `plain-prose` skill holds those rules for any text a person will read later, from code comments and error messages to commit messages and docs. A second skill, `writing-docs`, covers the same texts and adds reader-first steps on top, with templates and a lint for documents. One line in the global CLAUDE.md says when to load `plain-prose`, and the lifecycle skill and `writing-docs` call it at the points where they produce prose.
 
 Prototypes of both skills were installed in `~/.claude/skills/` on 2026-10-16 so they could be used before this repo exists. The skills built in plan issues 12 and 13 will replace them.
 
@@ -119,7 +119,7 @@ The upstream checklist goes stale; its own header says to re-validate it about e
 |---|---|---|
 | Any session, any prose | One new line in the global CLAUDE.md, about 40 tokens, under the git or authoring rules: "Before writing prose for people (issues, comments, PR titles and bodies, commit messages, review notes, docs), load `plain-prose`: write it so a reader with no context understands it." It gets a new `claude-md` row in the clause inventory, citing the owner's decision. The v2 spec allows a routing line when the user picked the skill (FR-6). The line isn't emphasised, because the rule of a single emphasised line stays. | No; the scenario eval measures it |
 | The lifecycle skill (issues, comments, PRs, commits) | Folded into the amendment of the lifecycle skill's spec in plan issue 4. Its `SKILL.md` says to apply `plain-prose` before each `gh issue create/edit/comment`, each `gh pr create/edit` and each commit. `issue_lifecycle.py commit-check` and `pr-body-check` gain a report-only section listing tells from the vendored checklist. The script's rules (standard library only, no network) don't change. | The check runs as a script; the rewrite is Claude's |
-| `writing-docs` | Its last procedure step is `plain-prose` | Yes, within the skill |
+| `writing-docs` | It loads `plain-prose` before drafting, and its last step applies it | Yes, within the skill |
 | `adversarial-reviewer` | The existing overlay gains one line: review notes and the findings in PR descriptions follow `plain-prose` | Yes, injected by the overlay hook |
 | This repo's CI | The `commits` job runs `prose_check.py` on commit messages and on the PR title and body (from the event payload). It only reports, writing to the job summary. | Yes, but it only warns |
 
@@ -127,9 +127,11 @@ The hook from option D is held in reserve. If the scenario eval shows Claude wri
 
 Early evidence argues against relying on instructions alone. On 2026-10-16, three subagents were each told explicitly to load `writing-docs` and `plain-prose` with the Skill tool before rewriting these architecture docs. All three loaded `writing-docs`, and none loaded `plain-prose` until reminded. The likely cause is that the subagents inherited a conversation where `plain-prose` was already loaded, though this wasn't confirmed. The trigger eval for `plain-prose` therefore includes delegated work: a subagent or fork asked to write prose must load the skill itself. The repo's own prompts to subagents name the skill and the reason for loading it.
 
-### Skill 2: `writing-docs`, for documentation at rest
+### Skill 2: `writing-docs`, reader-first steps for every text, and the full set for documents
 
-The skill lives in `config/skills/writing-docs/` with a `SPEC.md` beside its `SKILL.md`, and deploys on both host profiles. It covers Markdown documents for people: READMEs, everything under `docs/`, ADRs, architecture docs, runbooks, how-to guides, tutorials, setup guides and changelog prose.
+The skill lives in `config/skills/writing-docs/` with a `SPEC.md` beside its `SKILL.md`, and deploys on both host profiles. It covers every text a person will read later, the same set as `plain-prose`. This ADR first limited it to Markdown documentation (READMEs, everything under `docs/`, ADRs, architecture docs, runbooks, how-to guides, tutorials, setup guides and changelog prose). The owner's live CLAUDE.md line was broader, naming docs, issues, PRs, commits, code comments and review notes, and when #13 asked which to follow, the owner answered: "Decision 1: is the full live line." So the chat reply itself and text written for Claude stay out, as they do for `plain-prose`.
+
+The two skills chain instead of competing: `writing-docs` loads `plain-prose` before drafting. A document file gets all nine steps below, a template from `references/templates/` and `doc_lint.py`. A short text, such as a commit message, a PR description, a review note, a code comment or an error message, gets the steps that make sense at its length (name the reader and what they need, put the answer first, be concrete, define terms, link to the source of truth), and `plain-prose`'s procedure is its check.
 
 Its procedure has nine steps:
 
@@ -143,7 +145,7 @@ Its procedure has nine steps:
 8. Check it. Run the commands, or mark them as not run. Make sure links resolve and `scripts/doc_lint.py` is clean. For a substantial document, a fresh-context reader must be able to answer "can I now do X?" from the document alone.
 9. Apply `plain-prose`, so the document reads clearly to someone without context.
 
-`scripts/doc_lint.py` uses only the standard library and only reports. It looks for a missing title or purpose near the top, skipped heading levels, and links or anchors that don't resolve. It also flags code fences without a language, acronyms used before they are defined, bare requirement IDs, and leftover `TODO` or `TBD` markers. It calls `plain-prose`'s `prose_check.py` for the prose findings.
+`scripts/doc_lint.py` uses only the standard library and only reports. It looks for a missing title or purpose near the top, skipped heading levels, and links or anchors that don't resolve. It also flags code fences without a language and leftover `TODO` or `TBD` markers. It includes `plain-prose`'s `prose_check.py` report for the same text, and takes acronyms used before they are defined and bare requirement IDs from that report instead of checking them twice (#13).
 
 Two overlays chain the skill in, one line each. The overlays for `engineering-skills:senior-architect` and `engineering-advanced-skills:runbook-generator` tell Claude to load `writing-docs` before writing the document file.
 
@@ -163,7 +165,7 @@ The main grade is comprehension by a cold reader. A fresh-context grader stands 
 
 `prose_check.py`'s counts (findings per 1,000 words in each category) and the detectability score go into the eval record as diagnostics only, so trends stay visible.
 
-`plain-prose` also gets its own trigger and behaviour suites. It must trigger on any task that may write text a person reads later, coding tasks included, and not on text written for Claude or on questions answered only in chat. Its rewrites must keep or raise cold-reader comprehension, keep every fact, and draw fewer AI-sounding flags. Fewer findings with worse comprehension doesn't count as a pass. `writing-docs` gets trigger and behaviour suites graded by a fresh-context reader against the nine steps above. The lifecycle skill's behaviour suite re-runs, because its `SKILL.md` changes in plan issue 4.
+`plain-prose` also gets its own trigger and behaviour suites. It must trigger on any task that may write text a person reads later, coding tasks included, and not on text written for Claude or on questions answered only in chat. Its rewrites must keep or raise cold-reader comprehension, keep every fact, and draw fewer AI-sounding flags. Fewer findings with worse comprehension doesn't count as a pass. `writing-docs` gets its own trigger and behaviour suites, run with `plain-prose` installed beside it, as it is when deployed (#13). It must trigger on the same texts as `plain-prose`, and only a load of `writing-docs` counts. The behaviour suite compares it with `plain-prose` alone, not with no skill, so it measures what the reader-first steps add. Besides the fresh-context reader's answers, the skill arm must have no more `doc_lint.py` findings than the baseline, which is how the suite grades the nine steps. The lifecycle skill's behaviour suite re-runs, because its `SKILL.md` changes in plan issue 4.
 
 ## Consequences
 

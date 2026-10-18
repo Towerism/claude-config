@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-17
-**Status:** Draft, revised on 2026-10-17 for the owner's answers to decisions D-1 and D-2, and reviewed again for that change (see `REVIEW-NOTE.md`). The owner answered: "I agree. Decision 1: is the full live line. Decision 2: your assumption is correct. I agree with the behavior suite you have planned. I approve once it reflects this." Approval mode: manual review with an adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial. work on each one sequentially."). Only the owner's explicit words approve it.
+**Status:** Approved by the owner on 2026-10-17. The owner answered decisions D-1 and D-2 with "I agree. Decision 1: is the full live line. Decision 2: your assumption is correct. I agree with the behavior suite you have planned. I approve once it reflects this." This version reflects those answers, and its own adversarial review was clean (see `REVIEW-NOTE.md`), so the approval applies. Approval mode: manual review with an adversarial pass, chosen by the owner for this session's issues ("work on the implementation plan. manual review + adversarial. work on each one sequentially."). Only the owner's explicit words approve it.
 **Issue:** [#13](https://github.com/Towerism/claude-config/issues/13)
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Decided by:** [ADR-0010](../../../docs/adr/0010-prose-for-people.md) (the skill, its nine steps, `doc_lint.py`, the overlays, the evals), [ADR-0005](../../../docs/adr/0005-verification-and-ci.md) (eval gates and records), [ADR-0002](../../../docs/adr/0002-repo-layout.md) (where specs live)

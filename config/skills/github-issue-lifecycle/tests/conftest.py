@@ -17,10 +17,22 @@ END = "<!-- spec:end -->"
 ORIGINAL = "Users want to export the roster as CSV."
 
 
+def script_command():
+    """The command that runs the script. With LIFECYCLE_COVERAGE_DIR set, each run is
+    measured by coverage into that directory, because the tests run the script as a
+    subprocess, which pytest-cov can't see under `python -I`."""
+    data_dir = os.environ.get("LIFECYCLE_COVERAGE_DIR")
+    if not data_dir:
+        return [sys.executable, "-I", str(SCRIPT)]
+    data = os.path.join(data_dir, ".coverage")
+    return [sys.executable, "-I", "-m", "coverage", "run", "--branch", "--parallel-mode",
+            f"--data-file={data}", str(SCRIPT)]  # fmt: skip
+
+
 def run(*args, stdin=None, cwd=None):
     """Run issue_lifecycle.py and return the CompletedProcess (bytes in, text out)."""
     return subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), *map(str, args)],
+        [*script_command(), *map(str, args)],
         input=stdin,
         capture_output=True,
         text=True,

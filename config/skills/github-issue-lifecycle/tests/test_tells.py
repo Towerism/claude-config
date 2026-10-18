@@ -91,3 +91,12 @@ def test_loading_prose_check_writes_no_bytecode_cache(tmp_path):
     r = commit_json(tmp_path, TELLING, script)
     assert json.loads(r.stdout)["tells"]
     assert not list(root.rglob("__pycache__"))
+
+
+def test_text_output_says_when_tells_were_not_checked(tmp_path):
+    _, script = copy_skills(tmp_path, "")
+    args = ["commit-check", "--message", write(tmp_path, "msg", TELLING)]
+    r = subprocess.run([sys.executable, "-I", str(script), *map(str, args)],
+                       capture_output=True, text=True)  # fmt: skip
+    assert r.returncode == 0
+    assert r.stdout.splitlines()[0] == "OK" and "NOTE tells not checked" in r.stdout

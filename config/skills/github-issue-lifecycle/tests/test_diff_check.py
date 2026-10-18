@@ -137,3 +137,12 @@ def test_a_spec_file_next_to_its_subject_is_accepted_and_one_among_docs_is_not(t
     )
     reported = sorted(p["detail"].split(" ", 1)[0] for p in problems(repo))
     assert reported == ["docs/feature-spec.md", "specs/login.md"]
+
+
+def test_a_subfolder_is_not_a_subject_for_a_spec_beside_it(tmp_path):
+    repo = make_repo(
+        tmp_path,
+        {"docs/feature-spec.md": "# Spec\n"},
+        base_files={"docs/guide.md": "# Guide\n", "docs/img/diagram.svg": "<svg/>\n"},
+    )
+    assert [p["code"] for p in problems(repo)] == ["spec-file"]

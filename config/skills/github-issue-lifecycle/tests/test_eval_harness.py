@@ -129,7 +129,8 @@ def test_git_shim_refuses_network_remotes_but_allows_the_local_origin(tmp_path, 
                              capture_output=True)  # fmt: skip
     assert refused.returncode == 1 and "refused" in refused.stderr
     assert ["push", "origin", "main"] in [json.loads(x) for x in log.read_text().splitlines()]
-    for args in (["fetch", "https://example.com/x.git"], ["pull", "ssh://example.invalid/o/r.git"]):
+    network = ("https://example.com/x.git", "ssh://example.invalid/o/r.git", "host.invalid:o/r")
+    for args in [["fetch", url] for url in network] + [["pull", "--rebase", network[2]]]:
         assert subprocess.run(["git", *args], cwd=ws, env=env, capture_output=True).returncode == 1
     local = harness.make_workspace({"id": 2}, tmp_path / "local")
     ok = subprocess.run(["git", "push", "-q", "origin", "main"], cwd=local, env=env,
@@ -194,7 +195,7 @@ plan = json.load(open(os.environ["FAKE_CLAUDE_PLAN"]))
 n = sum(1 for _ in open(os.environ["FAKE_CLAUDE_LOG"]))
 step = plan[min(n - 1, len(plan) - 1)]
 print(json.dumps({"type": "system", "subtype": "init", "session_id": "s1",
-                  "skills": ["github-issue-lifecycle"]}))
+                  "skills": step.get("skills", ["github-issue-lifecycle"])}))
 if step.get("skill"):
     print(json.dumps({"type": "assistant", "message": {"content": [
         {"type": "tool_use", "name": "Skill", "input": {"skill": step["skill"]}}]}}))
@@ -278,3 +279,50 @@ def test_the_trigger_verdict_is_unchanged(trigger):
     decisions[12] = {"runs": 3, "triggers": 2, "capped": 0, "triggered": True}
     summary = trigger.summarise(queries, decisions)["summary"]
     assert summary["near_misses_triggering"] == ["q12"] and summary["ok"] is False
+
+
+def run_main(module, monkeypatch, out, *extra):
+    monkeypatch.setattr("sys.argv", ["runner", "--out", str(out), "--workers", "1", *extra])
+    return module.main()
+
+
+def test_behaviour_main_writes_results_and_a_summary(
+    tmp_path, harness, fake_home, fake_claude, monkeypatch
+):
+    fake_claude([{}])
+    out = tmp_path / "results.json"
+    code = run_main(harness, monkeypatch, out, "--ids", "1")
+    data = json.loads(out.read_text())
+    assert data["probe"]["ok"] is True and [r["id"] for r in data["results"]] == [1]
+    assert set(data["summary"]) >= {"pass", "criticalFailures", "otherShare"}
+    assert code == (0 if data["summary"]["pass"] else 1)
+
+
+@pytest.mark.parametrize("module", ["harness", "trigger"])
+def test_a_failed_isolation_probe_stops_before_any_case(
+    tmp_path, request, module, fake_home, fake_claude, monkeypatch
+):
+    runner = request.getfixturevalue(module)
+    if module == "trigger":
+        monkeypatch.setattr(runner.harness, "HOME", fake_home)
+        monkeypatch.setattr(runner.harness, "HOME_CLAUDE", fake_home / ".claude")
+    log = fake_claude([{"skills": ["something-else"]}])
+    out = tmp_path / "results.json"
+    assert run_main(runner, monkeypatch, out) == 2
+    assert json.loads(out.read_text())["results"] == []
+    assert len(log.read_text().splitlines()) == 1
+
+
+def test_trigger_main_samples_and_summarises(
+    tmp_path, trigger, fake_home, fake_claude, monkeypatch
+):
+    monkeypatch.setattr(trigger.harness, "HOME", fake_home)
+    monkeypatch.setattr(trigger.harness, "HOME_CLAUDE", fake_home / ".claude")
+    log = fake_claude([{"skill": "github-issue-lifecycle"}])
+    out = tmp_path / "trigger.json"
+    code = run_main(trigger, monkeypatch, out)
+    data = json.loads(out.read_text())
+    queries = json.loads((SKILL_DIR / "evals" / "trigger-evals.json").read_text())
+    assert all(r["runs"] == 2 for r in data["results"])
+    assert len(log.read_text().splitlines()) == 1 + 2 * len(queries)
+    assert code == 1 and data["summary"]["near_misses_triggering"]

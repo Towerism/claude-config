@@ -404,6 +404,25 @@ def test_totals_under_ninety_percent_fail_the_suite(make_ctx):
     assert result["rightShare"] == round(13 / 15, 3) and result["pass"] is False
 
 
+class ErroringWriter(ReaderFake):
+    def __call__(self, cmd, stdin, env, cwd, timeout):
+        if f"Load the {SKILL} skill" in stdin:
+            self.note(cmd, stdin, env)
+            return 1, "not json at all"
+        if stdin.startswith("You are a reader") and "TEXT<" not in stdin:
+            self.note(cmd, stdin, env)  # the reader of the skill arm's empty text
+            return 0, stream([], result=json.dumps({"answers": RIGHT}))
+        return super().__call__(cmd, stdin, env, cwd, timeout)
+
+
+def test_an_errored_writing_run_is_reported_as_an_error(make_ctx):
+    ctx = make_ctx(ErroringWriter(FINE), behaviour=[WRITE])
+    result = de.run_doc_reader(ctx, suite("doc-reader"))
+    assert result["pass"] is False
+    assert any("writing run errored" in r for r in result["reasons"]), result["reasons"]
+    assert not any("never loaded" in r for r in result["reasons"])
+
+
 def test_an_unparsable_reply_counts_its_answers_as_wrong_and_is_reported(make_ctx):
     plan = FINE | {("w", "skill"): {"raw": "no json"}}
     result, _, _ = run_reader(make_ctx, [WRITE], plan)

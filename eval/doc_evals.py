@@ -267,11 +267,11 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         base_args = write_args(base_cfg, [f"{c}/{CHECKER}" for c in companions])
 
         def write(cfg: Path, args: list[str], case: Case, load: str, present: list[str]) -> tuple[
-            str, list[se.Event]
+            str, list[se.Event] | None
         ]:  # fmt: skip
             absent = [s for s in everyone if s not in present]
             evs = checked_run(ctx, cfg, args, se.writer_prompt(case, load), box, present, absent)
-            return unwrap(se.result_text(evs or [])), evs or []
+            return unwrap(se.result_text(evs or [])), evs
 
         def graded(case: Case, text: str) -> dict[str, Any]:
             evs = checked_run(ctx, reader_cfg, ["--tools", ""], reader_prompt(case, text), box,
@@ -290,7 +290,8 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             base_text, _ = write(base_cfg, base_args, case, " and ".join(companions), companions)
             return {"id": case["id"], "skill": graded(case, skill_text),
                     "baseline": graded(case, base_text),
-                    "notLoaded": [s for s in everyone if not se.skill_calls(evs, s)],
+                    "writerError": evs is None,
+                    "notLoaded": [s for s in everyone if not se.skill_calls(evs or [], s)],
                     "texts": {"skill": skill_text, "baseline": base_text}}  # fmt: skip
 
         results = sorted(se.run_all(ctx, one, cases), key=lambda r: str(r["id"]))
@@ -298,7 +299,9 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     reasons = []
     for r in results:
         del r["texts"]  # the full texts stay in eval/out; the record keeps the figures
-        if r["notLoaded"]:
+        if r["writerError"]:
+            reasons.append(f"{r['id']}: the skill arm's writing run errored")
+        elif r["notLoaded"]:
             reasons.append(f"{r['id']}: the skill arm never loaded {', '.join(r['notLoaded'])}")
         if r["skill"]["missing"]:
             reasons.append(

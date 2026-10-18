@@ -88,3 +88,13 @@ While the third review's change waited for approval, the owner added "3 total tu
 **Verdict:** no critical finding, one warning accepted, and the review changed nothing.
 
 **Warning, accepted: more tries make a lucky pass more likely.** With up to three tuned runs, a description could pass by chance on a bar it only just meets. Accepted because each tuning is a real change to the description, not a bare rerun of the same one, every run goes in the PR so the owner sees the whole history, and the owner set the limit knowing the first tuned run sat exactly on the recall bar.
+
+# Fifth review: three counted runs of the behaviour suite
+
+The first live run of `writing-docs-behaviour` failed one case of six on its counted rerun: the reader flagged two sentences the skill arm kept word for word from the draft, while both arms answered every question right, kept every fact and had no lint findings. The owner answered "allow the same number of counted runs for the behavior suite". FR-27 now allows up to three counted runs of the suite in total, each keeping its one counted rerun per case, with every run in the PR and a stop after a failing third run. This change got its own adversarial review.
+
+**Verdict:** no critical finding, one warning accepted, one note, and the review changed nothing.
+
+**Warning, accepted: unlike a tuned description, a rerun changes nothing, so a pass can be chance.** The same skill body runs again, and a single reader's AI-sounding flag decides the failing case. Accepted because the owner chose it knowing that, every run goes in the PR, and the failing flag was on text the skill arm kept unchanged from the draft rather than text it wrote.
+
+**Note: the interpretation is recorded.** "The same number" is read as three runs in total, matching OS-7's three tuned descriptions, with the failed run on 2026-10-17 counting as the first.

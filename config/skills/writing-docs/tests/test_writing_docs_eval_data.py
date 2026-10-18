@@ -41,17 +41,39 @@ def test_the_new_document_queries_span_at_least_four_kinds_of_document():
     assert len({w for w in words for q in queries if w in q}) >= 4
 
 
+def behaviour_cases():
+    return json.loads((EVALS / "behaviour-evals.json").read_text())
+
+
 def test_the_behaviour_file_has_three_write_and_three_rewrite_cases():
-    cases = json.loads((EVALS / "behaviour-evals.json").read_text())
+    cases = behaviour_cases()
     kinds = [c["kind"] for c in cases]
     assert kinds.count("write") >= 3
     assert kinds.count("rewrite") >= 3
     assert len({c["id"] for c in cases}) == len(cases)
     for c in cases:
-        required = {"id", "kind", "task", "facts", "questions", "mustKeep"}
+        required = {"id", "kind", "task", "facts", "questions", "expect", "mustContain"}
         assert set(c) == required | ({"draft"} if c["kind"] == "rewrite" else set()), c["id"]
         assert 3 <= len(c["questions"]) <= 4, c["id"]
-        assert c["facts"] and c["mustKeep"], c["id"]
+        assert len(c["expect"]) == len(c["questions"]), c["id"]
+        assert all(c["expect"]), c["id"]
+        assert len(c["mustContain"]) >= 2, c["id"]
+        assert c["facts"], c["id"]
+
+
+def test_every_pattern_compiles_and_matches_its_own_case():
+    """A pattern that can't match the case's own facts or draft would fail every live run."""
+    for c in behaviour_cases():
+        source = " ".join(c["facts"]) + " " + c.get("draft", "")
+        for pattern in c["mustContain"] + [p for ps in c["expect"] for p in ps]:
+            assert re.search(pattern, source, re.IGNORECASE), (c["id"], pattern)
+
+
+def test_every_rewrite_task_says_what_may_be_cut():
+    for c in behaviour_cases():
+        if c["kind"] == "rewrite":
+            assert "may be" in c["task"] and "cut" in c["task"], c["id"]
+            assert "Keep every fact." not in c["task"], c["id"]
 
 
 def test_case_data_holds_no_home_paths_emails_or_tokens():

@@ -19,10 +19,24 @@
    "How do you know which row is kept when there are duplicates?",
    "What happens if you pass a --key column that doesn't exist?"
   ],
-  "mustKeep": [
-   "The first row of a duplicate set is kept.",
-   "A missing --key column exits with code 2 and prints 'no such column'.",
-   "Install with pipx install csv-dedupe."
+  "expect": [
+   [
+    "duplicate"
+   ],
+   [
+    "pipx install csv-dedupe"
+   ],
+   [
+    "first"
+   ],
+   [
+    "no such column"
+   ]
+  ],
+  "mustContain": [
+   "pipx install csv-dedupe",
+   "no such column",
+   "--key"
   ]
  },
  {
@@ -45,10 +59,26 @@
    "How do you know the restore worked?",
    "What do you do if the restore prints 'archive not found'?"
   ],
-  "mustKeep": [
-   "Stop the app before restoring.",
-   "Archives are kept for 7 days.",
-   "For any other failure, page the database owner and retry at most once."
+  "expect": [
+   [
+    "restor"
+   ],
+   [
+    "stop"
+   ],
+   [
+    "restored|/health|200"
+   ],
+   [
+    "backup list"
+   ]
+  ],
+  "mustContain": [
+   "systemctl stop app",
+   "backup restore --date",
+   "archive not found",
+   "backup list",
+   "7 days|seven days"
   ]
  },
  {
@@ -71,17 +101,33 @@
    "What is the main downside?",
    "When should the decision be revisited?"
   ],
-  "mustKeep": [
-   "Peak load is 60 jobs per second against 400 in the load test.",
-   "Polling adds load to the main database.",
-   "Revisit above 200 jobs per second."
+  "expect": [
+   [
+    "postgres",
+    "2026-10-10"
+   ],
+   [
+    "service"
+   ],
+   [
+    "load"
+   ],
+   [
+    "\\b200\\b"
+   ]
+  ],
+  "mustContain": [
+   "skip locked",
+   "\\b60\\b",
+   "\\b400\\b",
+   "\\b200\\b",
+   "2026-10-10"
   ]
  },
  {
   "id": "rewrite-how-to",
   "kind": "rewrite",
-  "task": "Rewrite this how-to guide so a reader can follow it without help. Keep every fact.",
-  "draft": "# Tenants\n\nTenants are a core concept of the billing service and have been since the 2024 redesign, when we moved away from per-account billing. There are many considerations around tenants. Basically, to add one you'll want to make sure you have the billing-admin role, and then it's worth noting that you need to create the tenant row (billing tenant create --name <name>), and you need to set the plan with billing plan set --tenant <name> --plan <plan>, where plan is starter, team or enterprise. Then the sync job has to run: billing sync --tenant <name>. The sync prints 'synced' when it works. If it says 'plan missing', the plan step was skipped, so set the plan and run the sync again.",
+  "task": "Rewrite this how-to guide so a reader can follow it without help. Keep every command, value, step and instruction for using it; the history and filler may be cut.",
   "facts": [
    "Adding a tenant needs the billing-admin role.",
    "Step 1: billing tenant create --name <name>",
@@ -90,49 +136,84 @@
    "The sync prints 'synced' when it works.",
    "If the sync prints 'plan missing', set the plan and run the sync again."
   ],
+  "draft": "# Tenants\n\nTenants are a core concept of the billing service and have been since the 2024 redesign, when we moved away from per-account billing. There are many considerations around tenants. Basically, to add one you'll want to make sure you have the billing-admin role, and then it's worth noting that you need to create the tenant row (billing tenant create --name <name>), and you need to set the plan with billing plan set --tenant <name> --plan <plan>, where plan is starter, team or enterprise. Then the sync job has to run: billing sync --tenant <name>. The sync prints 'synced' when it works. If it says 'plan missing', the plan step was skipped, so set the plan and run the sync again.",
   "questions": [
    "What does this guide help you do?",
    "What do you need before you start?",
    "How do you know it worked?",
    "What do you do if the sync says 'plan missing'?"
   ],
-  "mustKeep": [
-   "The billing-admin role is needed.",
-   "The plan is starter, team or enterprise.",
-   "On 'plan missing', set the plan and sync again."
+  "expect": [
+   [
+    "tenant"
+   ],
+   [
+    "billing-admin"
+   ],
+   [
+    "synced"
+   ],
+   [
+    "plan",
+    "sync"
+   ]
+  ],
+  "mustContain": [
+   "billing-admin",
+   "billing tenant create",
+   "billing plan set",
+   "billing sync",
+   "synced",
+   "plan missing",
+   "starter",
+   "enterprise"
   ]
  },
  {
   "id": "rewrite-buried-readme",
   "kind": "rewrite",
-  "task": "Rewrite this README so a newcomer can get the tool running first. Keep every fact.",
-  "draft": "# logtail\n\n## History\n\nlogtail started in 2023 as a weekend project to replace a pile of shell scripts that tailed log files on several servers. Over time it grew a plugin system and a config format. In 2025 the config moved from INI to TOML.\n\n## Philosophy\n\nWe believe logs should be easy to read. The project values small, fast tools.\n\n## Getting it\n\nYou can install logtail with: cargo install logtail. Then run logtail --follow /var/log/app.log to stream a file. Lines matching --grep <pattern> are highlighted. The config file lives at ~/.config/logtail/config.toml and is optional. If you see 'permission denied', run it as a user in the adm group.",
+  "task": "Rewrite this README so a newcomer can get the tool running first. Keep every command, path, value and instruction for using it; the history and philosophy may be shortened or cut.",
   "facts": [
    "Install with: cargo install logtail",
    "Stream a file with: logtail --follow /var/log/app.log",
    "Lines matching --grep <pattern> are highlighted.",
    "The config file is optional and lives at ~/.config/logtail/config.toml.",
-   "On 'permission denied', run it as a user in the adm group.",
-   "logtail started in 2023 to replace shell scripts that tailed log files.",
-   "The config format moved from INI to TOML in 2025."
+   "On 'permission denied', run it as a user in the adm group."
   ],
+  "draft": "# logtail\n\n## History\n\nlogtail started in 2023 as a weekend project to replace a pile of shell scripts that tailed log files on several servers. Over time it grew a plugin system and a config format. In 2025 the config moved from INI to TOML.\n\n## Philosophy\n\nWe believe logs should be easy to read. The project values small, fast tools.\n\n## Getting it\n\nYou can install logtail with: cargo install logtail. Then run logtail --follow /var/log/app.log to stream a file. Lines matching --grep <pattern> are highlighted. The config file lives at ~/.config/logtail/config.toml and is optional. If you see 'permission denied', run it as a user in the adm group.",
   "questions": [
    "What does logtail do?",
    "What do you run first to install and try it?",
    "Where does the config file live, and do you need one?",
    "What do you do on 'permission denied'?"
   ],
-  "mustKeep": [
-   "The config file is optional.",
-   "On 'permission denied', use a user in the adm group.",
-   "Install with cargo install logtail."
+  "expect": [
+   [
+    "stream|tail|follow"
+   ],
+   [
+    "cargo install logtail"
+   ],
+   [
+    "config\\.toml",
+    "optional|don.t need|not need|no need|not required"
+   ],
+   [
+    "\\badm\\b"
+   ]
+  ],
+  "mustContain": [
+   "cargo install logtail",
+   "logtail --follow",
+   "--grep",
+   "config\\.toml",
+   "\\badm\\b"
   ]
  },
  {
   "id": "rewrite-release-notes",
   "kind": "rewrite",
-  "task": "Rewrite these release notes so a user knows what changed and what they must do. Keep every fact.",
-  "draft": "# v2.4\n\nWe're thrilled to announce v2.4, a robust release packed with improvements! We've been hard at work refactoring the export pipeline, which is now seamlessly faster (about three times). Also, the --legacy flag has been removed, so scripts using it will need to drop it; its behaviour is now the default anyway. Dates everywhere are now ISO 8601 (2026-10-16 instead of 10/16/2026), which may affect anything parsing our CSV output. Finally, we fixed the bug where exports with more than 65,536 rows were cut short.",
+  "task": "Rewrite these release notes so a user knows what changed and what they must do. Keep every change, value and instruction; promotional wording may be cut.",
   "facts": [
    "Version 2.4.",
    "Exports are about three times faster.",
@@ -140,16 +221,32 @@
    "All dates are now ISO 8601, such as 2026-10-16 instead of 10/16/2026, which can break anything that parses the CSV output.",
    "Fixed: exports with more than 65,536 rows were cut short."
   ],
+  "draft": "# v2.4\n\nWe're thrilled to announce v2.4, a robust release packed with improvements! We've been hard at work refactoring the export pipeline, which is now seamlessly faster (about three times). Also, the --legacy flag has been removed, so scripts using it will need to drop it; its behaviour is now the default anyway. Dates everywhere are now ISO 8601 (2026-10-16 instead of 10/16/2026), which may affect anything parsing our CSV output. Finally, we fixed the bug where exports with more than 65,536 rows were cut short.",
   "questions": [
    "What must a user change after upgrading?",
    "What changed about dates?",
    "Which bug was fixed?",
    "What got faster, and by how much?"
   ],
-  "mustKeep": [
-   "Scripts passing --legacy must drop it.",
-   "Dates are ISO 8601 and can break CSV parsers.",
-   "Exports over 65,536 rows were cut short before the fix."
+  "expect": [
+   [
+    "legacy"
+   ],
+   [
+    "iso ?-?8601"
+   ],
+   [
+    "65,?536"
+   ],
+   [
+    "three|3x|3×|3 times"
+   ]
+  ],
+  "mustContain": [
+   "--legacy",
+   "iso ?-?8601",
+   "65,?536",
+   "three times|3x|3×|3 times"
   ]
  }
 ]

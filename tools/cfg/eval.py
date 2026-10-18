@@ -50,6 +50,12 @@ SUMMARY_KEYS = (
     "recall",
     "falseTriggers",
     "accuracy",
+    "delegatedRate",
+    "runs",
+    "turnLimitRuns",
+    "rightShare",
+    "lint",
+    "reasons",
     "rerunsUsed",
 )
 

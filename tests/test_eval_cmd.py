@@ -403,3 +403,19 @@ def test_the_doc_runners_are_registered():
 
     assert eval_cmd.RUNNERS["doc-trigger"] is doc_evals.run_doc_trigger
     assert eval_cmd.RUNNERS["doc-reader"] is doc_evals.run_doc_reader
+
+
+def test_the_summary_shows_the_doc_runners_figures():
+    text = eval_cmd.summary("writing-docs-behaviour", {
+        "pass": False, "rightShare": 0.867, "lint": {"skill": 1, "baseline": 3},
+        "reasons": ["right answers 87% of all questions, under 90%"], "cases": [],
+    })  # fmt: skip
+    assert "- rightShare: 0.867" in text
+    assert "- lint: {'skill': 1, 'baseline': 3}" in text
+    assert "- reasons: right answers 87% of all questions, under 90%" in text
+    text = eval_cmd.summary("writing-docs-trigger", {
+        "pass": True, "recall": 0.867, "delegatedRate": 0.5, "runs": 55, "turnLimitRuns": 0,
+        "cases": [],
+    })  # fmt: skip
+    for line in ("- delegatedRate: 0.5", "- runs: 55", "- turnLimitRuns: 0"):
+        assert line in text

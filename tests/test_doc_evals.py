@@ -105,7 +105,10 @@ class Recorder:
 
 
 class TriggerFake(Recorder):
-    """Per query, run outcomes: 'top', 'sub', 'none', 'companion' (plain-prose only) or 'error'."""
+    """Per query, run outcomes in order: 'top', 'sub', 'none', 'companion', 'limit' or 'error'.
+
+    'limit' is a run that hit the turn limit before loading anything.
+    """
 
     def __init__(self, plan, listed=None):
         super().__init__()
@@ -118,8 +121,12 @@ class TriggerFake(Recorder):
         if outcome == "error":
             return 1, "not json at all"
         uses = {"top": [(COMPANION, None), (SKILL, None)], "sub": [(SKILL, "toolu_1")],
-                "none": [], "companion": [(COMPANION, None)]}[outcome]  # fmt: skip
-        return 0, stream(self.listed if self.listed is not None else installed(env), uses)
+                "none": [], "limit": [], "companion": [(COMPANION, None)]}[outcome]  # fmt: skip
+        skills = self.listed if self.listed is not None else installed(env)
+        out = stream(skills, uses)
+        if outcome == "limit":
+            out = out.replace('"type": "result"', '"type": "result", "subtype": "error_max_turns"')
+        return 0, out
 
 
 def trig(query, should, delegated=False):
@@ -132,42 +139,73 @@ def run_trigger(make_ctx, cases, plan, **kw):
     return de.run_doc_trigger(ctx, suite("doc-trigger")), fake, ctx
 
 
+def runs_for(fake, query):
+    return [c for c in fake.calls if c["stdin"] == query]
+
+
 def test_trigger_runs_install_the_skill_and_its_companions_and_no_github(make_ctx):
-    result, fake, ctx = run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 3})
+    result, fake, ctx = run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 2})
     assert result["pass"] is True
     for call in fake.calls:
         cmd = call["cmd"]
         assert call["skills"] == [COMPANION, SKILL]
         assert cmd[cmd.index("--tools") + 1] == "Skill,Read,Agent"
-        assert cmd[cmd.index("--max-turns") + 1] == "4"
         assert call["stub_gh"] and call["gh_config_empty"]
     assert leftovers(ctx.root) == []
 
 
+def test_ordinary_queries_get_two_turns_and_delegated_ones_four(make_ctx):
+    cases = [trig("own", True), trig("sub", True, delegated=True)]
+    _, fake, _ = run_trigger(make_ctx, cases, {"own": ["top"] * 2, "sub": ["sub"] * 2})
+    turns = {c["stdin"]: c["cmd"][c["cmd"].index("--max-turns") + 1] for c in fake.calls}
+    assert turns == {"own": "2", "sub": "4"}
+
+
+@pytest.mark.parametrize(
+    ("plan", "calls", "triggered"),
+    [
+        (["top", "top"], 2, True),
+        (["none", "none"], 2, False),
+        (["top", "none", "top"], 3, True),
+        (["none", "top", "none"], 3, False),
+    ],
+)
+def test_a_third_run_happens_only_when_the_first_two_disagree(make_ctx, plan, calls, triggered):
+    result, fake, _ = run_trigger(make_ctx, [trig("q", True)], {"q": plan})
+    assert len(runs_for(fake, "q")) == calls
+    assert result["cases"][0]["runs"] == calls
+    assert (result["cases"][0]["result"] == "pass") is triggered
+
+
 def test_loading_only_the_companion_is_a_miss(make_ctx):
-    result, _, _ = run_trigger(make_ctx, [trig("q", True)], {"q": ["companion"] * 3})
+    result, _, _ = run_trigger(make_ctx, [trig("q", True)], {"q": ["companion"] * 2})
     assert result["cases"][0]["triggered"] == 0
     assert result["pass"] is False
 
 
-def test_a_delegated_case_counts_only_subagent_loads(make_ctx):
-    cases = [trig("own", True, delegated=True), trig("sub", True, delegated=True)]
-    result, _, _ = run_trigger(make_ctx, cases, {"own": ["top"] * 3, "sub": ["sub"] * 3})
-    assert [c["result"] for c in result["cases"]] == ["fail", "pass"]
-    assert result["pass"] is False
+def test_a_delegated_query_counts_only_subagent_loads(make_ctx):
+    result, _, _ = run_trigger(make_ctx, [trig("d", True, delegated=True)], {"d": ["top"] * 2})
+    assert result["cases"][0]["result"] == "fail"
 
 
-def positives(n, misses=0):
-    cases = [trig(f"p{i}", True) for i in range(n)]
-    plan = {f"p{i}": (["companion"] if i >= n - misses else ["top"]) * 3 for i in range(n)}
+def positives(n, misses=0, delegated_misses=0):
+    """`n` should-trigger queries; the last `misses` never trigger, and the first
+    `delegated_misses` are delegated queries that never load inside a subagent."""
+    cases, plan = [], {}
+    for i in range(n):
+        delegated = i < delegated_misses
+        cases.append(trig(f"p{i}", True, delegated=delegated))
+        plan[f"p{i}"] = ["none"] * 2 if (i >= n - misses or delegated) else ["top"] * 2
     return cases, plan
+
+
+NEAR = [trig(f"n{i}", False) for i in range(10)]
+QUIET = {f"n{i}": ["companion"] * 2 for i in range(10)}
 
 
 def test_thirteen_of_fifteen_with_clean_near_misses_passes(make_ctx):
     cases, plan = positives(15, misses=2)
-    near = [trig(f"n{i}", False) for i in range(10)]
-    result, _, _ = run_trigger(make_ctx, cases + near,
-                               plan | {f"n{i}": ["companion"] * 3 for i in range(10)})  # fmt: skip
+    result, _, _ = run_trigger(make_ctx, cases + NEAR, plan | QUIET)
     assert result["recall"] == round(13 / 15, 3)
     assert result["falseTriggers"] == 0
     assert result["accuracy"] == round(23 / 25, 3)
@@ -176,88 +214,96 @@ def test_thirteen_of_fifteen_with_clean_near_misses_passes(make_ctx):
 
 def test_twelve_of_fifteen_fails(make_ctx):
     cases, plan = positives(15, misses=3)
-    result, _, _ = run_trigger(make_ctx, cases, plan)
+    result, _, _ = run_trigger(make_ctx, cases + NEAR, plan | QUIET)
     assert result["pass"] is False
+
+
+def test_a_missed_delegated_query_counts_toward_recall_like_any_other(make_ctx):
+    cases, plan = positives(15, misses=1, delegated_misses=1)
+    result, _, _ = run_trigger(make_ctx, cases + NEAR, plan | QUIET)
+    assert result["recall"] == round(13 / 15, 3)
+    assert result["delegatedRate"] == 0.0
+    assert result["pass"] is True
 
 
 def test_a_near_miss_that_triggers_fails_the_suite(make_ctx):
     cases, plan = positives(15)
     result, _, _ = run_trigger(make_ctx, cases + [trig("n", False)],
-                               plan | {"n": ["top", "top", "none"]})  # fmt: skip
+                               plan | {"n": ["top", "none", "top"]})  # fmt: skip
     assert result["falseTriggers"] == 1 and result["pass"] is False
 
 
-def test_a_run_error_fails_its_query(make_ctx):
-    result, _, _ = run_trigger(make_ctx, [trig("n", False)], {"n": ["none", "error", "none"]})
-    case = result["cases"][0]
-    assert case["result"] == "fail" and case["errors"] == 1 and case["triggered"] == 0
+def test_an_errored_run_counts_against_its_class(make_ctx):
+    cases = [trig("p", True), trig("n", False)]
+    plan = {"p": ["top", "error", "none"], "n": ["none", "error", "top"]}
+    result, _, _ = run_trigger(make_ctx, cases, plan)
+    by_id = {c["id"]: c for c in result["cases"]}
+    assert by_id["p"]["result"] == "fail" and by_id["p"]["errors"] == 1
+    assert by_id["n"]["result"] == "fail" and by_id["n"]["errors"] == 1
+
+
+def test_runs_that_hit_the_turn_limit_before_loading_are_counted(make_ctx):
+    result, _, _ = run_trigger(make_ctx, [trig("q", True)], {"q": ["limit", "top", "limit"]})
+    assert result["turnLimitRuns"] == 2
+    assert result["runs"] == 3
 
 
 @pytest.mark.parametrize("listed", [[SKILL], [SKILL, COMPANION, COMPANION]])
 def test_a_companion_listed_twice_or_not_at_all_stops_the_suite(make_ctx, listed):
     with pytest.raises(re_.IsolationError):
-        run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 3}, listed=listed)
+        run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 2}, listed=listed)
 
 
 # doc-reader
 
 
+QUESTIONS = ["How do you install it?", "What error does a bad key give?", "Which row is kept?"]
+EXPECT = [["pipx install csv-dedupe"], ["no such column"], ["first"]]
 WRITE = {
     "id": "w", "kind": "write", "task": "Write the README.", "facts": ["F1", "F2"],
-    "questions": ["Q1?", "Q2?", "Q3?"], "mustKeep": ["F1"],
+    "questions": QUESTIONS, "expect": EXPECT, "mustContain": ["pipx install", "no such column"],
 }  # fmt: skip
 REWRITE = {
     "id": "r", "kind": "rewrite", "task": "Rewrite it.", "facts": ["F1"],
-    "draft": "DRAFT TEXT about F1.", "questions": ["Q1?", "Q2?", "Q3?"], "mustKeep": ["F1"],
+    "draft": "DRAFT TEXT about F1.", "questions": QUESTIONS, "expect": EXPECT,
+    "mustContain": ["pipx install", "no such column"],
 }  # fmt: skip
-DOC = "# Title\n\nThis document explains the thing to a reader with no context.\n"
+DOC = (
+    "# Title\n\nThis document explains the thing to a reader with no context.\n\n"
+    "Install with `pipx install csv-dedupe`. A bad key prints no such column.\n"
+)
+RIGHT = ["Run pipx install csv-dedupe", "It prints no such column", "The first one"]
 
 
 class ReaderFake(Recorder):
-    """Writers answer a document tagged TEXT<case><arm>; readers and judges follow `plan`.
+    """Writers answer DOC tagged TEXT<case><arm>; readers answer from `plan[(case, arm)]`.
 
-    A plan entry is a list of attempts, each a dict with `correct`, `lost` and `ai`, and
-    optionally `loads` (the skills the writer loads), `text` (the document body) or `raw`.
+    A plan entry is a dict with optional `answers` (default RIGHT), `loads` (the skills the
+    writer loads), `text` (the document) or `raw` (a reader reply to send as it is).
     """
 
     def __init__(self, plan, baseline_has_skill=False):
         super().__init__()
-        self.plan = {k: list(v) for k, v in plan.items()}
+        self.plan = plan
         self.baseline_has_skill = baseline_has_skill
-        self.current: dict[tuple[str, str], dict] = {}
-
-    def attempt(self, case, arm, take=False):
-        attempts = self.plan[(case, arm)]
-        if take:
-            self.current[(case, arm)] = attempts.pop(0) if len(attempts) > 1 else attempts[0]
-        return self.current.get((case, arm), attempts[0])
 
     def __call__(self, cmd, stdin, env, cwd, timeout):
         self.note(cmd, stdin, env)
         skills = installed(env)
         if stdin.startswith("You are a reader"):
-            a = self.attempt(*re.search(r"TEXT<(\w+)><(\w+)>", stdin).groups())
+            a = self.plan[re.search(r"TEXT<(\w+)><(\w+)>", stdin).groups()]
             if "raw" in a:
                 return 0, stream(skills, result=a["raw"])
-            reply = {"answers": ["x", "y", "z"], "aiSounding": a["ai"], "quote": "q"}
-            return 0, stream(skills, result=json.dumps(reply))
-        if stdin.startswith("You are checking"):
-            a = self.attempt(*re.search(r"TEXT<(\w+)><(\w+)>", stdin).groups())
-            correct = [i < a["correct"] for i in range(3)]
-            return 0, stream(skills, result=json.dumps({"correct": correct, "lost": a["lost"]}))
+            return 0, stream(skills, result=json.dumps({"answers": a.get("answers", RIGHT)}))
         case = "w" if "Write the README" in stdin else "r"
         arm = "skill" if f"Load the {SKILL} skill" in stdin else "base"
         if arm == "base" and self.baseline_has_skill:
             skills = [*skills, SKILL]
-        a = self.attempt(case, arm, take=True)
+        a = self.plan[(case, arm)]
         default = [SKILL, COMPANION] if arm == "skill" else [COMPANION]
         uses = [(name, None) for name in a.get("loads", default)]
         body = a.get("text", DOC).replace("Title", f"TEXT<{case}><{arm}>")
         return 0, stream(skills, uses, result=body)
-
-
-GOOD = {"correct": 3, "lost": [], "ai": False}
-BASE = {"correct": 2, "lost": [], "ai": True}
 
 
 def run_reader(make_ctx, cases, plan, **kw):
@@ -272,19 +318,22 @@ def role(call):
     return "skill" if f"Load the {SKILL} skill" in call["stdin"] else "base"
 
 
-def test_a_case_passes_when_the_skill_arm_does_at_least_as_well_on_every_count(make_ctx):
-    result, fake, ctx = run_reader(make_ctx, [WRITE], {("w", "skill"): [GOOD],
-                                                       ("w", "base"): [BASE]})  # fmt: skip
-    assert result["pass"] is True and result["rerunsUsed"] == 0
-    case = result["cases"][0]
-    assert case["result"] == "pass"
-    assert case["skill"]["lint"] == case["baseline"]["lint"] == 0
-    assert "detectability" in case["skill"]["diagnostics"]
+FINE = {("w", "skill"): {}, ("w", "base"): {}, ("r", "skill"): {}, ("r", "base"): {}}
+
+
+def test_the_suite_passes_and_makes_four_calls_per_case(make_ctx):
+    result, fake, ctx = run_reader(make_ctx, [WRITE, REWRITE], FINE)
+    assert result["pass"] is True, result["reasons"]
+    assert result["rightShare"] == 1.0
+    assert result["lint"] == {"skill": 0, "baseline": 0}
+    assert len(fake.calls) == 8
+    assert sorted(role(c) for c in fake.calls).count("reader") == 4
+    assert "rerunsUsed" not in result
     assert leftovers(ctx.root) == []
 
 
 def test_each_arm_gets_its_skills_tools_and_pre_approvals(make_ctx):
-    _, fake, _ = run_reader(make_ctx, [WRITE], {("w", "skill"): [GOOD], ("w", "base"): [BASE]})
+    _, fake, _ = run_reader(make_ctx, [WRITE], FINE)
     seen = {}
     for call in fake.calls:
         cmd = call["cmd"]
@@ -296,6 +345,7 @@ def test_each_arm_gets_its_skills_tools_and_pre_approvals(make_ctx):
                     "reader": {((), "")}}  # fmt: skip
     for call in fake.calls:
         if role(call) == "reader":
+            assert "AI" not in call["stdin"]
             continue
         cmd = call["cmd"]
         allowed = cmd[cmd.index("--allowedTools") + 1 :]
@@ -304,58 +354,69 @@ def test_each_arm_gets_its_skills_tools_and_pre_approvals(make_ctx):
                          for a in allowed)  # fmt: skip
         assert scripts == (["doc_lint.py", "prose_check.py"] if role(call) == "skill"
                            else ["prose_check.py"])  # fmt: skip
-    base_prompt = next(c["stdin"] for c in fake.calls if role(c) == "base")
-    assert base_prompt.startswith(f"Load the {COMPANION} skill first")
 
 
 def test_both_arms_rewrite_the_same_draft(make_ctx):
-    result, fake, _ = run_reader(make_ctx, [REWRITE], {("r", "skill"): [GOOD],
-                                                       ("r", "base"): [BASE]})  # fmt: skip
+    _, fake, _ = run_reader(make_ctx, [REWRITE], FINE)
     writers = [c for c in fake.calls if role(c) != "reader"]
     assert sorted(role(c) for c in writers) == ["base", "skill"]
     assert all("DRAFT TEXT" in c["stdin"] for c in writers)
-    assert result["cases"][0]["result"] == "pass"
+
+
+def test_answers_are_graded_by_their_expect_patterns_in_code(make_ctx):
+    plan = FINE | {("w", "skill"): {"answers": ["use PIPX INSTALL CSV-DEDUPE", "not stated",
+                                                "the first"]}}  # fmt: skip
+    result, _, _ = run_reader(make_ctx, [WRITE, REWRITE], plan)
+    case = next(c for c in result["cases"] if c["id"] == "w")
+    assert case["skill"]["right"] == [True, False, True]
+    assert result["rightShare"] == round(5 / 6, 3)
 
 
 @pytest.mark.parametrize(
-    ("skill_arm", "reason"),
+    ("change", "reason"),
     [
-        (GOOD | {"correct": 1}, "fewer answers right"),
-        (GOOD | {"lost": ["F1"]}, "lost or distorted"),
-        (GOOD | {"ai": True}, "AI-sounding"),
-        (GOOD | {"text": DOC + "\n```\ncode\n```\n"}, "more lint findings"),
-        (GOOD | {"loads": [COMPANION]}, f"never loaded {SKILL}"),
-        (GOOD | {"loads": [SKILL]}, f"never loaded {COMPANION}"),
+        ({("w", "skill"): {"loads": [COMPANION]}}, f"never loaded {SKILL}"),
+        ({("w", "skill"): {"loads": [SKILL]}}, f"never loaded {COMPANION}"),
+        ({("w", "skill"): {"text": "# Title\n\nThis text leaves out the install command."}},
+         "missing pipx install"),
+        ({("w", "skill"): {"answers": ["x", "y", "z"]}}, "right answers"),
+        ({("w", "skill"): {"text": DOC + "\n```\ncode\n```\n"}}, "lint findings"),
     ],
-)
-def test_a_case_fails_for_each_reason(make_ctx, skill_arm, reason):
-    plan = {("w", "skill"): [skill_arm], ("w", "base"): [GOOD]}
+)  # fmt: skip
+def test_the_suite_fails_for_each_reason(make_ctx, change, reason):
+    result, _, _ = run_reader(make_ctx, [WRITE, REWRITE], FINE | change)
+    assert result["pass"] is False
+    assert any(reason in r for r in result["reasons"]), result["reasons"]
+
+
+FIVE = [WRITE] + [REWRITE | {"id": f"r{i}"} for i in range(4)]
+
+
+def test_one_case_below_the_bar_does_not_fail_the_suite_when_the_totals_hold(make_ctx):
+    plan = FINE | {("w", "skill"): {"answers": ["x", *RIGHT[1:]]}}
+    result, _, _ = run_reader(make_ctx, FIVE, plan)
+    assert result["rightShare"] == round(14 / 15, 3) and result["pass"] is True
+
+
+def test_totals_under_ninety_percent_fail_the_suite(make_ctx):
+    plan = FINE | {("w", "skill"): {"answers": ["x", "y", "the first"]}}
+    result, _, _ = run_reader(make_ctx, FIVE, plan)
+    assert result["rightShare"] == round(13 / 15, 3) and result["pass"] is False
+
+
+def test_an_unparsable_reply_counts_its_answers_as_wrong_and_is_reported(make_ctx):
+    plan = FINE | {("w", "skill"): {"raw": "no json"}}
     result, _, _ = run_reader(make_ctx, [WRITE], plan)
-    case = result["cases"][0]
-    assert case["result"] == "fail" and reason in case["reason"], case["reason"]
-    assert result["rerunsUsed"] == 1 and result["pass"] is False
-
-
-def test_a_failing_case_is_rerun_once_and_the_rerun_counted(make_ctx):
-    plan = {("w", "skill"): [GOOD | {"correct": 1}, GOOD], ("w", "base"): [BASE, BASE]}
-    result, _, _ = run_reader(make_ctx, [WRITE], plan)
-    assert result["cases"][0]["result"] == "pass"
-    assert result["rerunsUsed"] == 1 and result["pass"] is True
-
-
-def test_an_unparsable_reply_fails_the_case_with_its_reason(make_ctx):
-    plan = {("w", "skill"): [{"raw": "no json"}], ("w", "base"): [BASE]}
-    result, _, _ = run_reader(make_ctx, [WRITE], plan)
-    assert "unparsable" in result["cases"][0]["reason"]
+    assert result["unparsable"] == ["w/skill"]
+    assert result["cases"][0]["skill"]["right"] == [False] * 3
+    assert result["pass"] is False
 
 
 def test_a_reply_wrapped_in_one_markdown_fence_is_unwrapped_for_both_arms(make_ctx):
     wrapped = "```markdown\n" + DOC + "\n```text\nkept\n```\n```\n"
-    plan = {("w", "skill"): [GOOD | {"text": wrapped}], ("w", "base"): [GOOD]}
-    result, _, _ = run_reader(make_ctx, [WRITE], plan)
-    case = result["cases"][0]
-    assert case["result"] == "pass", case["reason"]
-    assert case["skill"]["lint"] == 0
+    result, _, _ = run_reader(make_ctx, [WRITE], FINE | {("w", "skill"): {"text": wrapped}})
+    assert result["pass"] is True, result["reasons"]
+    assert result["lint"]["skill"] == 0
 
 
 @pytest.mark.parametrize(
@@ -379,5 +440,4 @@ def test_unwrap_removes_only_one_outer_markdown_fence(text, unwrapped):
 
 def test_the_skill_in_the_baseline_stops_the_suite(make_ctx):
     with pytest.raises(re_.IsolationError):
-        run_reader(make_ctx, [WRITE], {("w", "skill"): [GOOD], ("w", "base"): [BASE]},
-                   baseline_has_skill=True)  # fmt: skip
+        run_reader(make_ctx, [WRITE], FINE, baseline_has_skill=True)

@@ -367,6 +367,9 @@ def test_a_reply_wrapped_in_one_markdown_fence_is_unwrapped_for_both_arms(make_c
         ("```python\nx = 1\n```", "```python\nx = 1\n```"),
         ("# T\n\n```\nx\n```", "# T\n\n```\nx\n```"),
         ("```markdown\n# T", "```markdown\n# T"),
+        # A bare fence wraps the reply only when nothing inside looks like a fence.
+        ("```\ncode\n```\n\nText\n\n```\nmore\n```", "```\ncode\n```\n\nText\n\n```\nmore\n```"),
+        ("````\n# T\n```bash\nx\n```\n````", "````\n# T\n```bash\nx\n```\n````"),
         ("", ""),
     ],
 )

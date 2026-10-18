@@ -49,6 +49,7 @@ from eval import skill_evals as se  # noqa: E402
 LINT = "scripts/doc_lint.py"
 CHECKER = "scripts/prose_check.py"
 OUTER_FENCE = re.compile(r"^(`{3,}|~{3,})\s*(markdown|md)?\s*$")
+FENCE_LINE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 Case = dict[str, Any]
 
@@ -163,11 +164,18 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
 def unwrap(text: str) -> str:
     """The text without one outer markdown fence wrapping all of it; inner fences stay."""
     lines = text.strip().splitlines()
-    if len(lines) >= 2:
-        first, last = OUTER_FENCE.match(lines[0]), lines[-1].strip()
-        if first and last and set(last) == {first.group(1)[0]} and len(last) >= len(first.group(1)):
-            return "\n".join(lines[1:-1]) + "\n"
-    return text
+    first = OUTER_FENCE.match(lines[0]) if len(lines) >= 2 else None
+    if first is None:
+        return text
+    fence, label = first.group(1), first.group(2)
+    last, inner = lines[-1].strip(), lines[1:-1]
+    if set(last) != {fence[0]} or len(last) < len(fence):
+        return text
+    # A bare fence counts as a wrapper only when nothing inside it looks like a fence,
+    # so a document that starts and ends with plain code blocks is left alone.
+    if label is None and any(FENCE_LINE.match(line) for line in inner):
+        return text
+    return "\n".join(inner) + "\n"
 
 
 def lint_count(ctx: run_eval.Context, skill: str, text: str) -> int:

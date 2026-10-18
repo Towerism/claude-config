@@ -82,3 +82,12 @@ def test_case_data_holds_no_home_paths_emails_or_tokens():
     assert home_root not in text
     assert not re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", text)
     assert not re.search(r"\b(?:ghp|gho|sk)_[A-Za-z0-9]{16,}", text)
+
+
+def test_the_config_answer_accepts_the_usual_ways_to_say_optional():
+    case = next(c for c in behaviour_cases() if c["id"] == "rewrite-buried-readme")
+    patterns = case["expect"][2]
+    for answer in ("~/.config/logtail/config.toml, and it's optional",
+                   "At ~/.config/logtail/config.toml; it isn't required",
+                   "~/.config/logtail/config.toml, but it runs fine without one"):  # fmt: skip
+        assert all(re.search(p, answer, re.IGNORECASE) for p in patterns), answer

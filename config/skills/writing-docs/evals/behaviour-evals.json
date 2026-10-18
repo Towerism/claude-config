@@ -196,7 +196,7 @@
    ],
    [
     "config\\.toml",
-    "optional|don.t need|not need|no need|not required"
+    "optional|don.t need|not need|no need|not required|isn.t required|without one"
    ],
    [
     "\\badm\\b"

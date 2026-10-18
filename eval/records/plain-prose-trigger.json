@@ -2,26 +2,26 @@
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
     "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
-    "eval/skill_evals.py": "aced28f6a5957ccba14b331d762c49e11f890719f7389fb0b18adafb3ca574d7"
+    "eval/skill_evals.py": "92a1066105bdc462e5471ce751e033d526075190585ef0615850b331606e0fe4"
   },
   "inputs": {
-    "config/skills/plain-prose/SKILL.md#description": "7bf4e5fa39f844d85a8e79f93f7aafe5b12e3ec47cb0a53f979048922e2849d4",
+    "config/skills/plain-prose/SKILL.md#description": "1e4d12a6f25383d2ec2aef3211ae2c32d711c7717de97152bdcfa72f69f97211",
     "config/skills/plain-prose/evals/trigger-evals.json": "2dde18c4d77ac2f81363d4da0c28ae3bf5e9dc52d0775d7847b582ab9f49db3a"
   },
   "models": {
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T23:27:29Z",
+  "ranAt": "2026-10-18T00:13:16Z",
   "result": {
-    "accuracy": 0.92,
+    "accuracy": 0.96,
     "cases": [
       {
         "delegated": false,
         "id": "here's the diff for the retry fix in the uploader (it stops ",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
@@ -63,7 +63,7 @@
         "id": "Use a subagent to write the PR description for the change th",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 2
+        "triggered": 3
       },
       {
         "delegated": true,
@@ -75,9 +75,9 @@
       {
         "delegated": false,
         "id": "fix the failing test in test_export.py, it expects the heade",
-        "result": "fail",
+        "result": "pass",
         "shouldTrigger": true,
-        "triggered": 1
+        "triggered": 2
       },
       {
         "delegated": false,
@@ -194,7 +194,7 @@
     ],
     "falseTriggers": 0,
     "pass": true,
-    "recall": 0.867
+    "recall": 0.933
   },
   "suite": "plain-prose-trigger"
 }

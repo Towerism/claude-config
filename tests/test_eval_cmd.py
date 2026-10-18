@@ -396,3 +396,10 @@ def test_the_hook_harness_command_line_runs_one_suite_without_a_record(monkeypat
     monkeypatch.setattr(eval_cmd, "main", lambda argv: calls.append(argv) or 0)
     assert hook_harness.main(["merge"]) == 0
     assert calls == [["--suite", "hook-merge", "--no-record"]]
+
+
+def test_the_doc_runners_are_registered():
+    from eval import doc_evals
+
+    assert eval_cmd.RUNNERS["doc-trigger"] is doc_evals.run_doc_trigger
+    assert eval_cmd.RUNNERS["doc-reader"] is doc_evals.run_doc_reader

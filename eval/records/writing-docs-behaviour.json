@@ -1,0 +1,297 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "eval/doc_evals.py": "f566eb13acaba8f7341b2894e2b6dd7efe56e5db5653469a6bee04287c011f5d",
+    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/skill_evals.py": "92a1066105bdc462e5471ce751e033d526075190585ef0615850b331606e0fe4"
+  },
+  "inputs": {
+    "config/skills/writing-docs/SKILL.md#body": "84b63f9322871a2de7ef0a1b16b2a7063b4a34f1b418bad89b4f0f8e62b23bdc",
+    "config/skills/writing-docs/evals/behaviour-evals.json": "9557b14741199636e141208cc2f2525fceb453b6d9efae0a74e976619631a8bd",
+    "config/skills/writing-docs/references/reader-first.md": "f708e64fb507eea27328e1d5a9bbbde61b456e3465d9c21f19bfd76383b292b8",
+    "config/skills/writing-docs/references/templates/adr.md": "3cb554723d79ea78ae2b41866777c88b39851afc0aeaf47382ba11477d3f4a91",
+    "config/skills/writing-docs/references/templates/changelog.md": "f167679f16ed3e5e341035f2a3d0407604d1269f39a7f24ab41b5b8f764e6cc4",
+    "config/skills/writing-docs/references/templates/explanation.md": "7d5a74b909e07355b821262cfa90ec09630c845a4935c2161918a3a1479b706b",
+    "config/skills/writing-docs/references/templates/how-to.md": "c49918e766965e943e4ee66f21383f545c3b726694d7b55c3e3701caae396ae4",
+    "config/skills/writing-docs/references/templates/readme.md": "44691942a2a7fed9f3398b8bd6958a480e6daab81e0353a69fd3e00cbbb3fa67",
+    "config/skills/writing-docs/references/templates/reference.md": "470b6f9d9754e7e6935c831c48700c3aaa3acf02c4c7967487d5b3115d23548b",
+    "config/skills/writing-docs/references/templates/tutorial.md": "d5ae330968d130f2e6add1dbeb4f750383cee914c2be91990b224e13a03ca720",
+    "config/skills/writing-docs/scripts/doc_lint.py": "206509cb1e69e6262a7e1e7cdfce14df56a8a18f0323b500e141076a5294fccf"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-18T05:35:23Z",
+  "result": {
+    "cases": [
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 17.2,
+            "per_1000_words": {
+              "ai_tells": 9.9,
+              "cold_reader": 19.8,
+              "readability": 0.0
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "rewrite-buried-readme",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 13.1,
+            "per_1000_words": {
+              "ai_tells": 7.6,
+              "cold_reader": 15.3,
+              "readability": 7.6
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      },
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 30.9,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 0.0,
+              "readability": 0.0
+            }
+          },
+          "lint": 3,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "rewrite-how-to",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 38.3,
+            "per_1000_words": {
+              "ai_tells": 9.4,
+              "cold_reader": 0.0,
+              "readability": 0.0
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      },
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 28.2,
+            "per_1000_words": {
+              "ai_tells": 12.8,
+              "cold_reader": 25.6,
+              "readability": 0.0
+            }
+          },
+          "lint": 1,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "rewrite-release-notes",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 24.2,
+            "per_1000_words": {
+              "ai_tells": 7.5,
+              "cold_reader": 14.9,
+              "readability": 14.9
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      },
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 14.5,
+            "per_1000_words": {
+              "ai_tells": 7.6,
+              "cold_reader": 0.0,
+              "readability": 0.0
+            }
+          },
+          "lint": 1,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "write-adr",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 14.6,
+            "per_1000_words": {
+              "ai_tells": 5.5,
+              "cold_reader": 0.0,
+              "readability": 11.0
+            }
+          },
+          "lint": 1,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      },
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 10.9,
+            "per_1000_words": {
+              "ai_tells": 7.6,
+              "cold_reader": 7.6,
+              "readability": 0.0
+            }
+          },
+          "lint": 2,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "write-readme",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 17.7,
+            "per_1000_words": {
+              "ai_tells": 6.5,
+              "cold_reader": 6.5,
+              "readability": 19.6
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      },
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 29.9,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 4.7,
+              "readability": 4.7
+            }
+          },
+          "lint": 3,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "write-runbook",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 36.6,
+            "per_1000_words": {
+              "ai_tells": 0.0,
+              "cold_reader": 3.3,
+              "readability": 16.7
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      }
+    ],
+    "lint": {
+      "baseline": 10,
+      "skill": 1
+    },
+    "pass": true,
+    "reasons": [],
+    "rightShare": 1.0,
+    "unparsable": []
+  },
+  "suite": "writing-docs-behaviour"
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "path": "scripts/vendored/readability_scorer.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "marketing-skill/skills/copy-editing/scripts/readability_scorer.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "marketing-skill/skills/copy-editing/scripts/readability_scorer.py",
+    "sha256": "4a43bc05dabe7e9acd28fdf0c151a158b3d57a2a633eb09675a3c4a67d16b0ce",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/vendored/ai_content_detector.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "marketing-skill/skills/copy-editing/scripts/ai_content_detector.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "marketing-skill/skills/copy-editing/scripts/ai_content_detector.py",
+    "sha256": "2c8a4cfdf527089f2d6b7548575a8e879ef7bf906ccee3596db8aca31fda626b",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/vendored/plain-english-alternatives.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "marketing-skill/skills/copy-editing/references/plain-english-alternatives.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "marketing-skill/skills/copy-editing/references/plain-english-alternatives.md",
+    "sha256": "491c34b011de82617613a558ce609ff7ba8fd92554ac90b4c5b4db2ab0aef62e",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/vendored/ai-tells-checklist.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "marketing-skill/skills/content-humanizer/references/ai-tells-checklist.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "marketing-skill/skills/content-humanizer/references/ai-tells-checklist.md",
+    "sha256": "2acefc0276c8a27f9ad29dc98376786048189f0ce269e7b380cbd594c29aa35e",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

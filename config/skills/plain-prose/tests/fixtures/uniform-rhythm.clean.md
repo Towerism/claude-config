@@ -1,0 +1,1 @@
+The importer reads each row and writes it to the table. It stops. When a row fails the schema check, the importer records its number and moves on to the next one without writing anything. Then it reports.

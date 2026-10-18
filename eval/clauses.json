@@ -544,5 +544,12 @@
   "disposition": "claude-md",
   "mustAppear": "the note in `REVIEW-NOTE.md` beside it",
   "reason": null
+ },
+ {
+  "id": "C-79",
+  "text": "Load the plain-prose skill before writing any text a person will read later, but not for the chat reply itself or text written for Claude (the owner's decisions, ADR-0010, 2026-10-16; not in the v1 CLAUDE.md)",
+  "disposition": "claude-md",
+  "mustAppear": "load `plain-prose` once per session before the first text a person will read later",
+  "reason": null
  }
 ]

@@ -289,7 +289,8 @@ def test_a_forbidden_behaviour_fails_the_attempt():
 
 def test_the_v2_scenarios_no_longer_carry_the_superseded_tag():
     scenarios = json.loads((REPO_ROOT / "eval" / "scenarios.json").read_text())
-    assert len(scenarios) == 19
+    ids = {s["id"] for s in scenarios}
+    assert {f"S-{n:02d}" for n in range(1, 20)} <= ids  # the 19 imported with the v2 spec
     assert not any("superseded:D-4" in s.get("tags", []) for s in scenarios)
 
 

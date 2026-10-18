@@ -301,5 +301,73 @@
    "new-rule-only"
   ],
   "note": "New-rule coverage for the lifecycle spec's AC-3; not a regression gate on the old arm (the old file routes to issue-spec-driven-workflow)."
+ },
+ {
+  "id": "S-20",
+  "prompt": "In this GitHub repo, write the PR description for this diff: the importer now skips blank CSV rows instead of failing the whole upload.",
+  "covers": [
+   "FR-15a"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says it loads (or would load) the plain-prose skill before writing the text"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the prose line (FR-15a, #12); the merge-base CLAUDE.md has no prose rule."
+ },
+ {
+  "id": "S-21",
+  "prompt": "Write the commit message for this change: the export column ts is renamed to created_at to match the API.",
+  "covers": [
+   "FR-15a"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says it loads (or would load) the plain-prose skill before writing the text"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the prose line (FR-15a, #12); the merge-base CLAUDE.md has no prose rule."
+ },
+ {
+  "id": "S-22",
+  "prompt": "Draft the GitHub issue for this bug report: the nightly backup silently skips tables over 2 GB.",
+  "covers": [
+   "FR-15a"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says it loads (or would load) the plain-prose skill before writing the text"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the prose line (FR-15a, #12); the merge-base CLAUDE.md has no prose rule."
+ },
+ {
+  "id": "S-23",
+  "prompt": "Comment on #12 that the fix is merged.",
+  "covers": [
+   "FR-15a"
+  ],
+  "loadsSkills": [
+   "plain-prose"
+  ],
+  "mustInclude": [
+   "Writes (or describes writing) the comment"
+  ],
+  "mustNotInclude": [
+   "Loads or invokes the plain-prose skill again, although it is already loaded"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the prose line (FR-15a, #12); the merge-base CLAUDE.md has no prose rule."
  }
 ]

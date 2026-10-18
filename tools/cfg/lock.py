@@ -3,7 +3,7 @@
 python3 -I tools/cfg/lock.py [--claude-home <dir>] [--repo-root <dir>] [--out <file>]
 exit 0 = written, 2 = an input can't be used (nothing is written)
 python3 -I tools/cfg/lock.py --check [--claude-home <dir>] [--repo-root <dir>]
-exit 0 = the committed lock and vendored files match this machine, 1 = they don't,
+exit 0 = the committed lock and plugin-vendored files match this machine, 1 = they don't,
 2 = an input can't be used. --check never writes.
 
 The lock lets tools/check_config.py --plugin-index resolve plugin skills
@@ -15,8 +15,11 @@ of the synced skills. It holds no install paths, timestamps or other
 machine-specific values, so the same plugins always give the same bytes.
 
 --check builds the lock in memory and lists how the committed one differs.
-It also compares each file in tools/vendor/claude-skills/VENDORED.json with
-the installed plugin copy it came from, to catch upstream changes.
+It also compares each vendored file, as listed in tools/vendor/*/VENDORED.json
+and config/skills/*/VENDORED.json, with the upstream copy it came from. A file
+taken from an installed plugin that has changed fails the check (`vendored`).
+A file taken from a marketplace clone is only reported (`upstream`), because
+ADR-0010 treats that change as a prompt to review, not a failure.
 """
 
 from __future__ import annotations
@@ -37,7 +40,6 @@ if str(REPO_ROOT) not in sys.path:
 from tools import check_config  # noqa: E402
 
 LOCK_NAME = "plugins.lock.json"
-VENDORED = Path("tools") / "vendor" / "claude-skills" / "VENDORED.json"
 SKIPPED_PARTS = {"__pycache__", ".pytest_cache"}
 
 Lock = dict[str, Any]
@@ -176,33 +178,74 @@ def lock_differences(committed: Lock, current: Lock) -> list[str]:
     return diffs
 
 
-def vendored_problems(repo_root: Path, home: Path) -> list[dict[str, str]]:
-    """Vendored files whose installed upstream copy is missing or has changed."""
-    record_path = repo_root / VENDORED
-    if not record_path.exists():
-        return []
-    installed = read_json(home / "plugins" / "installed_plugins.json").get("plugins") or {}
+def vendored_records(repo_root: Path) -> list[Path]:
+    """Every VENDORED.json the repo has: the tools' vendored files and each skill's."""
+    found = sorted(repo_root.glob("tools/vendor/*/VENDORED.json"))
+    return found + sorted(repo_root.glob("config/skills/*/VENDORED.json"))
+
+
+def _entries(record_path: Path) -> list[dict[str, str]]:
     entries = read_json(record_path)
-    fields = ("path", "plugin", "installedPath", "sha256")
-    if not isinstance(entries, list) or not all(
-        isinstance(e, dict) and all(isinstance(e.get(f), str) for f in fields) for e in entries
-    ):
-        raise LockInputError(f"{record_path} needs a list of entries with {', '.join(fields)}")
-    problems = []
-    for entry in entries:
-        inst = user_install(entry["plugin"], installed.get(entry["plugin"]))
-        if inst is None:
-            problem = f"plugin {entry['plugin']} isn't installed"
-        else:
-            copy = Path(inst.get("installPath", "")) / entry["installedPath"]
-            if not copy.is_file():
-                problem = "the installed copy is missing"
-            elif hashlib.sha256(copy.read_bytes()).hexdigest() != entry["sha256"]:
-                problem = "the installed copy has a different sha256"
-            else:
+    sources = (("plugin", "installedPath"), ("marketplace", "marketplacePath"))
+
+    def usable(e: Any) -> bool:
+        return (
+            isinstance(e, dict)
+            and all(isinstance(e.get(f), str) for f in ("path", "sha256"))
+            and any(all(isinstance(e.get(f), str) for f in pair) for pair in sources)
+        )
+
+    if not isinstance(entries, list) or not all(usable(e) for e in entries):
+        raise LockInputError(
+            f"{record_path} needs a list of entries with path, sha256, and either "
+            "plugin and installedPath or marketplace and marketplacePath"
+        )
+    return entries
+
+
+def _copy_problem(copy: Path, sha256: str, where: str) -> str | None:
+    if not copy.is_file():
+        return f"the {where} copy is missing"
+    if hashlib.sha256(copy.read_bytes()).hexdigest() != sha256:
+        return f"the {where} copy has a different sha256"
+    return None
+
+
+def vendored_problems(
+    repo_root: Path, home: Path
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Vendored files whose upstream copy is missing or has changed.
+
+    The first list covers files taken from an installed plugin and fails the check.
+    The second covers files taken from a marketplace clone; it is only reported,
+    because ADR-0010 treats an upstream change there as a prompt to review.
+    """
+    records = vendored_records(repo_root)
+    installed: dict[str, Any] = {}
+    if records:
+        installed = read_json(home / "plugins" / "installed_plugins.json").get("plugins") or {}
+    failing: list[dict[str, str]] = []
+    upstream: list[dict[str, str]] = []
+    for record_path in records:
+        base = record_path.parent.relative_to(repo_root)
+        for entry in _entries(record_path):
+            path = str(base / entry["path"])
+            if "marketplace" in entry and "marketplacePath" in entry:
+                clone = home / "plugins" / "marketplaces" / entry["marketplace"]
+                problem = _copy_problem(clone / entry["marketplacePath"], entry["sha256"],
+                                        "marketplace")  # fmt: skip
+                if problem:
+                    upstream.append({"path": path, "problem": problem})
                 continue
-        problems.append({"path": entry["path"], "problem": problem})
-    return problems
+            inst = user_install(entry["plugin"], installed.get(entry["plugin"]))
+            if inst is None:
+                problem = f"plugin {entry['plugin']} isn't installed"
+            else:
+                copy = Path(inst.get("installPath", "")) / entry["installedPath"]
+                problem = _copy_problem(copy, entry["sha256"], "installed")
+            if problem:
+                failing.append({"path": path, "problem": problem})
+    return failing, upstream
 
 
 def check(home: Path, repo_root: Path, lock_path: Path) -> dict[str, Any]:
@@ -213,8 +256,13 @@ def check(home: Path, repo_root: Path, lock_path: Path) -> dict[str, Any]:
         lock_diffs = [f"{lock_path.name}: can't be used as a lock ({e})"]
     else:
         lock_diffs = lock_differences(committed, current)
-    vendored = vendored_problems(repo_root, home)
-    return {"ok": not (lock_diffs or vendored), "lock": lock_diffs, "vendored": vendored}
+    vendored, upstream = vendored_problems(repo_root, home)
+    return {
+        "ok": not (lock_diffs or vendored),
+        "lock": lock_diffs,
+        "vendored": vendored,
+        "upstream": upstream,
+    }
 
 
 def render(lock: Lock) -> str:

@@ -4,3 +4,4 @@ User policy for the reviewer (the caller's handling rules live in the global CLA
 - A finding raised only to meet this skill's at-least-one-per-persona rule (e.g. "the most fragile assumption" on sound work) is at most a WARNING.
 - The 2+-persona promotion rule never promotes a finding to CRITICAL unless it would be CRITICAL on its own.
 - Flag only gaps that affect correctness, the stated requirements or the user's rules; don't pad.
+- Review notes and the findings written into PR descriptions follow `plain-prose`: a reader with no context must understand each finding, what goes wrong, and why.

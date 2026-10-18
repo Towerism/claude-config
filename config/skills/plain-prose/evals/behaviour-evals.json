@@ -1,0 +1,132 @@
+[
+  {
+    "id": "write-pr-description",
+    "kind": "write",
+    "task": "Write the description for a pull request that makes the CSV importer skip blank rows instead of failing the whole upload. Use only these facts.",
+    "facts": [
+      "Before this change, one blank row in an uploaded CSV made the whole import fail with 'row 0 has no id'.",
+      "The importer now skips rows where every cell is empty and counts them.",
+      "The import summary shows how many blank rows were skipped.",
+      "A row with some empty cells but not all is still validated and can still fail.",
+      "Tests cover a file with blank rows at the start, the middle and the end.",
+      "Reviewers should check that skipped rows don't shift the row numbers in error messages."
+    ],
+    "questions": [
+      "What does this change do?",
+      "Why was it needed?",
+      "What should a reviewer check?",
+      "Which rows can still make an import fail?"
+    ],
+    "mustKeep": [
+      "Only rows where every cell is empty are skipped.",
+      "Partly empty rows are still validated.",
+      "The summary reports the number of skipped rows."
+    ]
+  },
+  {
+    "id": "write-commit-message",
+    "kind": "write",
+    "task": "Write the commit message, subject and body, for this change, in Conventional Commit form. Use only these facts.",
+    "facts": [
+      "The CSV export column 'ts' is renamed to 'created_at'.",
+      "The API already calls this field created_at, so the export now matches it.",
+      "Spreadsheets built on the old export will need their column reference updated.",
+      "This breaks existing consumers of the export."
+    ],
+    "questions": [
+      "What changed?",
+      "Why?",
+      "Who is affected and what must they do?"
+    ],
+    "mustKeep": [
+      "The column is renamed from ts to created_at.",
+      "Existing consumers of the export must update their column reference."
+    ]
+  },
+  {
+    "id": "write-issue-comment",
+    "kind": "write",
+    "task": "Write a comment for the issue about the timezone bug in scheduled reports. Use only these facts.",
+    "facts": [
+      "The fix is released in version 2.3.1.",
+      "Reports scheduled for midnight ran an hour early after daylight saving time ended.",
+      "The cause was storing the schedule in local time instead of UTC.",
+      "Existing schedules are converted automatically on upgrade.",
+      "The reporter should confirm that their 00:00 report runs at 00:00 after upgrading."
+    ],
+    "questions": [
+      "What is the status of the bug?",
+      "What caused it?",
+      "What should the reporter do next?"
+    ],
+    "mustKeep": [
+      "The fix is in 2.3.1.",
+      "Existing schedules are converted on upgrade.",
+      "The reporter is asked to confirm after upgrading."
+    ]
+  },
+  {
+    "id": "rewrite-issue-body",
+    "kind": "rewrite",
+    "task": "Rewrite this issue body so a reader with no context understands it. Keep every fact.",
+    "draft": "## Overview\n\nIn today's fast-paced data landscape, robust backups are crucial. It's worth noting that our nightly backup job \u2014 which plays a pivotal role in our disaster-recovery strategy \u2014 currently exhibits some unexpected behavior.\n\n## Details\n\n- The job seamlessly processes most tables.\n- However, it silently skips any table larger than 2 GB.\n- This was discovered while restoring staging on 2026-10-15.\n\n## Conclusion\n\nIn summary, addressing this issue will empower the team to leverage comprehensive, reliable backups going forward. Let me know if you have any questions!",
+    "facts": [
+      "The nightly backup job skips any table larger than 2 GB without reporting an error.",
+      "This was found while restoring staging on 2026-10-15.",
+      "Smaller tables are backed up normally."
+    ],
+    "questions": [
+      "What is wrong?",
+      "How was it found?",
+      "Which tables are affected?"
+    ],
+    "mustKeep": [
+      "Tables larger than 2 GB are skipped.",
+      "The skip is silent.",
+      "It was found while restoring staging on 2026-10-15."
+    ]
+  },
+  {
+    "id": "rewrite-review-note",
+    "kind": "rewrite",
+    "task": "Rewrite this code review note so the author, reading it with no context, knows exactly what to fix and why. Keep every finding.",
+    "draft": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved:\n\n- **Caching:** The cache key could perhaps be revisited, as it's currently built from the report id alone, which might mean two users requesting the same report id get each other's cached data.\n- **Security:** It may be worth considering whether the new /export endpoint would benefit from some form of rate limiting, since at the moment one client can start an unlimited number of export jobs.\n- **Testing:** Additional test coverage could further strengthen the solution, for example a test where two users request the same report.\n\nThese are just suggestions \u2014 feel free to address them as you see fit. Happy to help!",
+    "facts": [
+      "The cache key is built from the report id only, so two users requesting the same report id get each other's cached data.",
+      "The new /export endpoint has no rate limit, so one client can start unlimited export jobs.",
+      "There is no test for two users requesting the same report."
+    ],
+    "questions": [
+      "What is the most serious problem and what goes wrong because of it?",
+      "What must change in the endpoint?",
+      "Which test is missing?"
+    ],
+    "mustKeep": [
+      "The cache key ignores the user, so users can see each other's cached data.",
+      "The export endpoint needs a rate limit.",
+      "A test for two users and the same report is missing."
+    ]
+  },
+  {
+    "id": "rewrite-drafted-reply",
+    "kind": "rewrite",
+    "task": "Rewrite this reply, which the owner will send to a teammate who asked why the desktop app uses SQLite, so it answers them directly. Keep every fact.",
+    "draft": "Great question! Choosing a database is a multifaceted decision, and there are many factors at play. Let's dive in.\n\nSQLite offers a seamless, zero-configuration experience \u2014 which is crucial for a desktop app. Postgres, while incredibly powerful, would require users to install and run a separate server. Additionally, it's worth noting that our data volume (well under 1 GB per user) is comfortably within SQLite's capabilities.\n\nIn conclusion, SQLite was the optimal choice for our needs. I hope this helps!",
+    "facts": [
+      "The desktop app uses SQLite instead of Postgres.",
+      "SQLite needs no separate server, so users install nothing extra.",
+      "Each user's data is well under 1 GB, which SQLite handles easily.",
+      "Postgres would require every user to install and run a database server."
+    ],
+    "questions": [
+      "Which database was chosen?",
+      "What is the main reason?",
+      "Why is data size not a problem?"
+    ],
+    "mustKeep": [
+      "SQLite was chosen over Postgres.",
+      "Postgres would need a separate server on every user's machine.",
+      "Data per user is under 1 GB."
+    ]
+  }
+]

@@ -88,6 +88,44 @@
       "harness": [
         "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py"
       ]
+    },
+    "plain-prose-trigger": {
+      "runner": "trigger",
+      "skill": "plain-prose",
+      "cases": "config/skills/plain-prose/evals/trigger-evals.json",
+      "paths": [
+        "config/skills/plain-prose/evals/trigger-evals.json"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/plain-prose/SKILL.md",
+          "part": "description"
+        }
+      ],
+      "harness": [
+        "eval/skill_evals.py",
+        "eval/run_eval.py"
+      ]
+    },
+    "plain-prose-behaviour": {
+      "runner": "cold-reader",
+      "skill": "plain-prose",
+      "cases": "config/skills/plain-prose/evals/behaviour-evals.json",
+      "paths": [
+        "config/skills/plain-prose/evals/behaviour-evals.json",
+        "config/skills/plain-prose/scripts/**",
+        "config/skills/plain-prose/references/**"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/plain-prose/SKILL.md",
+          "part": "body"
+        }
+      ],
+      "harness": [
+        "eval/skill_evals.py",
+        "eval/run_eval.py"
+      ]
     }
   }
 }

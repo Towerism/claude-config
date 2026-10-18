@@ -9,6 +9,7 @@ from tests.checker_helpers import GOOD_GLOBAL_MD, REPO_ROOT, make_repo, make_ski
 
 LOCK_SCRIPT = REPO_ROOT / "tools" / "cfg" / "lock.py"
 VENDORED_REL = "skills/senior-qa/scripts/v.py"
+VENDORED_PATH = "tools/vendor/claude-skills/v.py"  # as lock.py reports it, from the repo root
 
 
 @pytest.fixture
@@ -51,7 +52,7 @@ def test_a_matching_machine_passes_and_nothing_is_written(machine):
     before = sorted((p.name, p.read_bytes()) for p in repo.iterdir() if p.is_file())
     r, rep = run_check(home, repo)
     assert r.returncode == 0, r.stdout
-    assert rep == {"ok": True, "lock": [], "vendored": []}
+    assert rep == {"ok": True, "lock": [], "vendored": [], "upstream": []}
     assert sorted((p.name, p.read_bytes()) for p in repo.iterdir() if p.is_file()) == before
 
 
@@ -100,7 +101,7 @@ def test_a_changed_upstream_copy_of_a_vendored_file_is_reported(machine):
     r, rep = run_check(home, repo)
     assert r.returncode == 1
     assert rep["vendored"] == [
-        {"path": "v.py", "problem": "the installed copy has a different sha256"}
+        {"path": VENDORED_PATH, "problem": "the installed copy has a different sha256"}
     ]
 
 
@@ -109,12 +110,14 @@ def test_a_missing_upstream_copy_or_plugin_is_reported(machine):
     (install_dir(home) / VENDORED_REL).unlink()
     r, rep = run_check(home, repo)
     assert r.returncode == 1
-    assert rep["vendored"] == [{"path": "v.py", "problem": "the installed copy is missing"}]
+    assert rep["vendored"] == [{"path": VENDORED_PATH, "problem": "the installed copy is missing"}]
     record = json.loads((repo / "tools/vendor/claude-skills/VENDORED.json").read_text())
     record[0]["plugin"] = "absent@mkt"
     (repo / "tools/vendor/claude-skills/VENDORED.json").write_text(json.dumps(record))
     r, rep = run_check(home, repo)
-    assert rep["vendored"] == [{"path": "v.py", "problem": "plugin absent@mkt isn't installed"}]
+    assert rep["vendored"] == [
+        {"path": VENDORED_PATH, "problem": "plugin absent@mkt isn't installed"}
+    ]
 
 
 def test_a_repo_without_vendored_files_checks_only_the_lock(machine):
@@ -139,6 +142,77 @@ def test_a_vendored_record_missing_a_field_is_a_usage_error(machine):
     record_path = repo / "tools/vendor/claude-skills/VENDORED.json"
     record = json.loads(record_path.read_text())
     del record[0]["sha256"]
+    record_path.write_text(json.dumps(record))
+    r = run_lock(home, repo, "--check")
+    assert r.returncode == 2 and "VENDORED.json" in r.stdout
+
+
+MARKET_REL = "marketing-skill/skills/copy-editing/scripts/s.py"
+
+
+def add_skill_vendoring(home, repo, files):
+    """A skill whose VENDORED.json points at files in a marketplace clone."""
+    skill = repo / "config" / "skills" / "prose"
+    clone = home / "plugins" / "marketplaces" / "claude-code-skills"
+    record = []
+    for name, content in files.items():
+        (skill / "vendored").mkdir(parents=True, exist_ok=True)
+        (skill / "vendored" / name).write_text(content)
+        upstream = clone / MARKET_REL.replace("s.py", name)
+        upstream.parent.mkdir(parents=True, exist_ok=True)
+        upstream.write_text(content)
+        record.append({
+            "path": f"vendored/{name}",
+            "marketplace": "claude-code-skills",
+            "marketplacePath": MARKET_REL.replace("s.py", name),
+            "sha256": hashlib.sha256(content.encode()).hexdigest(),
+        })  # fmt: skip
+    (skill / "VENDORED.json").write_text(json.dumps(record))
+    return clone
+
+
+def test_marketplace_changes_are_listed_under_upstream_without_failing(machine):
+    home, repo = machine
+    clone = add_skill_vendoring(home, repo, {"a.py": "a", "b.py": "b", "c.py": "c"})
+    (clone / MARKET_REL.replace("s.py", "a.py")).write_text("changed upstream")
+    (clone / MARKET_REL.replace("s.py", "b.py")).unlink()
+    r, rep = run_check(home, repo)
+    assert r.returncode == 0, r.stdout
+    assert rep["ok"] is True and rep["vendored"] == []
+    assert rep["upstream"] == [
+        {"path": "config/skills/prose/vendored/a.py",
+         "problem": "the marketplace copy has a different sha256"},
+        {"path": "config/skills/prose/vendored/b.py", "problem": "the marketplace copy is missing"},
+    ]  # fmt: skip
+
+
+def test_a_missing_marketplace_clone_reports_every_entry_as_missing(machine):
+    home, repo = machine
+    clone = add_skill_vendoring(home, repo, {"a.py": "a"})
+    (clone / MARKET_REL.replace("s.py", "a.py")).unlink()
+    r, rep = run_check(home, repo)
+    assert r.returncode == 0
+    assert rep["upstream"] == [
+        {"path": "config/skills/prose/vendored/a.py", "problem": "the marketplace copy is missing"}
+    ]
+
+
+def test_plugin_entries_still_fail_while_marketplace_entries_only_report(machine):
+    home, repo = machine
+    add_skill_vendoring(home, repo, {"a.py": "a"})
+    (install_dir(home) / VENDORED_REL).write_text("changed upstream")
+    r, rep = run_check(home, repo)
+    assert r.returncode == 1
+    assert [v["path"] for v in rep["vendored"]] == [VENDORED_PATH]
+    assert rep["upstream"] == []
+
+
+def test_an_entry_with_neither_source_is_a_usage_error(machine):
+    home, repo = machine
+    add_skill_vendoring(home, repo, {"a.py": "a"})
+    record_path = repo / "config/skills/prose/VENDORED.json"
+    record = json.loads(record_path.read_text())
+    del record[0]["marketplace"]
     record_path.write_text(json.dumps(record))
     r = run_lock(home, repo, "--check")
     assert r.returncode == 2 and "VENDORED.json" in r.stdout

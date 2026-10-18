@@ -14,6 +14,8 @@ Use these in order. Each injects a "Skill overlay"; if none appears, read `~/.cl
 6. Review: `adversarial-reviewer`, once on the spec and once on the PR diff.
 7. Merge: `ship-gate`, then `github-issue-lifecycle` closes out.
 
+Prose, alongside every step: load `plain-prose` once per session before the first text a person will read later: code comments, docstrings, assertion and error messages, CLI and UI text, commits, issue and PR text, docs and review notes (not the chat reply itself, and not text written for Claude). Its rules then cover every later such text. Never re-invoke it while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
+
 Rarely self-trigger; load: flaky tests, bugs: `focused-fix`; migrations: `migration-architect`, `database-schema-designer`; API changes: `api-design-reviewer`; dependency/bot PRs: `dependency-auditor`; ops docs: `senior-devops`, `runbook-generator`; fork orchestration: `agent-workflow-designer`.
 
 ## Approval modes

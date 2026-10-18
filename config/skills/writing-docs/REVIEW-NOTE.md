@@ -80,3 +80,11 @@ The live trigger suite failed twice on 2026-10-17. The first run, on the approve
 **This change doesn't address the failed behaviour suite.** `writing-docs-behaviour` failed one case of six on its counted rerun, and the spec has no further path for it. That needs its own decision from the owner.
 
 **No new trust boundary.** The change only allows one more edit of a description and one more model run, under the same isolation as before.
+
+# Fourth review: three tuned descriptions in total
+
+While the third review's change waited for approval, the owner added "3 total tuned descriptions are allowed". OS-7 now allows up to three hand tunings, each with one run, and a stop after a failing third run. This change got its own adversarial review.
+
+**Verdict:** no critical finding, one warning accepted, and the review changed nothing.
+
+**Warning, accepted: more tries make a lucky pass more likely.** With up to three tuned runs, a description could pass by chance on a bar it only just meets. Accepted because each tuning is a real change to the description, not a bare rerun of the same one, every run goes in the PR so the owner sees the whole history, and the owner set the limit knowing the first tuned run sat exactly on the recall bar.

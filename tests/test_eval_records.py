@@ -454,18 +454,21 @@ def prose_repo(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "change, suite",
+    "change, suites",
     [
-        ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("clear", "plain")}, "plain-prose-trigger"),
-        ({f"{PROSE}/evals/trigger-evals.json": "[1]\n"}, "plain-prose-trigger"),
-        ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("# Body", "# New")}, "plain-prose-behaviour"),
-        ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, "plain-prose-behaviour"),
+        # writing-docs competes with plain-prose in every trigger run, so its suite runs too.
+        ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("clear", "plain")},
+         ["plain-prose-trigger", "writing-docs-trigger"]),
+        ({f"{PROSE}/evals/trigger-evals.json": "[1]\n"}, ["plain-prose-trigger"]),
+        ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("# Body", "# New")},
+         ["plain-prose-behaviour"]),
+        ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, ["plain-prose-behaviour"]),
     ],
-)
-def test_each_plain_prose_change_requires_its_suite(tmp_path, change, suite):
+)  # fmt: skip
+def test_each_plain_prose_change_requires_its_suite(tmp_path, change, suites):
     repo, base = prose_repo(tmp_path)
     commit(repo, change)
-    assert required(repo, base) == [suite]
+    assert required(repo, base) == suites
 
 
 @pytest.mark.parametrize("missing", ["skill", "cases"])
@@ -480,3 +483,75 @@ def test_the_skill_suites_parse_with_their_skill_and_cases():
     suites = er.parse_gates((REPO_ROOT / "eval" / "gates.json").read_text())
     assert suites["plain-prose-behaviour"].skill == "plain-prose"
     assert suites["plain-prose-behaviour"].cases == f"{PROSE}/evals/behaviour-evals.json"
+
+
+# The writing-docs suites, which run the skill beside plain-prose
+
+DOCS = "config/skills/writing-docs"
+DOCS_SKILL_MD = "---\nname: writing-docs\ndescription: Guides writing.\n---\n# Body\n"
+
+
+def docs_repo(tmp_path):
+    repo, base = prose_repo(tmp_path)
+    base = commit(repo, {
+        f"{DOCS}/SKILL.md": DOCS_SKILL_MD,
+        f"{DOCS}/scripts/doc_lint.py": "print(1)\n",
+        f"{DOCS}/references/templates/readme.md": "# TODO: name\n",
+        f"{DOCS}/evals/trigger-evals.json": "[]\n",
+        f"{DOCS}/evals/behaviour-evals.json": "[]\n",
+    })  # fmt: skip
+    git(repo, "update-ref", "refs/remotes/origin/main", base)
+    return repo, base
+
+
+@pytest.mark.parametrize(
+    "change, suites",
+    [
+        ({f"{DOCS}/SKILL.md": DOCS_SKILL_MD.replace("Guides", "Helps")}, ["writing-docs-trigger"]),
+        ({f"{DOCS}/evals/trigger-evals.json": "[1]\n"}, ["writing-docs-trigger"]),
+        ({f"{DOCS}/SKILL.md": DOCS_SKILL_MD.replace("# Body", "# New")},
+         ["writing-docs-behaviour"]),
+        ({f"{DOCS}/scripts/doc_lint.py": "print(2)\n"}, ["writing-docs-behaviour"]),
+        ({f"{DOCS}/references/templates/readme.md": "# TODO: x\n"}, ["writing-docs-behaviour"]),
+        ({"eval/doc_evals.py": "print(2)\n"}, ["writing-docs-behaviour", "writing-docs-trigger"]),
+    ],
+)  # fmt: skip
+def test_each_writing_docs_change_requires_its_suite(tmp_path, change, suites):
+    repo, base = docs_repo(tmp_path)
+    commit(repo, change)
+    assert required(repo, base) == suites
+
+
+def test_the_writing_docs_suites_parse_with_their_companions():
+    suites = er.parse_gates((REPO_ROOT / "eval" / "gates.json").read_text())
+    for name in ("writing-docs-trigger", "writing-docs-behaviour"):
+        assert suites[name].skill == "writing-docs"
+        assert suites[name].companions == ("plain-prose",)
+    assert suites["plain-prose-trigger"].companions == ()
+
+
+@pytest.mark.parametrize("companions", [None, []])
+def test_a_companion_suite_without_companions_is_refused(companions):
+    gates = json.loads((REPO_ROOT / "eval" / "gates.json").read_text())
+    entry = gates["suites"]["writing-docs-behaviour"]
+    if companions is None:
+        del entry["companions"]
+    else:
+        entry["companions"] = companions
+    with pytest.raises(er.GatesError, match="needs a non-empty companions list"):
+        er.parse_gates(json.dumps(gates))
+
+
+@pytest.mark.parametrize("missing", ["skill", "cases"])
+def test_a_companion_suite_without_its_skill_or_cases_is_refused(missing):
+    gates = json.loads((REPO_ROOT / "eval" / "gates.json").read_text())
+    del gates["suites"]["writing-docs-trigger"][missing]
+    with pytest.raises(er.GatesError, match="needs a skill and a cases file"):
+        er.parse_gates(json.dumps(gates))
+
+
+def test_companions_must_be_a_list_of_strings():
+    gates = json.loads((REPO_ROOT / "eval" / "gates.json").read_text())
+    gates["suites"]["writing-docs-trigger"]["companions"] = "plain-prose"
+    with pytest.raises(er.GatesError, match="companions must be a list of strings"):
+        er.parse_gates(json.dumps(gates))

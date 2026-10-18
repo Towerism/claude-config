@@ -396,3 +396,34 @@ def test_the_hook_harness_command_line_runs_one_suite_without_a_record(monkeypat
     monkeypatch.setattr(eval_cmd, "main", lambda argv: calls.append(argv) or 0)
     assert hook_harness.main(["merge"]) == 0
     assert calls == [["--suite", "hook-merge", "--no-record"]]
+
+
+def test_the_doc_runners_are_registered():
+    from eval import doc_evals
+
+    assert eval_cmd.RUNNERS["doc-trigger"] is doc_evals.run_doc_trigger
+    assert eval_cmd.RUNNERS["doc-reader"] is doc_evals.run_doc_reader
+
+
+def test_the_summary_shows_the_doc_runners_figures():
+    text = eval_cmd.summary("writing-docs-behaviour", {
+        "pass": False, "rightShare": 0.867, "lint": {"skill": 1, "baseline": 3},
+        "reasons": ["right answers 87% of all questions, under 90%"], "cases": [],
+    })  # fmt: skip
+    assert "- rightShare: 0.867" in text
+    assert "- lint: {'skill': 1, 'baseline': 3}" in text
+    assert "- reasons: right answers 87% of all questions, under 90%" in text
+    text = eval_cmd.summary("writing-docs-trigger", {
+        "pass": True, "recall": 0.867, "delegatedRate": 0.5, "runs": 55, "turnLimitRuns": 0,
+        "cases": [],
+    })  # fmt: skip
+    for line in ("- delegatedRate: 0.5", "- runs: 55", "- turnLimitRuns: 0"):
+        assert line in text
+
+
+def test_the_summary_skips_the_case_table_when_cases_have_no_result():
+    text = eval_cmd.summary("writing-docs-behaviour", {
+        "pass": True, "rightShare": 1.0, "cases": [{"id": "w", "skill": {"right": [True]}}],
+    })  # fmt: skip
+    assert "- rightShare: 1.0" in text
+    assert "| Case |" not in text

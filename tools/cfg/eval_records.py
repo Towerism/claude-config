@@ -26,9 +26,14 @@ from typing import Any
 
 GATES_PATH = "eval/gates.json"
 RECORDS_DIR = "eval/records"
-RUNNERS = {"scenario", "rubric", "hook-overlay", "hook-merge", "script", "trigger", "cold-reader"}
-# Runners from eval/skill_evals.py, which need the skill under test and its case file.
-SKILL_RUNNERS = {"trigger", "cold-reader"}
+RUNNERS = {
+    "scenario", "rubric", "hook-overlay", "hook-merge", "script", "trigger", "cold-reader",
+    "doc-trigger", "doc-reader",
+}  # fmt: skip
+# Runners from eval/skill_evals.py and eval/doc_evals.py, which need the skill under
+# test and its case file; the doc_evals ones also need the companions it runs beside.
+SKILL_RUNNERS = {"trigger", "cold-reader", "doc-trigger", "doc-reader"}
+COMPANION_RUNNERS = {"doc-trigger", "doc-reader"}
 SKILL_PARTS = {"description", "body"}
 
 
@@ -57,6 +62,7 @@ class Suite:
     script: str | None = None
     skill: str | None = None
     cases: str | None = None
+    companions: tuple[str, ...] = ()
 
 
 def git(repo: Path, *args: str) -> str:
@@ -150,6 +156,9 @@ def parse_gates(text: str) -> dict[str, Suite]:
         skill, cases = spec.get("skill"), spec.get("cases")
         if runner in SKILL_RUNNERS and not (isinstance(skill, str) and isinstance(cases, str)):
             raise GatesError(f"{what} needs a skill and a cases file")
+        companions = spec.get("companions", [])
+        if runner in COMPANION_RUNNERS and not companions:
+            raise GatesError(f"{what} needs a non-empty companions list")
         compare_base = spec.get("compareBase", False)
         if not isinstance(compare_base, bool):
             raise GatesError(f"{what}: compareBase must be true or false")
@@ -162,6 +171,7 @@ def parse_gates(text: str) -> dict[str, Suite]:
             script=script if isinstance(script, str) else None,
             skill=skill if isinstance(skill, str) else None,
             cases=cases if isinstance(cases, str) else None,
+            companions=_str_list(companions, f"{what} companions"),
         )
     return suites
 

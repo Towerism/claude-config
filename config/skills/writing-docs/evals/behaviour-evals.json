@@ -1,0 +1,252 @@
+[
+ {
+  "id": "write-readme",
+  "kind": "write",
+  "task": "Write the README for a small command-line tool. Use only these facts.",
+  "facts": [
+   "The tool is called csv-dedupe.",
+   "It reads a CSV file and writes the rows to standard output with duplicates removed.",
+   "Two rows are duplicates when they have the same value in the key column, chosen with --key <column name>.",
+   "When duplicates are found, the first row is kept and the later ones are dropped.",
+   "Install it with: pipx install csv-dedupe",
+   "Example: csv-dedupe --key email customers.csv > unique.csv",
+   "It exits with code 2 and prints 'no such column' when the --key column isn't in the header.",
+   "It needs Python 3.11 or later."
+  ],
+  "questions": [
+   "What is the tool for?",
+   "What do you run first to install it?",
+   "How do you know which row is kept when there are duplicates?",
+   "What happens if you pass a --key column that doesn't exist?"
+  ],
+  "expect": [
+   [
+    "duplicate"
+   ],
+   [
+    "pipx install csv-dedupe"
+   ],
+   [
+    "first"
+   ],
+   [
+    "no such column"
+   ]
+  ],
+  "mustContain": [
+   "pipx install csv-dedupe",
+   "no such column",
+   "--key"
+  ]
+ },
+ {
+  "id": "write-runbook",
+  "kind": "write",
+  "task": "Write a runbook for restoring the nightly database backup, for an on-call engineer. Use only these facts.",
+  "facts": [
+   "The backup job runs every night at 02:00 UTC and writes an archive named db-YYYY-MM-DD.tar.zst to the backups bucket.",
+   "Restoring needs shell access to the database host and membership of the db-admins group.",
+   "First stop the app with: systemctl stop app",
+   "Restore with: backup restore --date YYYY-MM-DD --target /srv/db",
+   "A successful restore prints 'restored N tables' and exits 0.",
+   "Then start the app with: systemctl start app, and check that /health returns 200.",
+   "If the restore prints 'archive not found', run backup list to see which dates exist; archives are kept for 7 days.",
+   "If the restore fails for any other reason, page the database owner and don't retry more than once."
+  ],
+  "questions": [
+   "What is this runbook for, and who can follow it?",
+   "What must you do before running the restore command?",
+   "How do you know the restore worked?",
+   "What do you do if the restore prints 'archive not found'?"
+  ],
+  "expect": [
+   [
+    "restor"
+   ],
+   [
+    "stop"
+   ],
+   [
+    "restored|/health|200"
+   ],
+   [
+    "backup list"
+   ]
+  ],
+  "mustContain": [
+   "systemctl stop app",
+   "backup restore --date",
+   "archive not found",
+   "backup list",
+   "7 days|seven days"
+  ]
+ },
+ {
+  "id": "write-adr",
+  "kind": "write",
+  "task": "Write an architecture decision record for this decision. Use only these facts.",
+  "facts": [
+   "The decision: move the background job queue from Redis to Postgres, using SELECT ... FOR UPDATE SKIP LOCKED.",
+   "It was decided on 2026-10-10 by the platform team.",
+   "Redis was used only for the queue; everything else already lives in Postgres.",
+   "Dropping Redis removes one service to run, patch and monitor.",
+   "Postgres handled 400 jobs per second in a load test, and the peak load is 60 jobs per second.",
+   "Downside: job polling adds load to the main database.",
+   "Rejected option: keep Redis and add persistence, because it still leaves two stores to back up.",
+   "Revisit if the peak load passes 200 jobs per second."
+  ],
+  "questions": [
+   "What was decided, and when?",
+   "Why was Postgres chosen over Redis?",
+   "What is the main downside?",
+   "When should the decision be revisited?"
+  ],
+  "expect": [
+   [
+    "postgres",
+    "2026-10-10"
+   ],
+   [
+    "service"
+   ],
+   [
+    "load"
+   ],
+   [
+    "\\b200\\b"
+   ]
+  ],
+  "mustContain": [
+   "skip locked",
+   "\\b60\\b",
+   "\\b400\\b",
+   "\\b200\\b",
+   "2026-10-10"
+  ]
+ },
+ {
+  "id": "rewrite-how-to",
+  "kind": "rewrite",
+  "task": "Rewrite this how-to guide so a reader can follow it without help. Keep every command, value, step and instruction for using it; the history and filler may be cut.",
+  "facts": [
+   "Adding a tenant needs the billing-admin role.",
+   "Step 1: billing tenant create --name <name>",
+   "Step 2: billing plan set --tenant <name> --plan <plan>, where plan is starter, team or enterprise.",
+   "Step 3: billing sync --tenant <name>",
+   "The sync prints 'synced' when it works.",
+   "If the sync prints 'plan missing', set the plan and run the sync again."
+  ],
+  "draft": "# Tenants\n\nTenants are a core concept of the billing service and have been since the 2024 redesign, when we moved away from per-account billing. There are many considerations around tenants. Basically, to add one you'll want to make sure you have the billing-admin role, and then it's worth noting that you need to create the tenant row (billing tenant create --name <name>), and you need to set the plan with billing plan set --tenant <name> --plan <plan>, where plan is starter, team or enterprise. Then the sync job has to run: billing sync --tenant <name>. The sync prints 'synced' when it works. If it says 'plan missing', the plan step was skipped, so set the plan and run the sync again.",
+  "questions": [
+   "What does this guide help you do?",
+   "What do you need before you start?",
+   "How do you know it worked?",
+   "What do you do if the sync says 'plan missing'?"
+  ],
+  "expect": [
+   [
+    "tenant"
+   ],
+   [
+    "billing-admin"
+   ],
+   [
+    "synced"
+   ],
+   [
+    "plan",
+    "sync"
+   ]
+  ],
+  "mustContain": [
+   "billing-admin",
+   "billing tenant create",
+   "billing plan set",
+   "billing sync",
+   "synced",
+   "plan missing",
+   "starter",
+   "enterprise"
+  ]
+ },
+ {
+  "id": "rewrite-buried-readme",
+  "kind": "rewrite",
+  "task": "Rewrite this README so a newcomer can get the tool running first. Keep every command, path, value and instruction for using it; the history and philosophy may be shortened or cut.",
+  "facts": [
+   "Install with: cargo install logtail",
+   "Stream a file with: logtail --follow /var/log/app.log",
+   "Lines matching --grep <pattern> are highlighted.",
+   "The config file is optional and lives at ~/.config/logtail/config.toml.",
+   "On 'permission denied', run it as a user in the adm group."
+  ],
+  "draft": "# logtail\n\n## History\n\nlogtail started in 2023 as a weekend project to replace a pile of shell scripts that tailed log files on several servers. Over time it grew a plugin system and a config format. In 2025 the config moved from INI to TOML.\n\n## Philosophy\n\nWe believe logs should be easy to read. The project values small, fast tools.\n\n## Getting it\n\nYou can install logtail with: cargo install logtail. Then run logtail --follow /var/log/app.log to stream a file. Lines matching --grep <pattern> are highlighted. The config file lives at ~/.config/logtail/config.toml and is optional. If you see 'permission denied', run it as a user in the adm group.",
+  "questions": [
+   "What does logtail do?",
+   "What do you run first to install and try it?",
+   "Where does the config file live, and do you need one?",
+   "What do you do on 'permission denied'?"
+  ],
+  "expect": [
+   [
+    "stream|tail|follow"
+   ],
+   [
+    "cargo install logtail"
+   ],
+   [
+    "config\\.toml",
+    "optional|don.t need|not need|no need|not required|isn.t required|without one"
+   ],
+   [
+    "\\badm\\b"
+   ]
+  ],
+  "mustContain": [
+   "cargo install logtail",
+   "logtail --follow",
+   "--grep",
+   "config\\.toml",
+   "\\badm\\b"
+  ]
+ },
+ {
+  "id": "rewrite-release-notes",
+  "kind": "rewrite",
+  "task": "Rewrite these release notes so a user knows what changed and what they must do. Keep every change, value and instruction; promotional wording may be cut.",
+  "facts": [
+   "Version 2.4.",
+   "Exports are about three times faster.",
+   "The --legacy flag was removed; scripts that pass it must drop it, and its behaviour is now the default.",
+   "All dates are now ISO 8601, such as 2026-10-16 instead of 10/16/2026, which can break anything that parses the CSV output.",
+   "Fixed: exports with more than 65,536 rows were cut short."
+  ],
+  "draft": "# v2.4\n\nWe're thrilled to announce v2.4, a robust release packed with improvements! We've been hard at work refactoring the export pipeline, which is now seamlessly faster (about three times). Also, the --legacy flag has been removed, so scripts using it will need to drop it; its behaviour is now the default anyway. Dates everywhere are now ISO 8601 (2026-10-16 instead of 10/16/2026), which may affect anything parsing our CSV output. Finally, we fixed the bug where exports with more than 65,536 rows were cut short.",
+  "questions": [
+   "What must a user change after upgrading?",
+   "What changed about dates?",
+   "Which bug was fixed?",
+   "What got faster, and by how much?"
+  ],
+  "expect": [
+   [
+    "legacy"
+   ],
+   [
+    "iso ?-?8601"
+   ],
+   [
+    "65,?536"
+   ],
+   [
+    "three|3x|3×|3 times"
+   ]
+  ],
+  "mustContain": [
+   "--legacy",
+   "iso ?-?8601",
+   "65,?536",
+   "three times|3x|3×|3 times"
+  ]
+ }
+]

@@ -369,5 +369,75 @@
    "new-rule-only"
   ],
   "note": "New-rule coverage for the prose line (FR-15a, #12); the merge-base CLAUDE.md has no prose rule."
+ },
+ {
+  "id": "S-24",
+  "prompt": "Draft the architecture doc for the new export service.",
+  "covers": [
+   "FR-15a",
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "engineering-skills:senior-architect"
+  ],
+  "mustInclude": [
+   "Says it loads (or would load) the writing-docs skill before writing the document"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the writing-docs sentence and its overlays (#13); the merge-base has neither."
+ },
+ {
+  "id": "S-25",
+  "prompt": "Write the runbook for restoring the nightly database backup.",
+  "covers": [
+   "FR-15a",
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "engineering-advanced-skills:runbook-generator"
+  ],
+  "mustInclude": [
+   "Says it loads (or would load) the writing-docs skill before writing the runbook"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the writing-docs sentence and its overlays (#13); the merge-base has neither."
+ },
+ {
+  "id": "S-26",
+  "prompt": "Write a README for this repo's command-line tool.",
+  "covers": [
+   "FR-15a"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says it loads (or would load) the writing-docs skill before writing the README"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the writing-docs sentence and its overlays (#13); the merge-base has neither."
+ },
+ {
+  "id": "S-27",
+  "prompt": "Write the commit message for this change: the nightly backup now retries a failed upload three times before giving up.",
+  "covers": [
+   "FR-15a"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says it loads (or would load) the writing-docs skill before writing the commit message"
+  ],
+  "mustNotInclude": [],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage for the writing-docs sentence and its overlays (#13); the merge-base has neither."
  }
 ]

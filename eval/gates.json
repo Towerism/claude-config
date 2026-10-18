@@ -126,6 +126,56 @@
         "eval/skill_evals.py",
         "eval/run_eval.py"
       ]
+    },
+    "writing-docs-trigger": {
+      "runner": "doc-trigger",
+      "skill": "writing-docs",
+      "cases": "config/skills/writing-docs/evals/trigger-evals.json",
+      "companions": [
+        "plain-prose"
+      ],
+      "paths": [
+        "config/skills/writing-docs/evals/trigger-evals.json"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/writing-docs/SKILL.md",
+          "part": "description"
+        },
+        {
+          "file": "config/skills/plain-prose/SKILL.md",
+          "part": "description"
+        }
+      ],
+      "harness": [
+        "eval/doc_evals.py",
+        "eval/skill_evals.py",
+        "eval/run_eval.py"
+      ]
+    },
+    "writing-docs-behaviour": {
+      "runner": "doc-reader",
+      "skill": "writing-docs",
+      "cases": "config/skills/writing-docs/evals/behaviour-evals.json",
+      "companions": [
+        "plain-prose"
+      ],
+      "paths": [
+        "config/skills/writing-docs/evals/behaviour-evals.json",
+        "config/skills/writing-docs/scripts/**",
+        "config/skills/writing-docs/references/**"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/writing-docs/SKILL.md",
+          "part": "body"
+        }
+      ],
+      "harness": [
+        "eval/doc_evals.py",
+        "eval/skill_evals.py",
+        "eval/run_eval.py"
+      ]
     }
   }
 }

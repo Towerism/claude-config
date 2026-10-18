@@ -1,0 +1,129 @@
+[
+ {
+  "query": "write a README for the little csv-dedupe CLI in this repo. it reads a CSV, drops duplicate rows by a key column you pass with --key, and writes the result to stdout",
+  "should_trigger": true,
+  "kind": "new-doc"
+ },
+ {
+  "query": "can you write an ADR recording that we're moving the job queue from Redis to Postgres with SKIP LOCKED? we compared both last week and Postgres won because we already run it and it saves us one more service to babysit",
+  "should_trigger": true,
+  "kind": "new-doc"
+ },
+ {
+  "query": "write up how to restore the nightly database backup so whoever is on call at 3am can follow it without asking anyone",
+  "should_trigger": true,
+  "kind": "new-doc"
+ },
+ {
+  "query": "draft a how-to guide for adding a new tenant to the billing service: create the tenant row, set their plan, then run the sync job",
+  "should_trigger": true,
+  "kind": "new-doc"
+ },
+ {
+  "query": "we need release notes for v2.4: the export is three times faster, the --legacy flag is gone, and every date is now ISO 8601",
+  "should_trigger": true,
+  "kind": "new-doc"
+ },
+ {
+  "query": "Have a subagent write a tutorial that walks a new hire through building their first plugin for our CLI, from an empty folder to a plugin that prints hello. Delegate it; don't write it yourself.",
+  "should_trigger": true,
+  "kind": "new-doc",
+  "delegated": true
+ },
+ {
+  "query": "docs/architecture.md still describes the old monolith. rework it so it explains the three services we run now and how a request flows between them",
+  "should_trigger": true,
+  "kind": "doc-edit"
+ },
+ {
+  "query": "our README buries the install command under four paragraphs of project history. restructure it so a newcomer can get it running first",
+  "should_trigger": true,
+  "kind": "doc-edit"
+ },
+ {
+  "query": "write the commit message for the staged change: the uploader now retries a failed chunk three times instead of failing the whole upload",
+  "should_trigger": true,
+  "kind": "prose"
+ },
+ {
+  "query": "Use a subagent to write the PR description for the diff that adds rate limiting to the public API (100 requests a minute per key, 429 with Retry-After). Delegate it rather than writing it yourself.",
+  "should_trigger": true,
+  "kind": "prose",
+  "delegated": true
+ },
+ {
+  "query": "comment on issue #88 that the fix landed in 2.3.1, and ask the reporter to confirm the crash is gone",
+  "should_trigger": true,
+  "kind": "prose"
+ },
+ {
+  "query": "write the review note for this PR: two real problems (the lock is never released when the job errors, and the new endpoint skips the auth check) and one style nit about naming",
+  "should_trigger": true,
+  "kind": "prose"
+ },
+ {
+  "query": "add a docstring to parse_window() in scheduler.py explaining what the (start, end) tuple means and that end is exclusive",
+  "should_trigger": true,
+  "kind": "code"
+ },
+ {
+  "query": "test_import_rejects_bad_dates is failing because the error text changed. fix the test, and make its assertion messages say which row and which date failed",
+  "should_trigger": true,
+  "kind": "code"
+ },
+ {
+  "query": "the --dry-run flag in our CLI has no help text, and when the config file is missing the error just says ENOENT. give both of them proper wording",
+  "should_trigger": true,
+  "kind": "code"
+ },
+ {
+  "query": "add a line to this repo's CLAUDE.md telling Claude to run make test before every commit",
+  "should_trigger": false,
+  "kind": "for-claude"
+ },
+ {
+  "query": "edit the SKILL.md of our deploy skill so its description says it also handles rollbacks",
+  "should_trigger": false,
+  "kind": "for-claude"
+ },
+ {
+  "query": "write the prompt for a subagent that will scan the repo for unused feature flags and return them as a JSON list",
+  "should_trigger": false,
+  "kind": "for-claude"
+ },
+ {
+  "query": "update the skill overlay for tdd-guide so it tells Claude to use pytest-xdist for the slow suite",
+  "should_trigger": false,
+  "kind": "for-claude"
+ },
+ {
+  "query": "save a memory note that I prefer rebasing over merge commits on feature branches",
+  "should_trigger": false,
+  "kind": "for-claude"
+ },
+ {
+  "query": "tighten the instructions in agents/triage.md that tell the triage agent which labels to put on incoming issues",
+  "should_trigger": false,
+  "kind": "for-claude"
+ },
+ {
+  "query": "what's the difference between git rebase and git merge? just explain it here, don't change anything",
+  "should_trigger": false,
+  "kind": "chat-only"
+ },
+ {
+  "query": "quick question: is SKIP LOCKED in Postgres safe to use with several workers pulling from the same table?",
+  "should_trigger": false,
+  "kind": "chat-only"
+ },
+ {
+  "query": "roughly how many lines of Python are in this repo?",
+  "should_trigger": false,
+  "kind": "chat-only"
+ },
+ {
+  "query": "remind me what the -n flag does for sed",
+  "should_trigger": false,
+  "kind": "chat-only"
+ }
+]

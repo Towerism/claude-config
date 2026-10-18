@@ -1,0 +1,230 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "eval/doc_evals.py": "f566eb13acaba8f7341b2894e2b6dd7efe56e5db5653469a6bee04287c011f5d",
+    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/skill_evals.py": "92a1066105bdc462e5471ce751e033d526075190585ef0615850b331606e0fe4"
+  },
+  "inputs": {
+    "config/skills/plain-prose/SKILL.md#description": "1e4d12a6f25383d2ec2aef3211ae2c32d711c7717de97152bdcfa72f69f97211",
+    "config/skills/writing-docs/SKILL.md#description": "38104eb66ad8de9614f25c71311a44b96937f09b5817d45de0288f989c029a9d",
+    "config/skills/writing-docs/evals/trigger-evals.json": "1a0c82021ca45d990d4cf4e206b3cedceadabc0fd2ab95b3e42da4f1e0d0d47a"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-18T05:37:40Z",
+  "result": {
+    "accuracy": 0.92,
+    "cases": [
+      {
+        "delegated": false,
+        "id": "write a README for the little csv-dedupe CLI in this repo. i",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "can you write an ADR recording that we're moving the job que",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "write up how to restore the nightly database backup so whoev",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "draft a how-to guide for adding a new tenant to the billing ",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "we need release notes for v2.4: the export is three times fa",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": true,
+        "id": "Have a subagent write a tutorial that walks a new hire throu",
+        "result": "fail",
+        "runs": 3,
+        "shouldTrigger": true,
+        "triggered": 1
+      },
+      {
+        "delegated": false,
+        "id": "docs/architecture.md still describes the old monolith. rewor",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "our README buries the install command under four paragraphs ",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "write the commit message for the staged change: the uploader",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": true,
+        "id": "Use a subagent to write the PR description for the diff that",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "comment on issue #88 that the fix landed in 2.3.1, and ask t",
+        "result": "fail",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "write the review note for this PR: two real problems (the lo",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "add a docstring to parse_window() in scheduler.py explaining",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "test_import_rejects_bad_dates is failing because the error t",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "the --dry-run flag in our CLI has no help text, and when the",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": true,
+        "triggered": 2
+      },
+      {
+        "delegated": false,
+        "id": "add a line to this repo's CLAUDE.md telling Claude to run ma",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "edit the SKILL.md of our deploy skill so its description say",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "write the prompt for a subagent that will scan the repo for ",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "update the skill overlay for tdd-guide so it tells Claude to",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "save a memory note that I prefer rebasing over merge commits",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "tighten the instructions in agents/triage.md that tell the t",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "what's the difference between git rebase and git merge? just",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "quick question: is SKIP LOCKED in Postgres safe to use with ",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "roughly how many lines of Python are in this repo?",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      },
+      {
+        "delegated": false,
+        "id": "remind me what the -n flag does for sed",
+        "result": "pass",
+        "runs": 2,
+        "shouldTrigger": false,
+        "triggered": 0
+      }
+    ],
+    "delegatedRate": 0.6,
+    "falseTriggers": 0,
+    "pass": true,
+    "recall": 0.867,
+    "runs": 51,
+    "turnLimitRuns": 9
+  },
+  "suite": "writing-docs-trigger"
+}

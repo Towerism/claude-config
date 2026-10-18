@@ -133,3 +133,21 @@ The redesign, in FR-25 to FR-28, AC-13, AC-14, AC-16 and EC-13:
 ## Note, listed
 
 **A suite run costs about twice as much.** Three reader and judge passes per text mean about 84 model runs per suite run instead of about 36, in exchange for no reruns.
+
+# Eighth review: a trigger verdict scored over runs
+
+The owner then set a general rule: "if i want you to fix weaknesses in one suite regarding flakiness, and the other suite has the same weakness, assume I want you to fix both". The trigger suite had the same weakness as the behaviour suite. Its per-query rule (two loads in three runs make a query trigger, 13 of 15 queries, every delegated query) let one borderline query decide the verdict. Its second live run loaded the skill in 40 of 45 should-trigger runs and none of 30 near-miss runs, yet failed on one delegated query that loaded in one run of three. FR-14, FR-23 and AC-12 now run each query five times and decide on run rates: 85% of should-trigger runs, 70% of delegated runs, at most 5% of near-miss runs, and no near-miss query loading in more than half its runs. `plain-prose`'s suites have the same weaknesses, and their rules live in that skill's own spec, so they belong to #33. This change got its own adversarial review.
+
+**Verdict:** no critical finding. One warning was fixed in the spec, one was accepted, and there is one note. Because the review changed the spec, the owner sees the change below before approving.
+
+## Warning, fixed
+
+**Ten delegated runs swing too far on one run.** With two delegated queries at five runs each, one run moves the delegated rate by 10 points, and the measured rate (4 of 6, 0.67) sits next to the 70% bar. FR-14 now reads "each query five times, and each delegated query ten times", giving 20 delegated runs.
+
+## Warning, accepted
+
+**A bar close to the skill's true rate stays sensitive to chance however the suite is scored.** The tuned description measured 0.89 against the 0.85 recall bar, and 0.67 against the 70% delegated bar. Accepted because the design no longer lets one query or one run decide. The remaining sensitivity is the skill's real performance sitting near the bar, which the two remaining tuned descriptions (OS-7) are meant to move, and every run's figures go in the PR.
+
+## Note, listed
+
+**A trigger run costs more.** 135 runs instead of 75.

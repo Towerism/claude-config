@@ -326,3 +326,13 @@ def test_trigger_main_samples_and_summarises(
     assert all(r["runs"] == 2 for r in data["results"])
     assert len(log.read_text().splitlines()) == 1 + 2 * len(queries)
     assert code == 1 and data["summary"]["near_misses_triggering"]
+
+
+@pytest.mark.parametrize(
+    "bodies,passed",
+    [([], True), (["see skills/foo/SPEC.md"], True), (["FR-1: the summary names the file"], False)],
+)
+def test_body_never_matches_passes_with_no_matching_call(harness, bodies, passed):
+    gh_calls = [{"args": ["issue", "edit", "42", "--body-file", "b.md"], "body": b} for b in bodies]
+    exp = "gh-body-never-matches: ^issue edit 42 ::: summary names the file"
+    assert harness.grade([exp], gh_calls, [], "", [])[0]["passed"] is passed

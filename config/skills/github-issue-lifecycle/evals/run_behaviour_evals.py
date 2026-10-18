@@ -375,6 +375,13 @@ def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=(), c
         ]
         found = any(re.search(body_re, b) for b in hits)
         ok = found if kind == "gh-body-matches" else (bool(hits) and not found)
+    elif kind == "gh-body-never-matches":
+        call_re, _, body_re = arg.partition(" ::: ")
+        ok = not any(
+            re.search(body_re, c.get("body", ""))
+            for c, s in zip(gh_calls, gh_strs, strict=True)
+            if re.search(call_re, s)
+        )
     elif kind == "git-called":
         ok = any(re.search(arg, s) for s in git_strs)
     elif kind == "git-not-called":

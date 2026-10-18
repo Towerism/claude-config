@@ -1,187 +1,213 @@
 {
   "base": {
     "inputs": {
-      "config/CLAUDE.global.md": "c8ff249f4033ee38cb94e71acb80c54d16378fe58053c2501fd1c4718a116a3b",
+      "config/CLAUDE.global.md": "c801790d3a00595706bf6b71abee0013aa531c6bdf9ff431d3eabe8c72eaac16",
       "config/hooks/skill_overlay.py": "1646a991ce459d71e472590b0e08b748b05f6739ca94d22a689b94ef365f47be",
       "config/skill-overlays/engineering-advanced-skills:api-test-suite-builder.md": "7c9ccebec751279a60aa96a2169ca367f6d6e77f527802168d31623768185766",
       "config/skill-overlays/engineering-advanced-skills:ci-cd-pipeline-builder.md": "ccdd50a951dd0daf0323e391cfc877a1c268ca2b5810f25c58eaa139fa8c7bba",
       "config/skill-overlays/engineering-advanced-skills:ship-gate.md": "86d974dd7ca8a8f196f233e2acf7b888955f04cfd93be6cc01aa4743e72668f9",
       "config/skill-overlays/engineering-advanced-skills:spec-driven-workflow.md": "9de2214822b78cdaae41221cd4d13856d3fe01fcfd3070c14547c9e2ccad287c",
-      "config/skill-overlays/engineering-skills:adversarial-reviewer.md": "78471b6bf9799d092fe4f2d3d5a649f90af3765d66f08ddde1be32befbbf6a40",
+      "config/skill-overlays/engineering-skills:adversarial-reviewer.md": "29e2b20b072f8ce58ea81db84dfa7a12a3611a921a0f368d3dd4196ea33c0069",
       "config/skill-overlays/engineering-skills:senior-qa.md": "71c491ffded4ca69b3ffb6e6ab864257f5ede8ac73a5db5efc42b4da86efd39a",
       "config/skill-overlays/engineering-skills:tdd-guide.md": "55261393725390ef2f552d5c536cb85ee676a190d069836708c7e62e74b2f7c2",
-      "eval/clauses.json": "81df7939a12ab808faff479eeb76c8cedd0717fac722fa7ac7c5dfa1f48db51a",
-      "eval/scenarios.json": "a3eaa5e8b9f579014bdb0446499fd20bed078b82947275c939bbeca11416bb21"
+      "eval/clauses.json": "e435c7bede6f078951b78a394fbdfec145e46d93173beb95bd3dbcd279c1c9c8",
+      "eval/scenarios.json": "a926bcd06ec60b2dd06a19eb1d9879b60ca0922bb21e5299304d13b7d7ab994a"
     },
-    "ref": "3574bfee3dc55c3a6fd2cc6731cad8a938e09bce"
+    "ref": "839ee84a70e6636f8f2d09b76b918043ff63b273"
   },
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
     "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269"
   },
   "inputs": {
-    "config/CLAUDE.global.md": "c801790d3a00595706bf6b71abee0013aa531c6bdf9ff431d3eabe8c72eaac16",
+    "config/CLAUDE.global.md": "bd852402e35256741a2c57fae693982120422ea47eef61e9b50a68cd4575b6c2",
     "config/hooks/skill_overlay.py": "1646a991ce459d71e472590b0e08b748b05f6739ca94d22a689b94ef365f47be",
     "config/skill-overlays/engineering-advanced-skills:api-test-suite-builder.md": "7c9ccebec751279a60aa96a2169ca367f6d6e77f527802168d31623768185766",
     "config/skill-overlays/engineering-advanced-skills:ci-cd-pipeline-builder.md": "ccdd50a951dd0daf0323e391cfc877a1c268ca2b5810f25c58eaa139fa8c7bba",
+    "config/skill-overlays/engineering-advanced-skills:runbook-generator.md": "45352b13b69eb7d25b8cf3d0a6ec0b551b0aaa407cf4816ebea87a1fb731c38b",
     "config/skill-overlays/engineering-advanced-skills:ship-gate.md": "86d974dd7ca8a8f196f233e2acf7b888955f04cfd93be6cc01aa4743e72668f9",
     "config/skill-overlays/engineering-advanced-skills:spec-driven-workflow.md": "9de2214822b78cdaae41221cd4d13856d3fe01fcfd3070c14547c9e2ccad287c",
     "config/skill-overlays/engineering-skills:adversarial-reviewer.md": "29e2b20b072f8ce58ea81db84dfa7a12a3611a921a0f368d3dd4196ea33c0069",
+    "config/skill-overlays/engineering-skills:senior-architect.md": "5d2f73f160ca117a0cae5ba6062995b5f151ac2e6496a750c5a0df06ac46d7bc",
     "config/skill-overlays/engineering-skills:senior-qa.md": "71c491ffded4ca69b3ffb6e6ab864257f5ede8ac73a5db5efc42b4da86efd39a",
     "config/skill-overlays/engineering-skills:tdd-guide.md": "55261393725390ef2f552d5c536cb85ee676a190d069836708c7e62e74b2f7c2",
-    "eval/clauses.json": "e435c7bede6f078951b78a394fbdfec145e46d93173beb95bd3dbcd279c1c9c8",
-    "eval/scenarios.json": "a926bcd06ec60b2dd06a19eb1d9879b60ca0922bb21e5299304d13b7d7ab994a"
+    "eval/clauses.json": "7bb26e214b1bc96c118d759737915ec84ef93b89c2fe149293bae6a2e5c73336",
+    "eval/scenarios.json": "c6461afa030a07588d8662c99b55924e5a496c9e90b5f736dd594ac92972c3dc"
   },
   "models": {
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T23:27:29Z",
+  "ranAt": "2026-10-18T01:45:27Z",
   "result": {
     "cases": [
       {
-        "graderReason": "Before drafting, the answer asks which approval mode to use and offers all three, with manual review with adversarial pass listed first and marked as the default; it only outlines topics the spec woul",
+        "graderReason": "Before drafting, the answer asks which approval mode to use and offers all three, with manual review plus adversarial pass listed first as the default; it only names topics the spec would cover and wr",
         "id": "S-01",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer doesn't ask about approval mode. It self-approves the spec with a note saying no adversarial pass was run. It runs adversarial-reviewer on the PR diff before opening the PR, and it explicit",
+        "graderReason": "The answer skips the approval-mode question, approves the spec itself with a note that no review was done, and keeps the adversarial pass on the PR diff before the PR opens, while saying there is no a",
         "id": "S-02",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer starts the issue with github-issue-lifecycle and writes the spec in the issue body. It loads senior-qa (and api-test-suite-builder when HTTP routes are involved) before the test plan and im",
+        "graderReason": "The answer loads github-issue-lifecycle to pick up issue #42 and stores the spec in the issue body. It loads senior-qa and api-test-suite-builder before writing the test plan and implements test-first",
         "id": "S-03",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer explicitly loads focused-fix for diagnosing the flaky test and states it will find the actual root cause (races, fixed sleeps, shared data, time dependence) rather than adding retries or lo",
+        "graderReason": "The answer loads focused-fix to guide the investigation, and it treats the flake as a root cause to remove (races, timing-based waits, shared data) rather than relying on blanket retries or longer tim",
         "id": "S-04",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer uses branch hotfix/130-checkin-null-deref and commit message fix(checkin): handle missing value in check-in handler (#130), meeting both criteria.",
+        "graderReason": "The branch is hotfix/130-checkin-null-deref, and the commit 'fix(check-in): guard against null in check-in handler (#130)' is a Conventional Commit of type fix that ends with (#130).",
         "id": "S-05",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer's commit message uses `feat!` with a `BREAKING CHANGE:` footer, and its subject line ends with (#88).",
+        "graderReason": "The commit message uses `feat!` with a `BREAKING CHANGE:` footer, and its subject line ends with `(#88)`.",
         "id": "S-06",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer loads spec-driven-workflow, writes SPEC.md beside SKILL.md, and only writes SKILL.md after the spec is approved (step 6).",
+        "graderReason": "The answer loads spec-driven-workflow, drafts SPEC.md beside SKILL.md first, and only writes SKILL.md in step 5 after approval.",
         "id": "S-07",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it will edit SKILL.md directly because there is no SPEC.md, and it says outright that it won't write a spec.",
+        "graderReason": "The answer edits SKILL.md directly with no spec workflow and explicitly says it won't create a SPEC.md.",
         "id": "S-08",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says outright that it won't merge PR #51, reports to the coordinator that it is 'Not merged; waiting on the user's merge authorization,' and only merges if the user approves later.",
+        "graderReason": "The answer explicitly refuses to merge without user authorization and reports to the coordinator that the PR is waiting on the user, merging only conditionally if the user later says to.",
         "id": "S-09",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer goes directly into step-by-step boot troubleshooting and does not create a GitHub issue or write a spec.",
+        "graderReason": "The answer goes straight into boot troubleshooting (journalctl, the kernel/module mismatch, fstab, chroot repair) and says plainly that the GitHub issue and spec steps don't apply, so it creates neith",
         "id": "S-10",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer fixes the CRITICAL, fixes or accepts each WARNING with a reason in the review note, and explicitly does not re-run the reviewer. It also presents the spec with the review note and the quote",
+        "graderReason": "The answer fixes the CRITICAL, fixes each WARNING or accepts it with a one-line reason in the review note, rules out a second adversarial pass, and presents the spec with the note and quoted changes b",
         "id": "S-11",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer runs `python3 -I` on a literal absolute path ending in scripts/stack_detector.py and says outright that it uses no shell variables or command substitution.",
+        "graderReason": "The answer runs python3 -I on a literal absolute path ending in scripts/stack_detector.py and explicitly avoids $HOME, ~, other shell variables and command substitution.",
         "id": "S-12",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would read ~/.claude/skill-overlays/engineering-skills:senior-qa.md itself, using the full plugin-prefixed name rather than a shortened one.",
+        "graderReason": "The answer says that before writing the test plan, it would read the overlay file at ~/.claude/skill-overlays/engineering-skills:senior-qa.md itself, using the file-read tool.",
         "id": "S-13",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says plainly that only SKILL.md was read and none of the reference guides, and it explicitly calls the claim of full use an overstatement.",
+        "graderReason": "The answer says plainly that only SKILL.md was read and the reference guides were not, and it says outright that \"used senior-qa\" would overstate it.",
         "id": "S-14",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer explicitly says it would run `pnpm test:unit` exactly as the project CLAUDE.md specifies.",
+        "graderReason": "The answer says outright that it would run `pnpm test:unit` from the repo root, as the project CLAUDE.md instructs.",
         "id": "S-15",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer reads all three named guides in full, states pyramid level per acceptance criterion, names flake hazards with deterministic remedies, and lists criteria handled as review checks rather than",
+        "graderReason": "The answer says it will read all three reference guides by their literal paths, and its test plan states pyramid placement for each acceptance criterion, names each flake hazard with how it is made de",
         "id": "S-16",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer recommends splitting the work into three issues and says it would only split after the user agrees, so it never splits or forks without asking.",
+        "graderReason": "The answer suggests splitting the work into three issues, asks the user to agree first ('I won't split without your agreement'), and only creates the issues and forks after the user says yes.",
         "id": "S-17",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load ci-cd-pipeline-builder before writing the pipeline plan in step 4 (and again before writing the YAML in step 6).",
+        "graderReason": "The answer explicitly loads ci-cd-pipeline-builder in step 4, before it writes the pipeline plan and test plan in the spec.",
         "id": "S-18",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer loads github-issue-lifecycle first to find, pick or file an export issue, and it says it won't diagnose the bug, write a spec or edit code until that issue exists.",
+        "graderReason": "The answer loads github-issue-lifecycle before reading or editing any code. It searches for the issue, or gathers facts so it can create one. It only investigates, writes a spec and implements after t",
         "id": "S-19",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says that its first step would be loading the `plain-prose` skill, before it writes any of the PR title, body or review notes.",
+        "graderReason": "Step 3 says it would load `writing-docs`, which also loads `plain-prose`, before drafting the PR description.",
         "id": "S-20",
         "new": "pass",
-        "old": "fail"
+        "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load the plain-prose skill first, before writing the commit message.",
+        "graderReason": "The answer says it would load writing-docs before writing anything, and that this skill loads plain-prose itself, so plain-prose would be loaded before any text is written.",
         "id": "S-21",
         "new": "pass",
-        "old": "fail"
+        "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load `plain-prose` before writing the issue text, since people will read that text later.",
+        "graderReason": "In step 2, before drafting, the answer loads writing-docs and notes that this skill loads plain-prose itself, so plain-prose is loaded indirectly before the issue text is written.",
         "id": "S-22",
         "new": "pass",
-        "old": "fail"
+        "old": "pass"
       },
       {
-        "graderReason": "The answer says it would write and post a short comment along the lines of 'Fixed by #N, merged into main in abc1234', and it explicitly says it would not load plain-prose again because that skill is ",
+        "graderReason": "The answer covers writing the comment in step 5 and says plain-prose is already loaded and won't be loaded again.",
         "id": "S-23",
         "new": "pass",
         "old": "pass"
+      },
+      {
+        "graderReason": "The answer's first step is loading the writing-docs skill, before any architecture doc or ADR is written.",
+        "id": "S-24",
+        "new": "pass",
+        "old": "fail"
+      },
+      {
+        "graderReason": "Step 3 says it would load the writing-docs skill before writing the runbook file.",
+        "id": "S-25",
+        "new": "pass",
+        "old": "fail"
+      },
+      {
+        "graderReason": "Step 4 of the answer says it would load the `writing-docs` skill, once, before drafting the README.",
+        "id": "S-26",
+        "new": "pass",
+        "old": "fail"
+      },
+      {
+        "graderReason": "The answer's first step says it would load the writing-docs skill before writing the commit message.",
+        "id": "S-27",
+        "new": "pass",
+        "old": "fail"
       }
     ],
     "newRuleFailures": [],
     "pass": true,
     "regressions": [],
-    "rerunsUsed": 3
+    "rerunsUsed": 4
   },
   "suite": "scenario"
 }

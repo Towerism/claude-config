@@ -174,7 +174,8 @@ def summary(name: str, result: dict[str, Any]) -> str:
             f"| {c['id']} | {c['old']} | {c['new']} | {_cell(c.get('graderReason', ''))} |"
             for c in cases
         ]
-    elif cases:
+    elif cases and all("result" in c for c in cases):
+        # A suite that decides on totals, such as doc-reader, has no per-case result.
         lines += ["", "| Case | Result |", "|---|---|"]
         lines += [f"| {_cell(c['id'])} | {c['result']} |" for c in cases]
     return "\n".join(lines) + "\n"

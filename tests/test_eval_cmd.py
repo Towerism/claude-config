@@ -419,3 +419,11 @@ def test_the_summary_shows_the_doc_runners_figures():
     })  # fmt: skip
     for line in ("- delegatedRate: 0.5", "- runs: 55", "- turnLimitRuns: 0"):
         assert line in text
+
+
+def test_the_summary_skips_the_case_table_when_cases_have_no_result():
+    text = eval_cmd.summary("writing-docs-behaviour", {
+        "pass": True, "rightShare": 1.0, "cases": [{"id": "w", "skill": {"right": [True]}}],
+    })  # fmt: skip
+    assert "- rightShare: 1.0" in text
+    assert "| Case |" not in text

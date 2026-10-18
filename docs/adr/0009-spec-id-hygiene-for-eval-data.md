@@ -46,6 +46,7 @@ Editing the lifecycle spec returns it to draft. It then goes through one adversa
 ## Consequences
 
 - Until the amendment lands, CI runs `diff-check` in report-only mode, and each PR description lists its findings. This is the only CI check that starts as a warning.
+  - **Update, 2026-10-18:** #4 made the amendment under manual review, so `diff-check` no longer needs to start as a warning; the CI workflow (#10) can run it in fail mode from the start. On the history since #2's import, the old check reported 965 problems and the amended one reports none.
 - Ported code no longer has to strip citations of committed specs, such as the installer's references to the v2 spec's install requirement.
 - IDs are not namespaced, and any mention in living documentation counts. If an issue-based spec reuses a number that living documentation already mentions, such as `FR-3`, the check can't tell them apart and allows it. In this repo the v2 spec defines `FR-1` to `FR-24`, the lifecycle spec defines its own set, and the ADRs cite several of both, so collisions are likely. Issue specs here can avoid them by starting their numbering above the committed ranges, or by using a prefix.
 

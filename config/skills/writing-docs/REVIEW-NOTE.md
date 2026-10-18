@@ -62,3 +62,21 @@ On 2026-10-17 the owner answered the two decisions the first draft left open: "I
 **No new scenario guards the old arm.** The first draft's commit-message scenario was the only new one without the `new-rule-only` tag. After D-1 it tests the new rule, so all four new scenarios are new-rule-only. S-01 to S-19 still guard the old arm.
 
 **No new trust boundary.** The closest one is that the commit-message scenario might lead a model to act on a repo. Scenario runs use `--tools ""` in a temporary working directory, so they can't.
+
+# Third review: a second hand-tuned description
+
+The live trigger suite failed twice on 2026-10-17. The first run, on the approved description, had a recall of 0.533 because short texts loaded only `plain-prose`. The second, on the one tuned description OS-7 allowed, met the recall bar (13 of 15, no false trigger) but failed the rule that every delegated query triggers. Offered four ways forward, the owner chose "D. Allow a second tuned description, aimed at delegated and short-comment work". OS-7 now allows a second tuning with one run, and a stop if it fails. This section records the single adversarial review of that change.
+
+**Verdict:** no critical finding. Two warnings, each accepted with a reason, and two notes. The review changed nothing in the spec.
+
+## Warnings, accepted
+
+**A tuning aimed at two named failures could fit those two queries instead of the work.** The misses were the delegated tutorial and the issue comment. Accepted because OS-7 still requires general terms and no eval query's wording, which the PR review checks, and because the run retests all 25 queries, not just the two.
+
+**The description is already 1,020 characters of its 1,024.** Adding words about work done by a subagent means cutting others, which could drop something FR-2 requires. Accepted because the package test fails if any required element goes missing, so a cut that breaks FR-2 can't land unnoticed.
+
+## Notes, listed
+
+**This change doesn't address the failed behaviour suite.** `writing-docs-behaviour` failed one case of six on its counted rerun, and the spec has no further path for it. That needs its own decision from the owner.
+
+**No new trust boundary.** The change only allows one more edit of a description and one more model run, under the same isolation as before.

@@ -151,3 +151,26 @@ The owner then set a general rule: "if i want you to fix weaknesses in one suite
 ## Note, listed
 
 **A trigger run costs more.** 135 runs instead of 75.
+
+# Ninth review: the same robustness at lower cost
+
+The owner judged the eighth review's designs too costly: "Both the trigger and behavior tests have an issue. It is way too costly to test." Five to ten runs per trigger query came to about 135 model runs, and three reader and judge passes per behaviour text to about 84. The first designs cost 75 and 36. This change keeps chance out of both verdicts by checking more in code instead of sampling more:
+
+- **Behaviour suite (24 model runs).** Each question carries `expect` patterns. One reader pass per text is checked against them in code, with no model judge and no AI-sounding question. `mustContain` and the lint stay deterministic, and the verdict stays on suite totals with a fixed 90% bar and no reruns. `mustKeep`, which only a model judge used, is dropped from the case format.
+- **Trigger suite (about 55 short runs).** Ordinary queries run with `--max-turns 2` and delegated ones with 4. Each query runs twice, with a third run only when the first two disagree. The owner's D-2 bars are back (13 of 15 should-trigger queries, no near miss), and delegated queries count toward the recall instead of each having to trigger, which is the rule that flipped the second live run.
+
+**Verdict:** no critical finding. One warning was fixed in the spec, two were accepted, and there is one note. Because the review changed the spec, the owner sees that change below.
+
+## Warning, fixed
+
+**A turn limit set too low would undercount loads, and nothing would show it.** If a model often reads a file twice before loading the skill, `--max-turns 2` ends the run first, and the query counts as a miss every time. FR-14 now records "the number of runs that hit the turn limit before loading anything, so a limit set too low shows up in the record".
+
+## Warnings, accepted
+
+**The trigger bar has no margin on the last run's results.** Under the new rule, the second live run passes at exactly 13 of 15: the issue-comment query misses every time and the delegated tutorial is borderline. Accepted because the bar is the owner's, and the two remaining tuned descriptions exist to lift those queries.
+
+**An `expect` pattern could reject a right answer worded differently.** "Use pipx" would fail a pattern for the full command. Accepted because FR-28 limits `expect` to short key terms, and the data test requires every pattern to match the case's own facts or draft.
+
+## Note, listed
+
+**The two trigger rules now differ.** `writing-docs-trigger` counts delegated queries toward the recall, while `plain-prose-trigger` still requires each one to trigger until #33. The scoring lives in `eval/doc_evals.py`, so `eval/skill_evals.py` and `plain-prose`'s records are untouched.

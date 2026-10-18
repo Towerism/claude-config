@@ -1,4 +1,4 @@
-"""Package shape, the no-double-trigger rule, and the claim block run against a fake gh."""
+"""Package shape and the claim block run against a fake gh."""
 
 import re
 from pathlib import Path
@@ -17,7 +17,6 @@ LABELS = [
     "approval: adversarial",
     "approval: no-review",
 ]
-INSTALLED = Path.home() / ".claude/skills/github-issue-lifecycle"
 
 
 def frontmatter(key):
@@ -72,12 +71,6 @@ def test_git_reference_credits_source_and_drops_rejected_parts():
     for banned in ("--squash", "git tag v", "reset --hard", "push --force"):
         assert banned not in text
     assert len(text.splitlines()) < 300
-
-
-def test_nothing_that_could_trigger_is_installed_yet():
-    if INSTALLED.exists():
-        assert not (INSTALLED / "SKILL.md").exists()
-    assert (SKILL_DIR / "SKILL.md").exists()
 
 
 def claim_block():

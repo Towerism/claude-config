@@ -255,9 +255,11 @@ def links(doc: Doc, base: Path | None) -> tuple[list[Finding], int]:
             target = match.group(1).strip("<>")
             if not target or SCHEME.match(target) or target.startswith("/"):
                 continue
-            path, _, anchor = target.partition("#")
+            path, _, raw_anchor = target.partition("#")
+            # GitHub matches anchors without regard to case or URL escapes; a bare # is the top.
+            anchor = percent_decode(raw_anchor).lower()
             if not path:
-                if anchor not in own:
+                if anchor and anchor not in own:
                     found.append(
                         _finding(
                             line.number,

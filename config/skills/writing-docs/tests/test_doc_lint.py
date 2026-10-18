@@ -229,6 +229,21 @@ def test_from_stdin_relative_files_are_counted_not_checked(tree):
     assert report["linksNotChecked"] == 9
 
 
+@pytest.mark.parametrize(
+    "link",
+    [
+        "[top](#)",
+        "[Setup](#Setup)",
+        "[new](#WHATS-NEW-V2)",
+        "[uber](#%C3%BCber)",
+        "[steps](other.md#Setup-Steps)",
+    ],
+)
+def test_anchors_match_without_case_or_url_escapes_and_bare_hash_is_the_top(tree, link):
+    text = doc("## Setup", "## What's new? (v2)", "## Über", f"Go to {link}.")
+    assert doc_lint.lint(text, tree)["findings"]["links"] == []
+
+
 def test_a_link_title_is_not_part_of_the_target(tree):
     report = doc_lint.lint(doc('See [other](other.md "The other page").'), tree)
     assert report["findings"]["links"] == []

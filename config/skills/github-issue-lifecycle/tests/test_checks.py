@@ -131,3 +131,15 @@ class TestPrBodyCheck:
 
     def test_crlf_body(self, tmp_path):
         assert self.check(tmp_path, self.GOOD.replace("\n", "\r\n")).returncode == 0
+
+    @pytest.mark.parametrize(
+        "line,code",
+        [
+            ("Spec: config/skills/foo/SPEC.md", 0),
+            ("Spec: `config/skills/foo/SPEC.md`", 0),
+            ("Spec: docs/notes.md", 1),
+            ("Spec: SPEC.md.bak", 1),
+        ],
+    )
+    def test_a_skill_spec_path_can_stand_for_the_issue(self, tmp_path, line, code):
+        assert self.check(tmp_path, self.GOOD.replace("Spec: #42", line)).returncode == code

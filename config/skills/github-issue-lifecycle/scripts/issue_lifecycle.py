@@ -8,6 +8,7 @@ Subcommands:
   commit-check   validate a commit message (Conventional Commit ending in (#N))
   pr-body-check  validate a PR body (Closes line, Spec line, Review section)
   diff-check     scan `git diff <base>...HEAD` for spec IDs in code and committed spec files
+  spec-status    print `approved` or `draft` from a skill spec's Status line
 
 Exit codes: 0 ok, 1 check failed, 2 usage error, 3 no spec markers, 4 malformed markers.
 Issue and PR text is only ever read from files and treated as data.
@@ -199,11 +200,32 @@ def check_pr_body(body, issue, repo=None):
     if not any(re.fullmatch(r"closes " + re.escape(target), line, re.I) for line in lines):
         problems.append(("missing-closes", f"needs 'Closes {target}' alone on its own line"))
     spec_targets = "|".join(re.escape(t) for t in {target, f"#{issue}"})
-    if not any(re.fullmatch(rf"spec: (?:{spec_targets})", line, re.I) for line in lines):
+    # A skill's spec lives in a SPEC.md beside its SKILL.md, so its path can stand in.
+    spec_line = re.compile(rf"spec: (?:{spec_targets}|`?[\w./-]*SPEC\.md`?)", re.I)
+    if not any(spec_line.fullmatch(line) for line in lines):
         problems.append(("missing-spec-line", f"needs a 'Spec: {target}' line"))
     if not any(line.startswith("#") and "review" in line.lower() for line in lines):
         problems.append(("missing-review", "needs a Review section with the PR-diff review note"))
     return problems
+
+
+# ── skill spec status ────────────────────────────────────────────────────────
+
+STATUS_RE = re.compile(r"^\*\*Status:\*\*[ \t]*(.*)$", re.M)
+
+
+def spec_status(text):
+    """('approved' | 'draft' | None, problems) from the first Status line of a spec."""
+    match = STATUS_RE.search(text.replace("\r\n", "\n"))
+    if not match:
+        return None, [("no-status-line", "no line starting '**Status:**'")]
+    words = match.group(1).split()
+    state = words[0].lower().strip(".,;:—-") if words else ""
+    if state in ("approved", "draft"):
+        return state, []
+    return None, [
+        ("unknown-status", f"status {match.group(1).strip()!r} is neither Approved nor Draft")
+    ]
 
 
 # ── diff hygiene ─────────────────────────────────────────────────────────────
@@ -300,6 +322,7 @@ EPILOG = """Examples:
   issue_lifecycle.py commit-check --message msg.txt --json
   issue_lifecycle.py pr-body-check --body pr.md --issue 42
   issue_lifecycle.py diff-check --base origin/main
+  issue_lifecycle.py spec-status --spec config/skills/foo/SPEC.md
 
 Exit codes: 0 ok, 1 check failed, 2 usage error, 3 no spec markers, 4 malformed markers."""
 
@@ -344,6 +367,8 @@ def build_parser():
     p = sub.add_parser("diff-check", parents=[common], help="scan the branch diff")
     p.add_argument("--base", required=True, help="base ref, e.g. origin/main")
     p.add_argument("--repo-dir", default=".", help="repository to scan")
+    p = sub.add_parser("spec-status", parents=[common], help="read a skill spec's Status line")
+    p.add_argument("--spec", required=True, help="the SPEC.md file")
     return parser
 
 
@@ -380,6 +405,14 @@ def run(argv):
         return report(check_commit(read_text(args.message)), args.json)
     if args.cmd == "pr-body-check":
         return report(check_pr_body(read_text(args.body), args.issue, args.repo), args.json)
+    if args.cmd == "spec-status":
+        state, problems = spec_status(read_text(args.spec))
+        if args.json:
+            detail = [{"code": c, "detail": d} for c, d in problems]
+            print(json.dumps({"ok": not problems, "status": state, "problems": detail}))
+        else:
+            print(state or "\n".join(f"FAIL {c}: {d}" for c, d in problems))
+        return EXIT_FAIL if problems else EXIT_OK
     return report(cmd_diff_check(args.base, args.repo_dir), args.json)
 
 

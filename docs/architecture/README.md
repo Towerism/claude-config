@@ -152,11 +152,13 @@ claude-config/
 │   ├── scenarios.json           19 scenarios for the scenario eval (v2 spec AC-6)
 │   ├── gates.json               which changed paths require which eval suites
 │   ├── run_eval.py  hook_harness.py
+│   ├── symlink_check.py         checks that Claude Code follows the deploy's symlinks (ADR-0001); not a gated suite
 │   ├── records/<suite>.json     committed eval records
 │   └── out/                     raw transcripts, gitignored
 │
 └── docs/
     ├── architecture/  adr/  runbook.md
+    ├── evidence/                results of one-off checks, such as symlink-check.md
     └── history/                 frozen spec revisions, review diffs, selected evidence, the retired skill
 ```
 

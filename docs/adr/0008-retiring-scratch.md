@@ -2,9 +2,9 @@
 
 **Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15).
 
-Before this repo existed, the layered config was designed and built in scratch directories. This ADR decides what moves into the repo. Specs, review notes, change diffs and the evidence the review notes cite go into `docs/history/`, byte for byte. Caches, probe output and raw logs are dropped. The payload, the deployable files under `config/`, is copied from the live config rather than from scratch, because adoption compares against the live files.
+Before this repo existed, the layered config was designed and built in scratch directories. This ADR decides what moves into the repo. Specs, review notes, change diffs and the evidence the review notes cite go into `docs/history/`, byte for byte. Caches, probe output and raw logs are dropped. The payload, the deployable files under `config/`, is copied from the live config rather than from scratch, because adoption was then planned to compare against the live files. Adoption was dropped on 2026-10-18 in favour of the first deploy ([ADR-0004](0004-drift-and-adoption.md)).
 
-Terms such as live config, payload, adoption, clause inventory and the v2 spec are defined in the [Terms section of the architecture doc](../architecture/README.md#terms).
+Terms such as live config, payload, first deploy, clause inventory and the v2 spec are defined in the [Terms section of the architecture doc](../architecture/README.md#terms).
 
 ## Context
 
@@ -58,9 +58,9 @@ The lifecycle skill's `diff-check` rejects requirement IDs in code unless living
 
 ### Deletion
 
-Claude deletes nothing in `~/dev/scratch/` or `~/.old-claude/` unless the owner asks explicitly; the lifecycle spec says the same about the retired skill (OS-6). Once the imports are merged and adoption has passed, the runbook lists what may be deleted.
+Claude deletes nothing in `~/dev/scratch/` or `~/.old-claude/` unless the owner asks explicitly; the lifecycle spec says the same about the retired skill (OS-6). Once the imports are merged and the first deploy has passed, the runbook lists what may be deleted.
 
-The owner doesn't intend to return to v1. Once adoption has passed, neither the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` nor the `claude-md-v2-*` backup has any role in rollback, and the retired skill is preserved in `docs/history/`. On 2026-10-16 the owner told Claude to delete both once adoption passes on the personal machine; issue 7 does it, listing the two paths first. The rest of `~/.old-claude/` is out of scope: `~/.old-claude/work-skills/` holds the existing work skill ([ADR-0011](0011-tracker-agnostic-lifecycle.md)) and is never deleted as part of this cleanup.
+The owner doesn't intend to return to v1. Once the first deploy has passed, neither the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` nor the `claude-md-v2-*` backup has any role in rollback, and the retired skill is preserved in `docs/history/`. On 2026-10-16 the owner told Claude to delete both once adoption passed on the personal machine. When adoption was dropped on 2026-10-18, the owner moved this to the first deploy: issue 8 lists the two paths and deletes them after the owner's go-ahead. The rest of `~/.old-claude/` is out of scope: `~/.old-claude/work-skills/` holds the existing work skill ([ADR-0011](0011-tracker-agnostic-lifecycle.md)) and is never deleted as part of this cleanup.
 
 ## Consequences
 

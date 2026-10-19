@@ -12,6 +12,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 FRAGMENT: dict[str, Any] = {
     "enabledPlugins": {"tools@market": True},
     "extraKnownMarketplaces": {"market": {"source": {"source": "github", "repo": "o/r"}}},
@@ -109,3 +111,12 @@ def commit_change(repo: Path, rel: str, text: str, message: str = "change") -> s
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", message)
     return git(repo, "rev-parse", "HEAD")
+
+
+@pytest.fixture
+def cfg_isolation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point HOME, XDG_DATA_HOME and git's config at tmp_path, so no test sees the real ones."""
+    monkeypatch.setenv("HOME", str(tmp_path / "isolated-home"))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "isolated-xdg"))
+    for key, value in GIT_ENV.items():
+        monkeypatch.setenv(key, value)

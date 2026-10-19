@@ -17,3 +17,7 @@ class SettingsUnusable(CfgError):
 
 class SettingsChanged(CfgError):
     """Another program wrote settings.json while cfg was writing it."""
+
+
+class GitMissing(CfgError):
+    """git isn't on PATH."""

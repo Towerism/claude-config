@@ -342,6 +342,31 @@ The work machine's own profile and setup are #17. For any other machine:
 
 These steps haven't been run on a real second machine yet.
 
+## Changing this machine's default lifecycle
+
+Each session and subagent starts with one line saying which lifecycle skill to use when the repo's own CLAUDE.md names no tracker. The `lifecycle_default.py` hook prints it, from a deploy that includes #15 onward. To see the line this machine gets:
+
+```sh
+echo '{"hook_event_name": "SessionStart"}' | python3 -I ~/.claude/hooks/lifecycle_default.py
+```
+
+On the personal machine, expect:
+
+```json
+{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "Default lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins."}}
+```
+
+The default comes from `defaultLifecycle` in the host profile. To change it for every machine on that profile, change the profile in a PR. To change it on this machine only, write a local file, which `cfg` never writes or syncs:
+
+```sh
+mkdir -p ~/.config/claude-config
+printf '%s\n' '{"defaultLifecycle": "jira-ticket-lifecycle"}' > ~/.config/claude-config/local.json
+```
+
+If `XDG_CONFIG_HOME` is set to an absolute path, the file goes in `$XDG_CONFIG_HOME/claude-config/` instead. Run the command above again: the line now says `(set in ~/.config/claude-config/local.json, which overrides the host profile)`. If the file can't be used, the line keeps the profile's default and ends with `~/.config/claude-config/local.json was ignored:` and the reason, such as `it isn't valid JSON`. To go back to the profile's default, delete the file or its `defaultLifecycle` key.
+
+The hook doesn't check that the named skill is installed. A new session picks up a change; a running one keeps the line it started with.
+
 ## Updating your checkout
 
 `git pull` refuses when your clone has untracked files that the repo now tracks. On 2026-10-19 the owner's checkout had an untracked `docs/` folder, left over from before the docs were committed. Move such files aside, never delete them, then pull:

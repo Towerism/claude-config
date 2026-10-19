@@ -123,7 +123,7 @@ claude-config/
 ├── config/                      the payload: the only directory that reaches ~/.claude
 │   ├── CLAUDE.global.md         → ~/.claude/CLAUDE.md
 │   ├── skill-overlays/*.md      → ~/.claude/skill-overlays/
-│   ├── hooks/*.py               → ~/.claude/hooks/
+│   ├── hooks/*.py               → ~/.claude/hooks/: skill_overlay.py (overlays), merge_confirm.py (merge guard), lifecycle_default.py (the machine's default lifecycle, ADR-0011)
 │   ├── settings.fragment.json   settings keys the repo owns; hook commands use {claude_home}
 │   └── skills/<name>/           → ~/.claude/skills/<name>/  (SKILL.md, SPEC.md, REVIEW-NOTE.md, scripts, tests, evals)
 │       ├── plain-prose/         planned: readability rules for all prose, plus prose_check.py (ADR-0010)
@@ -155,9 +155,9 @@ claude-config/
 │
 ├── eval/                        model evals, run locally only; CI only verifies their records
 │   ├── clauses.json             the clause inventory
-│   ├── scenarios.json           19 scenarios for the scenario eval (v2 spec AC-6)
+│   ├── scenarios.json           32 scenarios for the scenario eval (v2 spec AC-6), each starting with the lifecycle hook's line
 │   ├── gates.json               which changed paths require which eval suites
-│   ├── run_eval.py  hook_harness.py
+│   ├── run_eval.py  hook_harness.py  session_harness.py (the hook-session-start suite)
 │   ├── symlink_check.py         checks that Claude Code follows the deploy's symlinks (ADR-0001); not a gated suite
 │   ├── records/<suite>.json     committed eval records
 │   └── out/                     raw transcripts, gitignored

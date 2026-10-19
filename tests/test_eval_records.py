@@ -555,3 +555,32 @@ def test_companions_must_be_a_list_of_strings():
     gates["suites"]["writing-docs-trigger"]["companions"] = "plain-prose"
     with pytest.raises(er.GatesError, match="companions must be a list of strings"):
         er.parse_gates(json.dumps(gates))
+
+
+# The lifecycle suites, as eval/gates.json defines them
+
+LIFECYCLE = "config/skills/github-issue-lifecycle"
+
+
+@pytest.mark.parametrize(
+    "change, suites",
+    [
+        # The trigger runner builds its config with the behaviour runner's code.
+        ({f"{LIFECYCLE}/evals/run_behaviour_evals.py": "print(2)\n"},
+         ["lifecycle-behaviour", "lifecycle-trigger"]),
+        ({f"{LIFECYCLE}/scripts/issue_lifecycle.py": "print(2)\n"}, ["lifecycle-behaviour"]),
+        ({f"{LIFECYCLE}/evals/fake_gh.py": "print(2)\n"}, ["lifecycle-behaviour"]),
+        ({f"{LIFECYCLE}/references/gh-commands.md": "# New\n"}, ["lifecycle-behaviour"]),
+        ({f"{LIFECYCLE}/assets/pr-body-template.md": "Closes #N\n"}, ["lifecycle-behaviour"]),
+        ({f"{LIFECYCLE}/tests/test_x.py": "def test_x(): pass\n"}, []),
+    ],
+)  # fmt: skip
+def test_each_lifecycle_change_requires_the_suites_it_affects(tmp_path, change, suites):
+    repo, _ = make_repo(tmp_path)
+    base = commit(repo, {
+        "eval/gates.json": (REPO_ROOT / "eval" / "gates.json").read_text(),
+        f"{LIFECYCLE}/evals/run_behaviour_evals.py": "print(1)\n",
+        f"{LIFECYCLE}/scripts/issue_lifecycle.py": "print(1)\n",
+    })  # fmt: skip
+    commit(repo, change)
+    assert required(repo, base) == suites

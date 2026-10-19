@@ -20,8 +20,8 @@ or the plugins don't have.
 --path-rule lists every line under tools/, config/ and eval/ that holds a
 home-directory or scratch path, which would break on another machine
 (ADR-0008). In report mode the findings don't fail the run; in fail mode
-they do. The rule is report-only until #4 removes the lifecycle skill's
-paths.
+they do. The repo's documented command uses fail mode since #4 removed the
+lifecycle skill's last scratch paths.
 """
 
 from __future__ import annotations

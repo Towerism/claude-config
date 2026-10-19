@@ -7,12 +7,6 @@ import pytest
 from tests.checker_helpers import REPO_ROOT, run_script
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
-# The lifecycle skill's spec and behaviour evals still name scratch and home
-# paths; #4 removes them and then switches the documented command to fail mode.
-PENDING = {
-    "config/skills/github-issue-lifecycle/SPEC.md",
-    "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py",
-}
 
 
 @pytest.fixture
@@ -25,8 +19,8 @@ def empty_home(tmp_path):
 @pytest.mark.parametrize(
     "profile", sorted((REPO_ROOT / "hosts").glob("*.json")), ids=lambda p: p.name
 )
-@pytest.mark.parametrize("mode,code", [("report", 0), ("fail", 1)])
-def test_each_host_profile_passes_offline_apart_from_pending_paths(empty_home, profile, mode, code):
+@pytest.mark.parametrize("mode", ["report", "fail"])
+def test_each_host_profile_passes_offline_with_no_home_or_scratch_paths(empty_home, profile, mode):
     args = [
         "--host", str(profile),
         "--plugin-index", str(REPO_ROOT / "plugins.lock.json"),
@@ -36,8 +30,8 @@ def test_each_host_profile_passes_offline_apart_from_pending_paths(empty_home, p
     ]  # fmt: skip
     r = run_script(SCRIPT, "", empty_home, args)
     rep = json.loads(r.stdout)
-    assert r.returncode == code, r.stdout
-    assert rep["pathProblems"] and {p["file"] for p in rep["pathProblems"]} <= PENDING
+    assert r.returncode == 0, r.stdout
+    assert rep["pathProblems"] == []
     rep["pathProblems"] = []
     assert rep | {"ok": True, "tokenCounts": []} == {
         "ok": True,

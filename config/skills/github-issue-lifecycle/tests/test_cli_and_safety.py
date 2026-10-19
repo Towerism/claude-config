@@ -37,8 +37,13 @@ def test_script_is_stdlib_only_and_network_free():
 def test_subprocess_used_only_in_diff_check_and_never_with_shell():
     tree = ast.parse(SCRIPT.read_text())
     for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
-        uses = [n for n in ast.walk(fn) if isinstance(n, ast.Attribute)
-                and isinstance(n.value, ast.Name) and n.value.id == "subprocess"]
+        uses = [
+            n
+            for n in ast.walk(fn)
+            if isinstance(n, ast.Attribute)
+            and isinstance(n.value, ast.Name)
+            and n.value.id == "subprocess"
+        ]
         if uses:
             assert fn.name == "cmd_diff_check", fn.name
     for call in [n for n in ast.walk(tree) if isinstance(n, ast.Call)]:
@@ -57,6 +62,21 @@ def test_subcommands_are_fast_on_a_64kb_body(tmp_path):
 def test_help_lists_every_subcommand_with_an_example():
     r = run("--help")
     assert r.returncode == 0
-    for sub in ("extract", "replace", "branch-name", "commit-check", "pr-body-check", "diff-check"):
+    subs = ("extract", "replace", "branch-name", "commit-check", "pr-body-check", "diff-check")
+    for sub in (*subs, "spec-status"):
         assert sub in r.stdout
     assert "Examples:" in r.stdout
+
+
+def test_importlib_only_loads_the_sibling_prose_check():
+    tree = ast.parse(SCRIPT.read_text())
+    for fn in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
+        uses = [
+            n
+            for n in ast.walk(fn)
+            if isinstance(n, ast.Attribute)
+            and isinstance(n.value, ast.Attribute)
+            and getattr(n.value.value, "id", None) == "importlib"
+        ]
+        if uses:
+            assert fn.name == "prose_module", fn.name

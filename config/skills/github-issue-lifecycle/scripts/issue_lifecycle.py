@@ -8,12 +8,14 @@ Subcommands:
   commit-check   validate a commit message (Conventional Commit ending in (#N))
   pr-body-check  validate a PR body (Closes line, Spec line, Review section)
   diff-check     scan `git diff <base>...HEAD` for spec IDs in code and committed spec files
+  spec-status    print `approved` or `draft` from a skill spec's Status line
 
 Exit codes: 0 ok, 1 check failed, 2 usage error, 3 no spec markers, 4 malformed markers.
 Issue and PR text is only ever read from files and treated as data.
 """
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -24,8 +26,26 @@ import unicodedata
 START = "<!-- spec:start -->"
 END = "<!-- spec:end -->"
 
-CC_TYPES = ("feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert")
-BRANCH_TYPES = {"feat": "feature", "feature": "feature", "fix": "fix", "docs": "docs", "hotfix": "hotfix"}
+CC_TYPES = (
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "perf",
+    "test",
+    "build",
+    "ci",
+    "chore",
+    "revert",
+)
+BRANCH_TYPES = {
+    "feat": "feature",
+    "feature": "feature",
+    "fix": "fix",
+    "docs": "docs",
+    "hotfix": "hotfix",
+}
 SLUG_MAX = 40
 
 EXIT_OK, EXIT_FAIL, EXIT_USAGE, EXIT_NO_MARKERS, EXIT_MALFORMED = 0, 1, 2, 3, 4
@@ -42,6 +62,7 @@ class MarkerError(Exception):
 
 
 # ── file helpers ─────────────────────────────────────────────────────────────
+
 
 def read_text(path):
     """Read a file (or stdin for "-") preserving every byte, including CRLF."""
@@ -61,6 +82,7 @@ def write_text(path, text):
 
 # ── spec block ───────────────────────────────────────────────────────────────
 
+
 def _line_content(line):
     return line.rstrip("\r\n")
 
@@ -71,9 +93,9 @@ def locate_block(body):
     Only whole lines count as markers; a marker mentioned mid-line is text.
     """
     lines = body.splitlines(keepends=True)
-    start = next((i for i, l in enumerate(lines) if _line_content(l) == START), None)
+    start = next((i for i, line in enumerate(lines) if _line_content(line) == START), None)
     if start is None:
-        if any(_line_content(l) == END for l in lines):
+        if any(_line_content(line) == END for line in lines):
             raise MarkerError(EXIT_MALFORMED, "end marker without a start marker")
         raise MarkerError(EXIT_NO_MARKERS, "no spec markers")
     end = next((i for i in range(start + 1, len(lines)) if _line_content(lines[i]) == END), None)
@@ -84,8 +106,8 @@ def locate_block(body):
 
 def extract_spec(body):
     lines, start, end = locate_block(body)
-    inner = [_line_content(l) for l in lines[start + 1 : end]]
-    return "".join(f"{l}\n" for l in inner)
+    inner = [_line_content(line) for line in lines[start + 1 : end]]
+    return "".join(f"{line}\n" for line in inner)
 
 
 def _clean_spec(spec):
@@ -119,19 +141,24 @@ def replace_spec(body, spec):
         return body + sep + block + nl
     prefix = "".join(lines[:start])
     end_line = lines[end]
-    terminator = end_line[len(_line_content(end_line)):]
+    terminator = end_line[len(_line_content(end_line)) :]
     rest = terminator + "".join(lines[end + 1 :])
     return prefix + block + rest
 
 
 # ── branch names ─────────────────────────────────────────────────────────────
 
+
 def slugify(title, issue):
     ascii_title = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()
     slug = re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")
     if len(slug) > SLUG_MAX:
         cut = slug[: SLUG_MAX + 1]
-        slug = cut[:SLUG_MAX] if cut.endswith("-") else (cut.rsplit("-", 1)[0] if "-" in cut else cut[:SLUG_MAX])
+        slug = (
+            cut[:SLUG_MAX]
+            if cut.endswith("-")
+            else (cut.rsplit("-", 1)[0] if "-" in cut else cut[:SLUG_MAX])
+        )
         slug = slug.strip("-")
     return slug or f"issue-{issue}"
 
@@ -145,7 +172,7 @@ def branch_name(cc_type, issue, title, hotfix=False):
 
 # ── commit and PR checks ─────────────────────────────────────────────────────
 
-SUBJECT_RE = re.compile(r"^(?:%s)(?:\([^()\s]+\))?(!)?: \S.*$" % "|".join(CC_TYPES))
+SUBJECT_RE = re.compile(rf"^(?:{'|'.join(CC_TYPES)})(?:\([^()\s]+\))?(!)?: \S.*$")
 ISSUE_REF_RE = re.compile(r"\((?:[\w.-]+/[\w.-]+)?#\d+\)$")
 BREAKING_FOOTER_RE = re.compile(r"^BREAKING[ -]CHANGE: \S", re.M)
 
@@ -156,54 +183,149 @@ def check_commit(message):
     problems = []
     match = SUBJECT_RE.match(subject)
     if not match:
-        problems.append(("not-conventional", f"not conventional: {subject!r} is not 'type(scope)!: subject'"))
+        problems.append(
+            ("not-conventional", f"not conventional: {subject!r} is not 'type(scope)!: subject'")
+        )
     if not ISSUE_REF_RE.search(subject):
         problems.append(("missing-issue-ref", "missing (#N) at the end of the subject"))
     if match and match.group(1) and not BREAKING_FOOTER_RE.search(rest):
-        problems.append(("breaking-needs-footer", "breaking change needs footer 'BREAKING CHANGE: ...'"))
+        problems.append(
+            ("breaking-needs-footer", "breaking change needs footer 'BREAKING CHANGE: ...'")
+        )
     return problems
 
 
 def check_pr_body(body, issue, repo=None):
-    lines = [l.strip() for l in body.replace("\r\n", "\n").split("\n")]
+    lines = [line.strip() for line in body.replace("\r\n", "\n").split("\n")]
     target = f"{repo}#{issue}" if repo else f"#{issue}"
     problems = []
-    if not any(re.fullmatch(r"closes " + re.escape(target), l, re.I) for l in lines):
+    if not any(re.fullmatch(r"closes " + re.escape(target), line, re.I) for line in lines):
         problems.append(("missing-closes", f"needs 'Closes {target}' alone on its own line"))
     spec_targets = "|".join(re.escape(t) for t in {target, f"#{issue}"})
-    if not any(re.fullmatch(r"spec: (?:%s)" % spec_targets, l, re.I) for l in lines):
+    # A skill's spec lives in a SPEC.md beside its SKILL.md, so its path can stand in.
+    spec_line = re.compile(rf"spec: (?:{spec_targets}|`?[\w./-]*SPEC\.md`?)", re.I)
+    if not any(spec_line.fullmatch(line) for line in lines):
         problems.append(("missing-spec-line", f"needs a 'Spec: {target}' line"))
-    if not any(l.startswith("#") and "review" in l.lower() for l in lines):
+    if not any(line.startswith("#") and "review" in line.lower() for line in lines):
         problems.append(("missing-review", "needs a Review section with the PR-diff review note"))
     return problems
 
 
+# ── AI-writing tells (report-only) ───────────────────────────────────────────
+
+# plain-prose is a sibling skill; its checker is stdlib-only and makes no network calls.
+PROSE_CHECK = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+    "plain-prose",
+    "scripts",
+    "prose_check.py",
+)
+TELL_FIELDS = ("line", "kind", "text", "fix")
+
+
+def prose_module():
+    """Load plain-prose's prose_check.py. Caching is turned off first, because a cache
+    written into a deployed skill directory would show up as drift."""
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location("prose_check", PROSE_CHECK)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def find_tells(text):
+    """(tells, note): plain-prose's AI-tell findings for text, or None and the reason."""
+    if not os.path.isfile(PROSE_CHECK):
+        return None, f"tells not checked: plain-prose's prose_check.py isn't at {PROSE_CHECK}"
+    try:
+        findings = prose_module().check(text)["findings"]["ai_tells"]
+    except (Exception, SystemExit) as exc:  # report-only: a broken checker never changes a result
+        return None, f"tells not checked: prose_check.py failed ({type(exc).__name__}: {exc})"
+    return [{key: f[key] for key in TELL_FIELDS} for f in findings], None
+
+
+# ── skill spec status ────────────────────────────────────────────────────────
+
+STATUS_RE = re.compile(r"^\*\*Status:\*\*[ \t]*(.*)$", re.M)
+
+
+def spec_status(text):
+    """('approved' | 'draft' | None, problems) from the first Status line of a spec."""
+    match = STATUS_RE.search(text.replace("\r\n", "\n"))
+    if not match:
+        return None, [("no-status-line", "no line starting '**Status:**'")]
+    words = match.group(1).split()
+    state = words[0].lower().strip(".,;:—-") if words else ""
+    if state in ("approved", "draft"):
+        return state, []
+    return None, [
+        ("unknown-status", f"status {match.group(1).strip()!r} is neither Approved nor Draft")
+    ]
+
+
 # ── diff hygiene ─────────────────────────────────────────────────────────────
 
-SPEC_ID_RE = re.compile(r"(?<![A-Za-z0-9])(?:(?:fr|nfr|ac|ec|os)-\d+(?![0-9])|(?:fr|nfr|ac|ec)\d+(?=_))", re.I)
+SPEC_ID_RE = re.compile(
+    r"(?<![A-Za-z0-9])(?:(?:fr|nfr|ac|ec|os)-\d+(?![0-9])|(?:fr|nfr|ac|ec)\d+(?=_))", re.I
+)
+# In documentation an ID counts in any spelling (FR-23, FR23, fr_23), but only as a
+# word of its own: the prefix may not follow a letter or digit.
+DOC_ID_RE = re.compile(r"(?<![A-Za-z0-9])(nfr|fr|ac|ec|os)[-_]?(\d+)", re.I)
+DOC_ID_GREP = "(nfr|fr|ac|ec|os)[-_]?[0-9]+"
 SPEC_BASENAME_RE = re.compile(r"(^spec(-.+)?\.md$|-spec\.md$|\.spec\.md$)", re.I)
+MARKDOWN = (".md", ".markdown")
+FROZEN_SEGMENTS = {"history", "archive"}
 
 
-def is_spec_file(path, repo_dir):
+def normal_id(text):
+    """The comparable form of an ID: lowercase prefix, hyphen, number without leading zeros."""
+    match = re.match(r"([a-z]+)[-_]?(\d+)", text, re.I)
+    return f"{match.group(1).lower()}-{int(match.group(2))}"
+
+
+def is_spec_name(path):
     if not path.lower().endswith(".md"):
         return False
     parts = path.split("/")
-    if not ("specs" in parts[:-1] or SPEC_BASENAME_RE.search(parts[-1])):
-        return False
-    if parts[-1] == "SPEC.md" and os.path.exists(os.path.join(repo_dir, *parts[:-1], "SKILL.md")):
-        return False
-    return True
+    return "specs" in parts[:-1] or bool(SPEC_BASENAME_RE.search(parts[-1]))
+
+
+def has_subject(listing):
+    """True when a directory listing (`git ls-tree` lines) holds a SKILL.md or any
+    file that isn't Markdown, which makes a spec beside them a living spec."""
+    for entry in listing.splitlines():
+        meta, _, name = entry.partition("\t")
+        if meta.split()[1:2] != ["blob"]:
+            continue
+        if name.rsplit("/", 1)[-1] == "SKILL.md" or not name.lower().endswith(MARKDOWN):
+            return True
+    return False
 
 
 def cmd_diff_check(base, repo_dir):
-    def git(*args):
+    def git(*args, ok=(0,)):
         result = subprocess.run(["git", "-C", repo_dir, *args], capture_output=True, text=True)
-        if result.returncode != 0:
+        if result.returncode not in ok:
             raise UsageError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
         return result.stdout
 
+    def living_ids():
+        # git grep exits 1 when nothing matches; that just means no IDs are defined.
+        out = git("grep", "-I", "-i", "-z", "-E", DOC_ID_GREP, "HEAD", "--", "*.md", ok=(0, 1))
+        ids = set()
+        # Split on newlines only: str.splitlines() would also break inside a line at
+        # separators such as U+2028, and lose the file name for the rest of it.
+        for hit in out.split("\n"):
+            name, _, text = hit.partition("\0")
+            path = name.split(":", 1)[-1]
+            if FROZEN_SEGMENTS & set(path.split("/")[:-1]):
+                continue
+            ids.update(normal_id(m.group(0)) for m in DOC_ID_RE.finditer(text))
+        return ids
+
     diff = git("diff", "--no-color", "--no-ext-diff", "-U0", f"{base}...HEAD")
     added = git("diff", "--name-only", "--diff-filter=A", f"{base}...HEAD").splitlines()
+    defined = None
     problems = []
     current, line_no = None, 0
     for line in diff.splitlines():
@@ -215,11 +337,16 @@ def cmd_diff_check(base, repo_dir):
         elif line.startswith("+") and current:
             if not current.lower().endswith(".md"):
                 for match in SPEC_ID_RE.finditer(line[1:]):
-                    problems.append(("spec-id", f"{current}:{line_no}: {match.group(0)}"))
+                    defined = living_ids() if defined is None else defined
+                    if normal_id(match.group(0)) not in defined:
+                        problems.append(("spec-id", f"{current}:{line_no}: {match.group(0)}"))
             line_no += 1
     for path in added:
-        if is_spec_file(path, repo_dir):
-            problems.append(("spec-file", f"{path} is a spec file; specs live on the issue"))
+        if not is_spec_name(path):
+            continue
+        folder = path.rsplit("/", 1)[0] + "/" if "/" in path else "."
+        if not has_subject(git("ls-tree", "HEAD", "--", folder)):
+            problems.append(("spec-file", f"{path} is a spec file away from its subject"))
     return problems
 
 
@@ -232,6 +359,7 @@ EPILOG = """Examples:
   issue_lifecycle.py commit-check --message msg.txt --json
   issue_lifecycle.py pr-body-check --body pr.md --issue 42
   issue_lifecycle.py diff-check --base origin/main
+  issue_lifecycle.py spec-status --spec config/skills/foo/SPEC.md
 
 Exit codes: 0 ok, 1 check failed, 2 usage error, 3 no spec markers, 4 malformed markers."""
 
@@ -244,8 +372,12 @@ class Parser(argparse.ArgumentParser):
 def build_parser():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--json", action="store_true", help="machine-readable output")
-    parser = Parser(prog="issue_lifecycle.py", description=__doc__.split("\n")[0],
-                    formatter_class=argparse.RawDescriptionHelpFormatter, epilog=EPILOG)
+    parser = Parser(
+        prog="issue_lifecycle.py",
+        description=__doc__.split("\n")[0],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=EPILOG,
+    )
     sub = parser.add_subparsers(dest="cmd", parser_class=Parser)
 
     p = sub.add_parser("extract", parents=[common], help="print the spec block")
@@ -255,7 +387,11 @@ def build_parser():
     p.add_argument("--spec", required=True, help="new spec file")
     p.add_argument("--out", required=True, help="where to write the new body")
     p = sub.add_parser("branch-name", parents=[common], help="print the branch name")
-    p.add_argument("--type", required=True, help="Conventional Commit type of the change (feat, fix, docs, ...)")
+    p.add_argument(
+        "--type",
+        required=True,
+        help="Conventional Commit type of the change (feat, fix, docs, ...)",
+    )
     p.add_argument("--issue", required=True, type=int, help="issue number")
     p.add_argument("--title", required=True, help="issue title")
     p.add_argument("--hotfix", action="store_true", help="use the hotfix/ prefix")
@@ -268,18 +404,31 @@ def build_parser():
     p = sub.add_parser("diff-check", parents=[common], help="scan the branch diff")
     p.add_argument("--base", required=True, help="base ref, e.g. origin/main")
     p.add_argument("--repo-dir", default=".", help="repository to scan")
+    p = sub.add_parser("spec-status", parents=[common], help="read a skill spec's Status line")
+    p.add_argument("--spec", required=True, help="the SPEC.md file")
     return parser
 
 
-def report(problems, as_json):
+def report(problems, as_json, prose=None):
+    """Print the check result. With prose text, also list its tells; they never change
+    the exit code."""
+    tells, note = find_tells(prose) if prose is not None else (None, None)
     if as_json:
-        print(json.dumps({"ok": not problems,
-                          "problems": [{"code": c, "detail": d} for c, d in problems]}))
+        out = {"ok": not problems, "problems": [{"code": c, "detail": d} for c, d in problems]}
+        if prose is not None:
+            out["tells"] = tells
+            if note:
+                out["tellsNote"] = note
+        print(json.dumps(out))
     else:
         for code, detail in problems:
             print(f"FAIL {code}: {detail}")
         if not problems:
             print("OK")
+        for t in tells or []:
+            print(f"TELL L{t['line']} {t['kind']}: {t['text']} -> {t['fix']}")
+        if note:
+            print(f"NOTE {note}")
     return EXIT_FAIL if problems else EXIT_OK
 
 
@@ -298,9 +447,19 @@ def run(argv):
         print(branch_name(args.type, args.issue, args.title, args.hotfix))
         return EXIT_OK
     if args.cmd == "commit-check":
-        return report(check_commit(read_text(args.message)), args.json)
+        message = read_text(args.message)
+        return report(check_commit(message), args.json, prose=message)
     if args.cmd == "pr-body-check":
-        return report(check_pr_body(read_text(args.body), args.issue, args.repo), args.json)
+        body = read_text(args.body)
+        return report(check_pr_body(body, args.issue, args.repo), args.json, prose=body)
+    if args.cmd == "spec-status":
+        state, problems = spec_status(read_text(args.spec))
+        if args.json:
+            detail = [{"code": c, "detail": d} for c, d in problems]
+            print(json.dumps({"ok": not problems, "status": state, "problems": detail}))
+        else:
+            print(state or "\n".join(f"FAIL {c}: {d}" for c, d in problems))
+        return EXIT_FAIL if problems else EXIT_OK
     return report(cmd_diff_check(args.base, args.repo_dir), args.json)
 
 

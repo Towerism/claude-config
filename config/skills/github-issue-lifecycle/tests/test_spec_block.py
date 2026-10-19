@@ -1,7 +1,6 @@
 """extract / replace: the spec block in the issue body. Body corruption is the top risk."""
 
 import pytest
-
 from conftest import END, FIXTURES, ORIGINAL, START, make_body, run, write
 
 NEW_SPEC = "# Spec: CSV export v2\n\nNew content."
@@ -39,7 +38,9 @@ class TestOldSkillBodies:
 
 
 def test_marker_mentioned_mid_line_is_not_a_marker(tmp_path):
-    body = make_body(spec=f"# Spec\nThe block ends at `{END}` on its own line.\nAFTER\n") + "TRAILER\n"
+    body = (
+        make_body(spec=f"# Spec\nThe block ends at `{END}` on its own line.\nAFTER\n") + "TRAILER\n"
+    )
     result = run("extract", "--body", write(tmp_path, "b.md", body))
     assert "AFTER" in result.stdout
     assert "TRAILER" not in result.stdout and ORIGINAL not in result.stdout
@@ -67,7 +68,9 @@ def test_no_markers_extract_prints_nothing_and_exits_3(tmp_path):
 def test_no_markers_replace_appends_block_below_original(tmp_path):
     path = write(tmp_path, "b.md", ORIGINAL)
     out = tmp_path / "out.md"
-    result = run("replace", "--body", path, "--spec", write(tmp_path, "s.md", NEW_SPEC), "--out", out)
+    result = run(
+        "replace", "--body", path, "--spec", write(tmp_path, "s.md", NEW_SPEC), "--out", out
+    )
     assert result.returncode == 0
     assert out.read_text() == f"{ORIGINAL}\n\n{START}\n{NEW_SPEC}\n{END}\n"
 
@@ -76,7 +79,9 @@ def test_missing_end_marker_exits_4_for_extract_and_replace_writes_nothing(tmp_p
     path = write(tmp_path, "b.md", make_body(spec="# Spec", end_marker=False))
     assert run("extract", "--body", path).returncode == 4
     out = tmp_path / "out.md"
-    result = run("replace", "--body", path, "--spec", write(tmp_path, "s.md", NEW_SPEC), "--out", out)
+    result = run(
+        "replace", "--body", path, "--spec", write(tmp_path, "s.md", NEW_SPEC), "--out", out
+    )
     assert result.returncode == 4
     assert not out.exists()
 

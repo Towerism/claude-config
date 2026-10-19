@@ -17,10 +17,22 @@ END = "<!-- spec:end -->"
 ORIGINAL = "Users want to export the roster as CSV."
 
 
+def script_command():
+    """The command that runs the script. With LIFECYCLE_COVERAGE_DIR set, each run is
+    measured by coverage into that directory, because the tests run the script as a
+    subprocess, which pytest-cov can't see under `python -I`."""
+    data_dir = os.environ.get("LIFECYCLE_COVERAGE_DIR")
+    if not data_dir:
+        return [sys.executable, "-I", str(SCRIPT)]
+    data = os.path.join(data_dir, ".coverage")
+    return [sys.executable, "-I", "-m", "coverage", "run", "--branch", "--parallel-mode",
+            f"--data-file={data}", str(SCRIPT)]  # fmt: skip
+
+
 def run(*args, stdin=None, cwd=None):
     """Run issue_lifecycle.py and return the CompletedProcess (bytes in, text out)."""
     return subprocess.run(
-        [sys.executable, "-I", str(SCRIPT), *map(str, args)],
+        [*script_command(), *map(str, args)],
         input=stdin,
         capture_output=True,
         text=True,
@@ -62,8 +74,16 @@ GIT_ENV = {
 }
 
 
-def make_repo(tmp_path, files_on_branch):
-    """Temp git repo: one commit on `main`, then `feature` adding files_on_branch."""
+def _write_files(repo, files):
+    for rel, content in files.items():
+        path = repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+
+
+def make_repo(tmp_path, files_on_branch, base_files=None):
+    """Temp git repo: `main` with README.md plus base_files, then `feature` adding
+    files_on_branch."""
     repo = tmp_path / "repo"
     repo.mkdir()
     env = {**os.environ, **GIT_ENV}
@@ -73,25 +93,24 @@ def make_repo(tmp_path, files_on_branch):
 
     git("init", "-q", "-b", "main")
     (repo / "README.md").write_text("base\n")
+    _write_files(repo, base_files or {})
     git("add", ".")
     git("commit", "-q", "-m", "chore: base (#1)")
     git("switch", "-q", "-c", "feature")
-    for rel, content in files_on_branch.items():
-        path = repo / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
+    _write_files(repo, files_on_branch)
     git("add", ".")
     git("commit", "-q", "-m", "feat: change (#2)")
     return repo
 
 
-FAKE_GH = r'''
+FAKE_GH = r"""
 import json, os, sys
 args = sys.argv[1:]
 with open(os.environ["GH_LOG"], "a") as f:
     f.write(json.dumps(args) + "\n")
 state = os.environ["GH_STATE"]
-fail = json.load(open(os.path.join(state, "fail.json"))) if os.path.exists(os.path.join(state, "fail.json")) else {}
+fail_path = os.path.join(state, "fail.json")
+fail = json.load(open(fail_path)) if os.path.exists(fail_path) else {}
 key = " ".join(args[:2])
 if key in fail:
     sys.stderr.write(fail[key] + "\n")
@@ -100,7 +119,7 @@ if args[:2] == ["label", "create"] and os.path.exists(os.path.join(state, "label
     sys.stderr.write("label already exists\n")
     sys.exit(1)
 sys.exit(0)
-'''
+"""
 
 
 class FakeGh:
@@ -126,10 +145,20 @@ class FakeGh:
         return [json.loads(line) for line in self.log.read_text().splitlines()]
 
     def run_bash(self, script: str):
-        env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}",
-               "GH_LOG": str(self.log), "GH_STATE": str(self.state)}
-        return subprocess.run(["bash", "-c", script], env=env, cwd=self.tmp,
-                              capture_output=True, text=True, timeout=30)
+        env = {
+            **os.environ,
+            "PATH": f"{self.bin}:{os.environ['PATH']}",
+            "GH_LOG": str(self.log),
+            "GH_STATE": str(self.state),
+        }
+        return subprocess.run(
+            ["bash", "-c", script],
+            env=env,
+            cwd=self.tmp,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
 
 
 @pytest.fixture

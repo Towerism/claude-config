@@ -19,9 +19,10 @@ The helper script does every text check and body edit deterministically. Run it 
 - **GitHub only through `gh`** with the user's login. Start with `gh auth status`; if it fails, stop and ask the user to run `! gh auth login`. Make no writes before that.
 - **Temp files** go in a fresh directory per run, never in the working tree and never reused across issues or repos:
   ```bash
-  tmp=$(mktemp -d "${CLAUDE_JOB_DIR:+$CLAUDE_JOB_DIR/tmp/}issue-XXXXXX" 2>/dev/null || mktemp -d)
+  base=${CLAUDE_JOB_DIR:+$CLAUDE_JOB_DIR/tmp}; tmp=$(mktemp -d "${base:-${TMPDIR:-/tmp}}/issue-XXXXXX")
   ```
 - **Merging is not yours to decide.** See "Merge and close out".
+- **Prose for people.** Before the first issue title or body, comment, PR title or body, or commit message in a session, load `writing-docs` with the Skill tool (it loads `plain-prose` first), unless it's already loaded; load `plain-prose` alone if `writing-docs` isn't installed. Follow their rules for every such text: someone reading it months from now, with none of today's context, should understand it. `commit-check` and `pr-body-check` list AI-writing tells as `TELL` lines; fix the ones that would distract a reader. They never fail the check.
 
 ## Usage
 
@@ -42,7 +43,7 @@ A new issue is built from the prompt (or what the prompt points to): an imperati
 gh issue create --title "Add CSV export to the roster page" --body-file "$tmp/issue.md"
 ```
 
-**Filing only.** When asked to *file* an issue (a follow-up or a bug noticed along the way), create it and stop: no assignee, no `in progress`, no branch, no work on it.
+**Filing only.** When asked to *file* an issue (a follow-up or a bug noticed along the way), create it at once and stop: no assignee, no `in progress`, no branch, no work on it. Don't ask for confirmation or more detail first; write the body from what the prompt gives, and say in the body what isn't known yet.
 
 Ask before reopening a closed issue, and before taking over one assigned to someone else or already labelled `in progress`.
 
@@ -88,7 +89,7 @@ When you reach option 4, ask in this same reply, before any other work, even if 
 ...spec...
 <!-- spec:end -->
 ```
-No spec file goes in the repo. Always re-pull the body right before replacing, since people edit issues:
+No spec file goes in the repo, except a skill spec (below). Always re-pull the body right before replacing, since people edit issues:
 ```bash
 gh issue view 42 --json body > "$tmp/issue.json"
 python3 -I -c 'import json,sys; sys.stdout.write(json.load(open(sys.argv[1]))["body"])' "$tmp/issue.json" > "$tmp/body.md"
@@ -98,6 +99,8 @@ gh issue edit 42 --body-file "$tmp/new-body.md"
 gh issue edit 42 --add-label draft --remove-label approved
 ```
 `replace` keeps everything outside the block byte for byte (CRLF included) and appends the block if there is none. Exit 4 means the markers are broken: show the user, don't guess.
+
+**Skill specs.** Some skills keep their spec in a `SPEC.md` beside their `SKILL.md`: any skill that already has one, and every new skill. When the change is to such a skill, the spec lives in that file, with the review note in `REVIEW-NOTE.md` beside it. Its `**Status:**` line says Draft or Approved, with the reason. The issue body holds only a pointer, written with `replace` between the same markers: the spec's repo-relative path, the branch it is on until the PR merges, and a sentence saying approval is recorded in the Status line. Writing or changing the spec sets its Status line to Draft and the issue to `draft`.
 
 ### 5. Approval and labels
 
@@ -114,7 +117,13 @@ Posting or reposting a spec always sets `draft` and removes `approved`; the two 
 
 Every adversarial pass, on the spec or the PR diff, gets its review note posted as an issue comment listing each finding and how it was handled.
 
-Implementation starts only when `approved` is on the issue **and the most recent `approved` labeled event's actor is the user's login** (same check as step 3). An `approved` added by any other account is reported and treated as `draft`. If the spec must change later, change the issue body first; that returns it to `draft` and back through the mode's approval path.
+For a skill spec, the approval step also sets the spec's Status line to Approved, quoting the user's words and the date, in the same step as the comment and the label.
+
+Implementation starts only when `approved` is on the issue **and the most recent `approved` labeled event's actor is the user's login** (same check as step 3). For a skill spec, the Status line must also say approved:
+```bash
+python3 -I <skill-dir>/scripts/issue_lifecycle.py spec-status --spec config/skills/foo/SPEC.md   # approved | draft; exit 1 otherwise
+```
+If the Status line and the labels disagree, report it and treat the spec as draft. An `approved` added by any other account is reported and treated as `draft`. If the spec must change later, change the spec first (the issue body, or the skill's `SPEC.md`); that returns it to `draft` and back through the mode's approval path.
 
 ### 6. Branch, worktree, commits
 
@@ -132,14 +141,14 @@ python3 -I <skill-dir>/scripts/issue_lifecycle.py commit-check --message "$tmp/m
 ```
 Update the branch with `git rebase origin/<default>`, never a merge from the default branch. If an already-pushed commit fails the check, ask before rewriting it; then push with `--force-with-lease`, on the feature branch only.
 
-Spec IDs (FR-/AC-/EC-…) never go into code, test names or comments; name tests for the behaviour they check. Before opening the PR:
+Spec IDs (FR-/AC-/EC-…) stay out of code, test names and comments unless the repo's living docs define them, such as a `SPEC.md` beside its subject; name tests for the behaviour they check. Before opening the PR, `diff-check` reports any other ID in added code, and any spec file added away from its subject:
 ```bash
 python3 -I <skill-dir>/scripts/issue_lifecycle.py diff-check --base origin/<default>
 ```
 
 ### 7. Open the PR
 
-Start from [assets/pr-body-template.md](assets/pr-body-template.md). Write the body to a file with: `Closes #42` alone on its line (`Closes owner/repo#42` across repos, one keyword per issue), `Spec: #42`, a map from each acceptance criterion to the test that covers it, and a `## Review` section with the PR-diff review note. Then:
+Start from [assets/pr-body-template.md](assets/pr-body-template.md). Write the body to a file with: `Closes #42` alone on its line (`Closes owner/repo#42` across repos, one keyword per issue), `Spec: #42` (or `Spec: config/skills/foo/SPEC.md` for a skill spec), a map from each acceptance criterion to the test that covers it, and a `## Review` section with the PR-diff review note. Then:
 ```bash
 python3 -I <skill-dir>/scripts/issue_lifecycle.py pr-body-check --body "$tmp/pr.md" --issue 42
 gh pr create --base <default> --title "feat(roster): add CSV export (#42)" --body-file "$tmp/pr.md"   # add --label hotfix for hotfixes
@@ -173,6 +182,7 @@ A hotfix still gets an issue, labelled `hotfix`, and the approval-mode question 
 - "file a follow-up issue: the export drops the BOM" → `gh issue create` and stop.
 - "#42's spec is approved, set up the branch" → check `approved` was added by the user's login, reuse any open branch for #42, else `branch-name` and `git worktree add`.
 - "open the PR" → `diff-check`, `pr-body-check`, `gh pr create`, confirm `closingIssuesReferences` includes 42. Don't merge.
+- "work on #42", where #42 changes the skill in `skills/foo/` and it has a `SPEC.md` → the spec goes in that file; the issue body gets a pointer; approval is the Status line plus the label.
 
 ## Troubleshooting
 
@@ -185,3 +195,6 @@ A hotfix still gets an issue, labelled `hotfix`, and the approval-mode question 
 | No `project` scope on the token | Skip the Project Status update and say so. |
 | The merge didn't close the issue | Report why and ask; don't close it by hand. |
 | Only squash merges allowed | Stop and ask. |
+| `spec-status` exits 1 | The Status line is missing or says neither Draft nor Approved. Report it; treat the spec as draft. |
+| Status line and labels disagree | Report it; treat the spec as draft until the user's words settle it. |
+| `TELL` lines, or a `NOTE` that tells weren't checked | Report-only. Fix tells that would distract a reader; the check's result stands. |

@@ -1,0 +1,103 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py": "1868c9da965c97b8410d83349b140e3ce84d7780a39eca2958984f00136c3162",
+    "config/skills/github-issue-lifecycle/evals/run_trigger_evals.py": "ec4b9b94c459174ecf04c547a2aa96a91be7b6c97b149c3d4c674eca3fbc0647"
+  },
+  "inputs": {
+    "config/skills/github-issue-lifecycle/SKILL.md#description": "acf2e9ed9c5185c9036b34c0c193f94360d0fd8986f8dce8db145d2b1274ab99",
+    "config/skills/github-issue-lifecycle/evals/trigger-evals.json": "bcc849a97998fb000bb93f6d30b7e5270d05d95586cd8d2b4893534b14c0293b"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-19T03:17:19Z",
+  "result": {
+    "cases": [
+      {
+        "id": "pick up #57 in play-pokemon-attendance, it's the one about the export dropping t",
+        "result": "pass"
+      },
+      {
+        "id": "start on the issue about DST drift in the tournament scheduler, I think it's ope",
+        "result": "pass"
+      },
+      {
+        "id": "ok I've finished the roster change locally, open the PR for this and link the is",
+        "result": "pass"
+      },
+      {
+        "id": "file a bug for the BOM problem we just hit in the CSV export, don't start on it,",
+        "result": "fail"
+      },
+      {
+        "id": "hotfix the login 500 on prod, users can't sign in since the last deploy",
+        "result": "pass"
+      },
+      {
+        "id": "work on GH-112",
+        "result": "pass"
+      },
+      {
+        "id": "https://github.com/Towerism/selfhost-kit/issues/31 can you take this one",
+        "result": "pass"
+      },
+      {
+        "id": "let's do the litestream backup retention issue next, grab it and set up a branch",
+        "result": "pass"
+      },
+      {
+        "id": "the spec for #88 is approved now, go ahead and create the branch and worktree an",
+        "result": "pass"
+      },
+      {
+        "id": "add CSV export to the roster page \u2014 there's probably no issue for it yet so make",
+        "result": "pass"
+      },
+      {
+        "id": "write a spec for a CSV export feature, just a markdown doc I can share with my f",
+        "result": "pass"
+      },
+      {
+        "id": "review PR #12 in selfhost-kit and tell me if the caching change is safe",
+        "result": "pass"
+      },
+      {
+        "id": "what's in the changelog for selfhost-kit 1.0.0? summarise the breaking changes",
+        "result": "pass"
+      },
+      {
+        "id": "create a Jira ticket for the payments timeout in the WEB project",
+        "result": "pass"
+      },
+      {
+        "id": "explain conventional commits to me, and how semantic-release picks the version f",
+        "result": "pass"
+      },
+      {
+        "id": "my arch box won't boot after the kernel update, stuck at loading initial ramdisk",
+        "result": "pass"
+      },
+      {
+        "id": "set up a github actions workflow that runs vitest and playwright on every PR for",
+        "result": "pass"
+      },
+      {
+        "id": "rebase my branch onto main and fix the conflicts in server/api/roster.get.ts",
+        "result": "pass"
+      },
+      {
+        "id": "how many open issues does the genie repo have and which are the oldest? just a q",
+        "result": "pass"
+      },
+      {
+        "id": "write a commit message for these staged changes to the drizzle schema",
+        "result": "pass"
+      }
+    ],
+    "exitCode": 0,
+    "pass": true
+  },
+  "suite": "lifecycle-trigger"
+}

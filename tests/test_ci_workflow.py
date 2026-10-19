@@ -75,6 +75,21 @@ def problems(workflow: dict[str, Any], text: str) -> list[str]:
             and step.get("if") != "${{ !cancelled() }}"
         ):
             found.append(f"hygiene: {step.get('name')} skipped after a failure")
+    # Without --verbose gitleaks prints only a count, and --verbose would also print the
+    # author's email, so the step writes a JSON report and prints rule, commit and place.
+    scan = next(
+        (
+            st
+            for st in workflow["jobs"]["hygiene"]["steps"]
+            if "gitleaks over" in str(st.get("name"))
+        ),
+        {},
+    )
+    scan_run = str(scan.get("run", ""))
+    if "--verbose" in scan_run or "--report-format json" not in scan_run:
+        found.append("hygiene: gitleaks report")
+    if 'exit "$status"' not in scan_run:
+        found.append("hygiene: gitleaks exit status")
     outputs = workflow["jobs"].get("changes", {}).get("outputs", {})
     if set(outputs) != {"base", "code"}:
         found.append("changes: outputs")
@@ -195,6 +210,15 @@ def _drop_gitleaks_condition(workflow: dict[str, Any]) -> None:
             step.pop("if", None)
 
 
+def _set_gitleaks_run(command: str) -> Callable[[dict[str, Any]], None]:
+    def change(workflow: dict[str, Any]) -> None:
+        for step in workflow["jobs"]["hygiene"]["steps"]:
+            if "gitleaks over" in str(step.get("name", "")):
+                step["run"] = command
+
+    return change
+
+
 def _add_job(workflow: dict[str, Any]) -> None:
     workflow["jobs"]["extra"] = copy.deepcopy(workflow["jobs"]["lint"])
 
@@ -235,6 +259,12 @@ BREAKAGES: dict[str, Callable[[dict[str, Any]], None]] = {
         "changes", "run", 'echo "base=$(python3 -I tools/ci.py base)" >> "$GITHUB_OUTPUT"'
     ),
     "gitleaks skipped when check-range fails": _drop_gitleaks_condition,
+    "gitleaks verbose, printing emails": _set_gitleaks_run(
+        '"$RUNNER_TEMP/gitleaks" git --verbose --log-opts="$BASE..HEAD" .'
+    ),
+    "gitleaks report whose exit status is lost": _set_gitleaks_run(
+        "gitleaks git --report-format json --report-path r.json . || true"
+    ),
     "an extra job": _add_job,
     "an expression inside run": _run_with_expression,
 }

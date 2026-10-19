@@ -77,7 +77,16 @@ jobs:
           tar -xzf "$tarball" -C "$RUNNER_TEMP" gitleaks
       - name: gitleaks over every commit in the range
         if: ${{ !cancelled() }}
-        run: '"$RUNNER_TEMP/gitleaks" git --log-opts="$BASE..HEAD" --config .gitleaks.toml --redact --no-banner --exit-code 1 .'
+        # The report also holds each commit's author email, so only rule, commit and place print.
+        run: |
+          report="$RUNNER_TEMP/gitleaks.json"
+          status=0
+          "$RUNNER_TEMP/gitleaks" git --log-opts="$BASE..HEAD" --config .gitleaks.toml --redact --no-banner \
+            --exit-code 1 --report-format json --report-path "$report" . || status=$?
+          python3 -I -c 'import json, sys
+          for f in json.load(open(sys.argv[1])):
+              print("%s: %s %s:%s" % (f["RuleID"], f["Commit"][:7], f["File"], f["StartLine"]))' "$report"
+          exit "$status"
 
   commits:
     if: github.event_name == 'pull_request'

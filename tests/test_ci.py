@@ -357,7 +357,7 @@ def spec_tree(tmp_path: Path, *specs: tuple[str, str]) -> Path:
 def test_a_spec_with_only_warnings_passes(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    root = spec_tree(tmp_path, ("config/SPEC.md", "good-spec.md"))
+    root = spec_tree(tmp_path, ("config/SPEC.md", "scores-well.md"))
     code, out, _ = run(["specs", "--root", str(root)], capsys)
     assert code == 0
     assert out.startswith("config/SPEC.md: Spec Completeness Score:")
@@ -368,8 +368,8 @@ def test_a_low_scoring_spec_fails_and_is_named(
 ) -> None:
     root = spec_tree(
         tmp_path,
-        ("config/SPEC.md", "good-spec.md"),
-        ("config/skills/thin/SPEC.md", "thin-spec.md"),
+        ("config/SPEC.md", "scores-well.md"),
+        ("config/skills/thin/SPEC.md", "scores-badly.md"),
     )
     code, out, err = run(["specs", "--root", str(root)], capsys)
     assert code == 1

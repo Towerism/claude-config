@@ -141,3 +141,17 @@ def test_swap_current_clears_a_stale_temporary_link(repo: Path, data: Path) -> N
     (data / f".current.cfg-{os.getpid()}").symlink_to("/stale")
     release.swap_current(data, name)
     assert sorted(p.name for p in data.iterdir()) == ["current", "releases"]
+
+
+def test_is_ancestor_and_archive_report_git_failures(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    head = git(repo, "rev-parse", "HEAD")
+    assert release.is_ancestor(repo, head, head) is True
+    with pytest.raises(CfgError, match="merge-base"):
+        release.is_ancestor(repo, "0" * 40, head)
+    with pytest.raises(CfgError, match="archive"):
+        release.archive(repo, head, "no-such-path")
+    monkeypatch.setenv("PATH", str(repo / "no-bin"))
+    with pytest.raises(CfgError, match="git not found"):
+        release.is_ancestor(repo, head, head)

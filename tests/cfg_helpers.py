@@ -14,6 +14,8 @@ from typing import Any
 
 import pytest
 
+from tools.cfg import link, release, render, settings_merge, state
+
 FRAGMENT: dict[str, Any] = {
     "enabledPlugins": {"tools@market": True},
     "extraKnownMarketplaces": {"market": {"source": {"source": "github", "repo": "o/r"}}},
@@ -46,6 +48,8 @@ PROFILE: dict[str, Any] = {
     "plugins": ["tools@market"],
     "defaultLifecycle": "alpha",
 }
+
+EMPTY_LOCK: dict[str, Any] = {"lockVersion": 1, "plugins": {}, "synced": []}
 
 GIT_ENV = {
     "GIT_CONFIG_GLOBAL": os.devnull,
@@ -80,6 +84,7 @@ def payload_files(
         "config/skills/beta/SKILL.md": "---\nname: beta\n---\n",
         "config/settings.fragment.json": json.dumps(fragment or FRAGMENT, indent=2) + "\n",
         "hosts/test.json": json.dumps(profile or PROFILE, indent=2) + "\n",
+        "plugins.lock.json": json.dumps(EMPTY_LOCK) + "\n",
     }
 
 
@@ -120,3 +125,35 @@ def cfg_isolation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "isolated-xdg"))
     for key, value in GIT_ENV.items():
         monkeypatch.setenv(key, value)
+
+
+def make_home(root: Path) -> Path:
+    """An empty Claude home with an install record that matches EMPTY_LOCK."""
+    home = root / ".claude"
+    write_tree(home, {"plugins/installed_plugins.json": json.dumps({"plugins": {}})})
+    return home
+
+
+def deploy_with_library(
+    repo: Path, home: Path, data: Path, host: str = "hosts/test.json"
+) -> state.State:
+    """Deploy HEAD with this issue's modules only, standing in for #8's cfg deploy."""
+    name = release.create(repo, "HEAD", data)
+    release.swap_current(data, name)
+    ds = render.render(data / "releases" / name, host, home, data)
+    for path in ds.paths:
+        link.make_link(home / path.live, path.target)
+    live, original = settings_merge.preflight(home / "settings.json")
+    merged = settings_merge.merge(live, ds.fragment, {})
+    settings_merge.write(home / "settings.json", merged.settings, original, data)
+    st = state.State(
+        host=host,
+        claude_home=str(home),
+        sha=release.release_sha(data / "releases" / name),
+        release=name,
+        deployed_at="2026-10-19T12:00:00Z",
+        paths=ds.paths,
+        settings=settings_merge.owned_items(ds.fragment),
+    )
+    state.save(data, st)
+    return st

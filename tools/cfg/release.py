@@ -34,6 +34,31 @@ def git(repo: Path, *args: str) -> str:
     return done.stdout
 
 
+def _run(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+    try:
+        return subprocess.run(
+            ["git", "--no-optional-locks", "-C", str(repo), *args], capture_output=True, check=False
+        )
+    except FileNotFoundError as e:
+        raise GitMissing("git not found on PATH") from e
+
+
+def is_ancestor(clone: Path, older: str, newer: str) -> bool:
+    """Whether commit `older` is an ancestor of (or equal to) `newer`."""
+    done = _run(clone, "merge-base", "--is-ancestor", older, newer)
+    if done.returncode not in (0, 1):
+        raise CfgError(f"git merge-base failed in {clone}: {done.stderr.decode().strip()}")
+    return done.returncode == 0
+
+
+def archive(clone: Path, sha: str, *paths: str) -> bytes:
+    """A tar of `paths` at commit `sha`, read without touching any worktree."""
+    done = _run(clone, "archive", "--format=tar", sha, "--", *paths)
+    if done.returncode != 0:
+        raise CfgError(f"git archive failed in {clone}: {done.stderr.decode().strip()}")
+    return done.stdout
+
+
 def resolve(clone: Path, ref: str) -> str:
     """The full commit id `ref` names in `clone`."""
     try:

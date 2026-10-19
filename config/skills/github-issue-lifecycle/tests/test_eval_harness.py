@@ -346,3 +346,56 @@ def test_git_in_an_eval_can_use_no_network_transport_at_all(tmp_path, harness, f
     r = subprocess.run(["git", "ls-remote", "https://example.invalid/o/r.git"], env=env,
                        capture_output=True, text=True)  # fmt: skip
     assert r.returncode != 0 and "not allowed" in r.stderr
+
+
+def git_out(ws, *args):
+    return subprocess.run(["git", *args], cwd=ws, capture_output=True, text=True, check=True).stdout
+
+
+def committer(ws):
+    for key, value in (("user.name", "T"), ("user.email", "t@example.invalid")):
+        git_out(ws, "config", key, value)
+
+
+def test_commit_files_puts_the_case_files_on_main_and_origin(tmp_path, harness):
+    case = {"id": 3, "commit_files": True, "files": {"skills/foo/SKILL.md": "# foo\n"}}
+    ws = harness.make_workspace(case, tmp_path)
+    assert "skills/foo/SKILL.md" in git_out(ws, "ls-tree", "-r", "--name-only", "origin/main")
+    assert git_out(ws, "status", "--porcelain") == ""
+
+
+def test_files_without_commit_files_stay_untracked(tmp_path, harness):
+    ws = harness.make_workspace({"id": 4, "files": {"notes.md": "x\n"}}, tmp_path)
+    assert "?? notes.md" in git_out(ws, "status", "--porcelain")
+
+
+def test_files_touched_counts_branches_and_worktrees_but_not_the_stash(tmp_path, harness):
+    case = {"id": 5, "commit_files": True, "files": {"skills/foo/SKILL.md": "# foo\n"}}
+    ws = harness.make_workspace(case, tmp_path)
+    committer(ws)
+    start = harness.branch_heads(ws)
+    git_out(ws, "worktree", "add", "-q", "-b", "feature/42-x", str(tmp_path / "wt"), "main")
+    wt = tmp_path / "wt"
+    (wt / "skills/foo/SPEC.md").write_text("# Spec\n")
+    git_out(wt, "add", ".")
+    git_out(wt, "commit", "-q", "-m", "docs: spec (#42)")
+    git_out(wt, "switch", "-q", "--detach")
+    (wt / "skills/foo/REVIEW-NOTE.md").write_text("# Note\n")
+    git_out(wt, "add", ".")
+    git_out(wt, "commit", "-q", "-m", "docs: note (#42)")
+    (ws / "skills/foo/SKILL.md").write_text("# foo, edited\n")
+    git_out(ws, "stash", "-q")
+    assert harness.files_touched(ws, start) == ["skills/foo/REVIEW-NOTE.md", "skills/foo/SPEC.md"]
+
+
+@pytest.mark.parametrize(
+    "touched,passed",
+    [
+        ([], True),
+        (["skills/foo/SPEC.md", "skills/foo/REVIEW-NOTE.md"], True),
+        (["skills/foo/SPEC.md", "skills/foo/SKILL.md"], False),
+    ],
+)
+def test_commits_only_touch_checks_every_committed_file(harness, touched, passed):
+    exp = r"commits-only-touch: skills/foo/(SPEC|REVIEW-NOTE)\.md"
+    assert harness.grade([exp], [], [], "", [], touched=touched)[0]["passed"] is passed

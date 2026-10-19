@@ -294,6 +294,10 @@ def make_workspace(case, root):
     git("add", ".")
     git("commit", "-q", "-m", "chore: initial commit (#1)")
     git("remote", "add", "origin", str(origin))
+    if case.get("commit_files"):
+        write_files(ws, case.get("files", {}))
+        git("add", ".")
+        git("commit", "-q", "-m", "chore: add the case's files (#1)")
     git("push", "-q", "origin", "main")
     for branch in case.get("remote_branches", []):
         git("push", "-q", "origin", f"main:refs/heads/{branch}")
@@ -305,10 +309,44 @@ def make_workspace(case, root):
             git("commit", "-q", "-m", msg)
     if case.get("origin_url"):
         git("remote", "set-url", "origin", case["origin_url"])
-    for rel, content in case.get("files", {}).items():
+    if not case.get("commit_files"):
+        write_files(ws, case.get("files", {}))
+    return ws
+
+
+def write_files(ws, files):
+    for rel, content in files.items():
         (ws / rel).parent.mkdir(parents=True, exist_ok=True)
         (ws / rel).write_text(content)
-    return ws
+
+
+def inspect_git(ws, *args):
+    """Plumbing git in the workspace after a run, with hooks and fsmonitor switched off,
+    because the model may have changed the repo's config."""
+    safe = ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null"]
+    cmd = [shutil.which("git"), *safe, *args]
+    return subprocess.run(cmd, cwd=ws, capture_output=True, text=True, check=True).stdout
+
+
+def branch_heads(ws):
+    """Commits at the tips of every branch, pushed branch and worktree HEAD (never the stash)."""
+    tips = inspect_git(ws, "for-each-ref", "--format=%(objectname)", "refs/heads", "refs/remotes")
+    heads = [
+        line.split()[1]
+        for line in inspect_git(ws, "worktree", "list", "--porcelain").splitlines()
+        if line.startswith("HEAD ")
+    ]
+    return sorted(set(tips.split()) | set(heads))
+
+
+def files_touched(ws, start):
+    """Files changed by commits made since `start` (a branch_heads() list), sorted."""
+    new = inspect_git(ws, "rev-list", *branch_heads(ws), "--not", *start).split()
+    files = set()
+    for commit in new:
+        out = inspect_git(ws, "diff-tree", "--no-commit-id", "--name-only", "-r", "--root", commit)
+        files.update(out.split())
+    return sorted(files)
 
 
 def git_subcommand(args):
@@ -320,7 +358,9 @@ def git_subcommand(args):
     return " ".join(args)
 
 
-def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=(), calls=()):
+def grade(
+    expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=(), calls=(), touched=()
+):
     gh_strs = [" ".join(c["args"]) for c in gh_calls]
     git_strs = [git_subcommand(c) for c in git_calls]
     results = []
@@ -330,7 +370,18 @@ def grade(expectations, gh_calls, git_calls, answer, bash, loaded=(), tools=(), 
                 {
                     "text": exp,
                     "passed": bool(
-                        check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded, tools, calls)
+                        check(
+                            exp,
+                            gh_calls,
+                            gh_strs,
+                            git_strs,
+                            answer,
+                            bash,
+                            loaded,
+                            tools,
+                            calls,
+                            touched,
+                        )
                     ),
                 }
             )
@@ -356,7 +407,9 @@ def loaded_before(calls, skill, command_re):
     return load is not None and run is not None and load < run
 
 
-def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=(), calls=()):
+def check(
+    exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=(), calls=(), touched=()
+):
     kind, _, arg = exp.partition(": ")
     if kind == "gh-called":
         ok = any(re.search(arg, s) for s in gh_strs)
@@ -395,6 +448,8 @@ def check(exp, gh_calls, gh_strs, git_strs, answer, bash, loaded=(), tools=(), c
         ok = not re.search(arg, answer)
     elif kind == "skill-loaded":
         ok = any(skill_matches(name, arg) for name in loaded)
+    elif kind == "commits-only-touch":
+        ok = all(re.fullmatch(arg, path) for path in touched)
     elif kind == "loaded-before":
         skill, _, command_re = arg.partition(" ||| ")
         ok = loaded_before(calls, skill, command_re)
@@ -425,6 +480,7 @@ def _run_case_in(case, cfg, model):
     with tempfile.TemporaryDirectory(prefix=f"gil-eval-{case['id']}-", dir=eval_tmp_root()) as tmp:
         root = Path(tmp)
         ws = make_workspace(case, root)
+        start = branch_heads(ws)
         bin_dir, state = root / "bin", root / "state"
         bin_dir.mkdir()
         state.mkdir()
@@ -469,6 +525,7 @@ def _run_case_in(case, cfg, model):
             loaded,
             tools,
             calls,
+            files_touched(ws, start),
         )
         return {
             "passed": all(r["passed"] for r in results),

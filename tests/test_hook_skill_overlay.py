@@ -279,3 +279,19 @@ def test_non_ascii_text_works_whatever_the_locale(tmp_path):
     assert {d.returncode for d in outputs.values()} == {0}
     assert outputs["C"].stdout == outputs["C.UTF-8"].stdout
     assert "Café" in context_of(outputs["C"].stdout)
+
+
+@pytest.mark.parametrize(
+    "install", [{}, {"installPath": ""}, {"installPath": "."}, {"installPath": 5}]
+)
+def test_an_install_path_that_isnt_absolute_never_resolves_against_the_session_directory(
+    hook, home, tmp_path, monkeypatch, capsys, install
+):
+    project = tmp_path / "project"
+    (project / "skills" / "qa").mkdir(parents=True)
+    (project / "skills" / "qa" / "SKILL.md").write_text("x", encoding="utf-8")
+    monkeypatch.chdir(project)
+    index = {"plugins": {"bundle@market": [install]}}
+    (home / "plugins" / "installed_plugins.json").write_text(json.dumps(index), encoding="utf-8")
+    out, _ = run_main(hook, skill_call("bundle:qa"), monkeypatch, capsys)
+    assert context_of(out) == failure_text("bundle:qa", "no active install of bundle:qa")

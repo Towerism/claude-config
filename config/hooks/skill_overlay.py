@@ -72,7 +72,10 @@ def skill_dir(home: Path, skill: str) -> Path:
         if key.split("@", 1)[0] != bundle:
             continue
         for inst in installs:
-            d = Path(inst.get("installPath", "")) / "skills" / name
+            path = inst.get("installPath")
+            if not isinstance(path, str) or not os.path.isabs(path):
+                continue  # never resolve against the session's working directory
+            d = Path(path) / "skills" / name
             if (d / "SKILL.md").is_file():
                 return d
     raise OverlayError(f"no active install of {skill}")

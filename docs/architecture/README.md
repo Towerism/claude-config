@@ -19,9 +19,9 @@ Two new prose skills are planned on top of that.
 |---|---|
 | live config | The files Claude Code reads at run time, under `~/.claude` |
 | payload | Everything in the repo's `config/` directory: the only files that reach the live config |
-| `cfg` | The repo's command-line tool that checks, deploys, adopts, diffs and rolls back the live config |
+| `cfg` | The repo's command-line tool that checks, deploys, diffs and rolls back the live config |
 | release worktree, `current` | A git worktree checked out at one deployed commit, under `~/.local/share/claude-config/releases/<sha>/`. `current` is a symlink to the release in use. The live config links point through it. |
-| adoption | The first `cfg` run on a machine that already has the configuration installed. It verifies the files by hash, backs them up and replaces them with links. |
+| first deploy | The first `cfg deploy` on a machine that already has the configuration installed. It stops on any file that differs from the repo until the owner decides about it, then backs the live files up and replaces them with links. It replaced hash-verified adoption on 2026-10-18. |
 | drift | Any difference between the live config and the deployed commit, such as an edit made through a link |
 | overlay | A per-skill policy file that a hook injects into the conversation when that skill loads |
 | the lifecycle skill | The skill that runs the tracker side of a piece of work: `github-issue-lifecycle` for GitHub issues, or `jira-ticket-lifecycle` for Jira tickets ([ADR-0011](../adr/0011-tracker-agnostic-lifecycle.md)). Which one applies comes from the repo's CLAUDE.md, then a machine-local override, then the host profile. |
@@ -67,7 +67,7 @@ flowchart LR
     CFG1[cfg tool]
     H1[(~/.claude)]
     EV[local eval harness<br/>claude -p, owner's subscription]
-    WC1 --> CFG1 -->|deploy / adopt / restore| H1
+    WC1 --> CFG1 -->|deploy / restore| H1
     H1 -->|status / diff / capture| CFG1
     WC1 --> EV -->|eval/records/*.json| WC1
   end
@@ -134,14 +134,14 @@ claude-config/
 ├── plugins.lock.json            plugin lock: versions, git SHAs, skill names, files the overlays refer to
 │
 ├── tools/                       repo tooling; never deployed
-│   ├── cfg/                     commands: check, plan, status, diff, deploy, adopt, capture, rollback, restore, lock, eval
+│   ├── cfg/                     commands: check, plan, status, diff, deploy, capture, rollback, restore, lock, eval
 │   │   ├── render.py            applies the host profile and {claude_home} to produce the deploy set
 │   │   ├── release.py           release worktrees, the atomic `current` swap, pruning of old releases
 │   │   ├── link.py              warn, back up, link; checks that links are intact
 │   │   ├── settings_merge.py    merges owned keys, idempotent and atomic (grown from install_v2.py)
 │   │   ├── state.py             deploy state and sha256 manifests
 │   │   ├── drift.py             git status of the release worktree, link checks, owned settings keys
-│   │   ├── deploy.py adopt.py restore.py capture.py lock.py
+│   │   ├── deploy.py restore.py capture.py lock.py
 │   ├── check_config.py          the ported config checker, with an offline mode that reads the plugin lock
 │   └── vendor/claude-skills/spec_validator.py  plus VENDORED.json (source, version, sha256, MIT licence)
 ├── schemas/                     a vendored snapshot of the settings schema, plus a schema for the fragment
@@ -164,9 +164,8 @@ The module diagram shows which parts of the tooling depend on which. An arrow me
 
 ```mermaid
 flowchart TD
-  cli[cfg CLI] --> render & state & drift & deploy & adopt & restore & capture & lock & evalcmd[eval]
+  cli[cfg CLI] --> render & state & drift & deploy & restore & capture & lock & evalcmd[eval]
   deploy --> render & release & link & settings_merge & state & smoke[hook smoke test]
-  adopt --> render & release & link & state
   drift --> release & link & state
   capture --> drift
   restore --> state
@@ -229,29 +228,27 @@ The version 2 installer's safety requirements (v2 spec FR-23) carry over as inva
 4. Keep a sha256 manifest of everything moved aside.
 5. Restore without destroying anything. It acts only on manifest paths, only where a link still points where `cfg` put it, and removes only its own settings entries.
 
-## Adoption
+## First deploy on a machine that already has the config
 
-Adoption is the first `cfg` run on a machine where the configuration is already installed. It proves by hash that the repo holds exactly what is live, then replaces the live files with links. One mismatch stops it before anything changes.
+The first `cfg deploy` on a machine where the configuration is already installed takes it over without losing anything. It compares every managed path with the repo and stops on any difference until the owner decides about that path. Then it backs up the live files and replaces them with links. [ADR-0004](../adr/0004-drift-and-adoption.md) records the decision, which replaced hash-verified adoption on 2026-10-18.
 
 ```mermaid
 flowchart TD
-  A[cfg adopt --host personal] --> B{state.json exists?}
-  B -- yes --> X[refuse: already adopted]
-  B -- no --> C[create first release worktree at HEAD]
-  C --> D[for each managed path: repo sha, v2 manifest sha, live sha]
-  D --> E{all three equal?<br/>or no manifest entry and repo == live}
-  E -- no --> F[abort: list mismatches; nothing changed]
-  E -- yes --> G[settings: rendered fragment == live owned keys?]
-  G -- no --> F
-  G -- yes --> W[WARN: list every file and dir to be replaced; confirm]
+  A[cfg deploy --host personal, no state.json yet] --> C[for each managed path: missing, already linked, matches repo, or differs]
+  C --> G[settings: rendered fragment vs live owned keys]
+  G --> E{any path or owned key differs?}
+  E -- yes --> F[stop: show a diff for each; nothing changed]
+  F --> R[owner: cfg capture path, or --discard-live path]
+  R --> A
+  E -- no --> W[WARN: list every file and dir to be replaced; confirm]
   W --> H[move originals to backups/claude-config/ts with manifest and restore.sh]
-  H --> I[create links; write state.json; smoke-test hooks]
-  I --> J[report: adopted by manifest / by direct compare / linked; settings.json not rewritten]
+  H --> I[create links; merge owned settings keys; write state.json; smoke-test hooks]
+  I --> J[report: linked / already matched / discarded; backup location]
 ```
 
-Files that the version 2 installer wrote have manifest entries: CLAUDE.md, the overlays, the hooks and the lifecycle skill's files. These are checked against both the manifest and the live copy. Files it never wrote have no manifest entry, namely the lifecycle skill's `SPEC.md` and `REVIEW-NOTE.md` and the `linux-troubleshooting` skill. These are checked repo against live and reported separately.
+The diagram shows the loop at the start: every difference sends the owner back to resolve it, and nothing changes on disk until no differences remain. `cfg capture <path>` puts the live version on a feature branch for review. `--discard-live <path>` accepts the repo's version, and the live file still goes into the backup. `settings.json` is resolved the same way when its owned keys differ.
 
-Adoption changes the form of each file, from a plain file to a link, and leaves its content byte-for-byte the same. Skill directories that aren't listed in the host profile are never read, reported, copied or touched. Adoption also leaves the `claude-md-v2-*` backup unchanged. The owner doesn't intend to return to version 1, so once adoption passes, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` have no rollback role. On 2026-10-16 the owner told Claude to delete both once adoption passes on the personal machine; issue 7 does it, listing the two paths first.
+Skill directories that aren't listed in the host profile are never read, reported, copied or touched. The first deploy also leaves the `claude-md-v2-*` backup unchanged. The owner doesn't intend to return to version 1, so once the first deploy passes, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` have no rollback role. Issue 8 lists the two paths and deletes them after the owner's go-ahead.
 
 ## Drift: status, diff and capture
 
@@ -278,7 +275,7 @@ Most mistakes are fixed with a git revert and a normal deploy. The faster paths 
 |---|---|
 | A merged change is wrong, but Claude Code still works | `git revert <sha>` on a `fix/` branch, then PR, merge and `cfg deploy`. History stays honest. |
 | A deploy broke Claude Code itself, for example a hook that crashes on every tool call | `cfg rollback`, which points `current` back at the previous release in one atomic swap. If `cfg` can't run: `ln -sfn releases/<previous-sha> ~/.local/share/claude-config/current`, or the backup's `restore.sh`. Follow up with the revert PR. |
-| Undo adoption completely and return to plain files | `~/.claude/backups/claude-config/<adoption-ts>/restore.sh`. It removes the links it made and moves the originals back, checking hashes first. |
+| Undo the first deploy completely and return to plain files | `~/.claude/backups/claude-config/<first-deploy-ts>/restore.sh`. It removes the links it made and moves the originals back, checking hashes first. |
 | A known-good state is needed now, without waiting for a PR | `cfg deploy --ref <good-sha>`. `cfg status` keeps flagging the non-HEAD release until `main` catches up through the revert PR. |
 
 ## CI and eval gates
@@ -317,7 +314,7 @@ The table lists the risks this design guards against, with a rough likelihood an
 | T1 | A secret, the owner's email, or an excluded term gets committed (credentials, tokens in an eval transcript, a pasted settings value) | Med × High | Only `config/` deploys. Raw eval output stays in the gitignored `eval/out/`. Eval runs create their temporary config directories under `/tmp` and assert they're outside the repo, because those directories hold a copied `.credentials.json`. gitleaks, the email and token patterns, and the filename deny-list run in pre-commit and again in CI over the PR's commits. Pre-commit also checks a local, untracked list of excluded terms ([ADR-0007](../adr/0007-visibility-and-security.md)). `capture` copies only managed paths. |
 | T2 | A hook change breaks or subverts every tool call. Hooks run with the owner's privileges on every Skill and Bash call, and they see full Bash commands. | Low × High | The hook review bar in [ADR-0007](../adr/0007-visibility-and-security.md): a CI check that hooks use only the standard library and no network, 100% branch coverage, a real-harness eval record, 95th-percentile time under 500 ms, always exit 0, never print tool input. Deploy smoke-tests hooks before and after switching. `cfg rollback` and the standalone `restore.sh` are the undo. |
 | T3 | Plugin supply chain: a marketplace update changes skill text, or the scripts that overlays tell Claude to run | Med × High | The plugin lock records versions and git SHAs, and `cfg status` and `cfg check --live` flag any change. Each lock update is its own PR with dependency and security audits. The owner keeps marketplace auto-update on (decided 2026-10-16), so the repo detects updates rather than preventing them. |
-| T4 | A deploy overwrites settings the harness wrote, or deletes a live file | Med × Med | Only owned keys are merged. The file's hash is re-read just before `os.replace`, and the write aborts if it changed. Nothing is written when the result is semantically unchanged, so adoption doesn't rewrite `settings.json`. Files are never deleted: after a warning, they are moved into a backup with a manifest. |
+| T4 | A deploy overwrites settings the harness wrote, or deletes a live file | Med × Med | Only owned keys are merged. The file's hash is re-read just before `os.replace`, and the write aborts if it changed. Nothing is written when the result is semantically unchanged, so the first deploy doesn't rewrite `settings.json` when its owned keys already match. Files are never deleted: after a warning, they are moved into a backup with a manifest. |
 | T5 | Unreviewed draft config goes live, from a branch checkout or a dirty working tree | Med × Med | Links point at release worktrees pinned to a deployed commit, never at the working clone. `deploy` requires a clean tree at `origin/main`, or an explicit `--ref`. Skills live under `config/skills/`, not `.claude/skills/`, so drafts never register as project skills. |
 | T6 | Personal content and the owner's email become public | Certain × Low–Med (the owner accepted a public repo) | Everything committed is world-readable, and so is the author email in every commit. The email stays obfuscated: the repo commits with the owner's GitHub noreply address, and CI fails any commit whose author or committer email isn't a noreply address. Secret and email scans run before commit and in CI. Anything that later shouldn't be public moves to a private companion repo. |
 | T7 | CI has more access than it needs | Low × Med | `permissions: contents: read`. No secrets. The trigger is `pull_request` only, never `pull_request_target`. Actions are pinned to full commit SHAs, and the gitleaks binary is checksum-verified. |

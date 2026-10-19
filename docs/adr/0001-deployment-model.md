@@ -62,7 +62,7 @@ The previous release stays on disk, which makes rollback another swap. `cfg` kee
 
 ### Replacing files that are already there
 
-This rule applies during adoption, the first deploy on a machine that already has the config installed. It also applies whenever a target path holds a regular file or directory instead of the expected link:
+This rule applies during the first deploy on a machine that already has the config installed ([ADR-0004](0004-drift-and-adoption.md)). It also applies whenever a target path holds a regular file or directory instead of the expected link:
 
 1. Warn first. List every such path, say whether its sha256 matches the repo's version, and ask before continuing. `--yes` skips the question.
 2. If the content differs from the repo, stop. The path has to go through `cfg capture` first, or be passed explicitly with `--discard-live <path>`, so live edits are never lost by accident.
@@ -115,7 +115,7 @@ If check 1, 2 or 3 fails, that component is copied instead, with the same backup
 
 ## Consequences
 
-Adoption is no longer free of changes. File contents stay byte-identical, but regular files become links after a warning and a backup. `settings.json` is still not rewritten, because its hook entries already match.
+The first deploy on a machine that already has the config is not free of changes. Regular files become links after a warning and a backup, and any file whose content differs from the repo needs the owner's decision first. `settings.json` changes only where the repo's owned keys differ from the live ones.
 
 Edits made in the live config, for example by `/revise-claude-md`, go through the link into the current release worktree, where `git status` shows them. The working clone is unaffected.
 

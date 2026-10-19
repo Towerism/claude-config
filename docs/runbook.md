@@ -1,0 +1,459 @@
+# claude-config runbook
+
+This runbook is for the owner, or anyone setting up a machine for them. It covers running claude-config day to day: setting up a clone, deploying, handling drift, rolling back and undoing, and adding a second machine. Most of it changes your live Claude Code config in `~/.claude`; each section says when it does. To learn the commands without touching anything live, start with [Practice on a trial directory](#practice-on-a-trial-directory).
+
+**Last verified:** 2026-10-19, against commit `80285b7` and Claude Code 2.1.299. Every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
+
+Why things work this way is in the [architecture overview](architecture/README.md) and the ADRs it links. This page only says what to type and what to expect.
+
+## Before you start
+
+`cfg` is this repo's deploy tool. It isn't on your `PATH`: every command below runs from the root of your clone as `python3 -I tools/cfg/cli.py <command>`. The code that runs is your clone's working tree. What gets deployed is a commit: `origin/main` as last fetched, or the one you pass with `--ref`. A `git pull` updates both.
+
+A machine needs git, the GitHub CLI `gh` logged in, Python 3.13 (the version in `.python-version`), and the `claude` CLI logged in.
+
+`cfg` manages exactly these, and nothing else:
+
+| What | Where |
+|---|---|
+| The paths the host profile lists: `CLAUDE.md`, `skill-overlays/`, the hook scripts and the repo's skills | `~/.claude/`, as links into the deployed release |
+| The owned keys in `settings.json`: the plugins it enables, one marketplace and the three hook entries | `~/.claude/settings.json`, merged, never replaced |
+| Deploy state and the release worktrees | `~/.local/share/claude-config/` |
+| A backup for each deploy that moved or changed something | `~/.claude/backups/claude-config/<timestamp>/` |
+
+Skills that aren't in the host profile, such as `synced/` or a skill you added by hand, are never read, copied or touched.
+
+Every command takes `--json` for machine-readable output and `--target <dir>` to work on a temporary config directory instead of `~/.claude`. With `--target`, deploy state goes in `<dir>-cfg-data`.
+
+Exit codes:
+
+- 0: done, or nothing to report.
+- 1: something to report, or the deploy stopped before changing anything.
+- 2: a usage error, or refused before changing anything.
+- 3: a deploy or rollback failed after it started changing the live config. See [If a deploy exits 3](#if-a-deploy-exits-3).
+
+## Set up a clone
+
+Do this once for each new clone. There is no `cfg bootstrap` command yet (#50), so the four steps are manual. They're the same as in the repo's `CLAUDE.md`.
+
+1. Set the commit identity this repo requires. Its pre-commit hook refuses any other address.
+
+   ```sh
+   git config user.email 2057426+Towerism@users.noreply.github.com
+   git config user.name "Martin Fracker, Jr."
+   ```
+
+2. Turn on the repo's git hooks:
+
+   ```sh
+   git config core.hooksPath .githooks
+   ```
+
+3. Create the development environment:
+
+   ```sh
+   python3 -m venv .venv && .venv/bin/pip install --require-hashes -r requirements-dev.txt
+   ```
+
+4. Create the excluded-terms list at `~/.config/claude-config/deny-terms`, one term per line. The pre-commit hook refuses any staged file that contains a term from it. The list stays outside the repo: never print it, quote it or commit it.
+
+To check: `git config core.hooksPath` prints `.githooks`, and `.venv/bin/python -I -m pytest -q` passes.
+
+## Deploy
+
+### An ordinary deploy, after a change merges
+
+Run this after any PR merges to `main`. Until you do, `status` reports `behind`, which is expected.
+
+1. Update your clone. If `git pull` refuses, see [Updating your checkout](#updating-your-checkout).
+
+   ```sh
+   git pull --ff-only
+   ```
+
+2. See what would change. `plan` exits 1 even when nothing differs (#48), so read its output rather than its exit code.
+
+   ```sh
+   python3 -I tools/cfg/cli.py plan --host hosts/personal.json
+   ```
+
+3. Run the deploy without `--yes`. On a terminal it shows the change list and asks `continue? [y/N]`. Without a terminal it prints the list, ends with `nothing was changed; rerun with --yes to go ahead`, and exits 1.
+
+   ```sh
+   python3 -I tools/cfg/cli.py deploy --host hosts/personal.json
+   ```
+
+   It stops instead (`deploy <sha>: stopped`, exit 1) when something live differs from what it would install. Each conflict comes with a diff and the line `resolve with: cfg capture <path>, or cfg deploy ... --discard-live <path>`. See [Drift](#drift).
+
+4. Answer `y`, or rerun with `--yes`. Success ends like this:
+
+   ```text
+   deploy 80285b706aac: deployed
+     switch current from 09f1facab0011e4f4446dec6278a2b8043b30ae7 to 80285b706aac22162946a8cbe7eb201e2971d03d
+   ```
+
+   When nothing has changed since the last deploy, it says `deploy <sha>: already-deployed` and exits 0. A deploy that moves a file aside or changes a setting also prints `backup:` and `undo:` lines.
+
+5. Check the result:
+
+   ```sh
+   python3 -I tools/cfg/cli.py status
+   ```
+
+   Expect `status: clean (release <sha>)` and exit 0. Anything else is described in [Drift](#drift).
+
+### The first deploy on a machine that already has a config
+
+The first deploy compares every managed path and owned setting with the repo, and stops on each difference until you decide about it. Nothing on disk changes until no conflicts remain. This is how the owner's personal machine was deployed on 2026-10-19 (PR #49).
+
+1. See the differences:
+
+   ```sh
+   python3 -I tools/cfg/cli.py plan --host hosts/personal.json
+   ```
+
+   Each managed path shows `missing`, `match` or `differs`, and the settings show `same`, `missing-live` or a difference. On the personal machine it looked like this:
+
+   ```text
+     CLAUDE.md                                differs
+     skill-overlays                           differs
+     hooks/skill_overlay.py                   match
+     hooks/merge_confirm.py                   match
+     skills/github-issue-lifecycle            differs
+     ...
+   settings: all seven owned items same
+   a deploy would stop until each difference is captured or discarded (ADR-0004)
+   ```
+
+2. Decide each `differs` path. To keep your live version, capture it into a branch (see [Capturing a live change](#capturing-a-live-change)), merge that branch, pull, and start again. To let the repo's version win, name the path with `--discard-live`; your live copy goes into the backup either way. A settings difference is decided the same way, with `settings.json` as the path.
+
+3. Run the deploy with your choices and without `--yes`, and read the change list:
+
+   ```sh
+   python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --discard-live <path>
+   ```
+
+   Repeat `--discard-live <path>` once for each path you chose to discard. The list shows `back up and link <path> (differs)` or `(match)` for each path and ends with `switch current from nothing to <sha>`.
+
+4. Rerun the same command with `--yes`. The output ends with the backup's location:
+
+   ```text
+   backup: /home/<owner>/.claude/backups/claude-config/20261019T160515Z
+   undo: /home/<owner>/.claude/backups/claude-config/20261019T160515Z/restore.sh
+   ```
+
+   Write that path down. That backup is the only way back to the files you had before.
+
+5. Check that `status` says `clean`:
+
+   ```sh
+   python3 -I tools/cfg/cli.py status
+   ```
+
+### The first deploy on an empty machine
+
+The flow is the same, but nothing stops: every path is `missing` and the settings are `missing-live`. Install the plugins first (see [Setting up a second machine](#setting-up-a-second-machine)). Before switching, the deploy runs each hook on sample input, and without the plugins that test fails with a traceback from `skill_overlay.py` and changes nothing (exit 2).
+
+## Drift
+
+Drift is any difference between the live config and the deployed release. `status` reports it and `diff` shows it.
+
+```sh
+python3 -I tools/cfg/cli.py status
+python3 -I tools/cfg/cli.py diff <path>
+```
+
+`diff` without a path shows every difference, and `diff settings.json` shows the owned settings keys.
+
+| `status` line | What happened | What to do |
+|---|---|---|
+| `status: clean (release <sha>)` | Nothing | Nothing |
+| `behind: origin/main is at <sha>, ahead of the deploy` | A change merged since the last deploy | [An ordinary deploy](#an-ordinary-deploy-after-a-change-merges) |
+| `drift <file>: changed in the release` | Something edited a file through a link, so the edit is in the release worktree | Capture it, or deploy with `--discard-live <path>` |
+| `unlinked <path>: ... is a plain file or directory` | A tool replaced a link with a plain file | Capture it, or deploy with `--discard-live <path>` |
+| `broken <path>: ...` | A link is missing or points somewhere else | `deploy` relinks it |
+| a settings difference | An owned key in `settings.json` changed | Capture `settings.json`, or deploy with `--discard-live settings.json` |
+
+`status` may also print `warning` lines, for example `warning plugin-lock` when the installed plugins or synced skills differ from `plugins.lock.json`. Warnings don't stop a deploy.
+
+Claude's Edit and Write tools refuse to write through a linked file such as `~/.claude/CLAUDE.md` ("Write target is a symbolic link"). Claude then edits the file in the release worktree instead, which shows up here as drift. That's expected: capture the edit if you want to keep it.
+
+### Capturing a live change
+
+`capture` writes live changes into a worktree on a feature branch. It never commits and refuses `main`. Make the worktree with git, because this runbook may be needed when Claude Code isn't working:
+
+```sh
+git worktree add -b <branch> <worktree> origin/main
+python3 -I tools/cfg/cli.py capture --into <worktree> <path>
+```
+
+Expected output:
+
+```text
+captured into /tmp/cfg-capture-E34rO9 (nothing committed):
+  wrote   config/CLAUDE.global.md
+eval suites this change needs: rubric, scenario
+next: commit on this branch through the lifecycle flow. Once it merges, cfg deploy treats these paths as resolved; to deploy before then, pass --discard-live <path>.
+```
+
+Commit on that branch and open a PR through the usual issue flow, including the eval suites it names. Once it merges, pull and deploy.
+
+`capture` copies a symlink's text as it is. Before committing, check that no captured link points into your home directory, because the repo is public.
+
+### Discarding a live change
+
+```sh
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --discard-live <path> --yes
+```
+
+The repo's version wins. A discarded plain file goes into the backup. A discarded edit in the release stays where it was: the deploy builds a new release, named `<sha>-2` when one for that commit exists, and leaves the edited one on disk. See [Releases and pruning](#releases-and-pruning) to remove it later.
+
+## Rolling back
+
+Pick the row that matches what's wrong. The reasons are in [ADR-0006](adr/0006-repo-workflow.md).
+
+| Trigger | Do this |
+|---|---|
+| A merged change is wrong, but Claude Code still works | `git revert <sha>` on a `fix/` branch, open a PR, merge it, then [deploy](#an-ordinary-deploy-after-a-change-merges) |
+| A deploy broke Claude Code itself, for example a hook that fails on every call | `cfg rollback` (below), then the revert PR |
+| `cfg` itself won't run | Point `current` back by hand (below), then the revert PR |
+| You need a known-good commit now, without waiting for a PR | `python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --ref <good-sha> --yes` |
+| You want plain files back, with no links | [Undoing with restore.sh](#undoing-with-restoresh) |
+
+### cfg rollback
+
+```sh
+python3 -I tools/cfg/cli.py rollback
+```
+
+It switches `current` back to the previous release and fixes `cfg`'s own links. Expected output:
+
+```text
+rolled back from 80285b706aac22162946a8cbe7eb201e2971d03d-2 to 09f1facab0011e4f4446dec6278a2b8043b30ae7
+to return: cfg deploy
+```
+
+It never touches `settings.json`. When the owned settings differ between the two releases, it prints the `deploy --ref` command that rolls them back too. Afterwards `status` reports `behind` until `main` and the deploy agree again.
+
+### When cfg won't run
+
+Point `current` at an earlier release by hand. List the releases, then pick the one to go back to:
+
+```sh
+ls ~/.local/share/claude-config/releases/
+ln -sfn releases/<sha> ~/.local/share/claude-config/current
+```
+
+`status` then reports `broken current: current doesn't point at release <sha>` until the next `deploy`, because the deploy state still names the newer release. Run a deploy once `cfg` works again.
+
+## Undoing with restore.sh
+
+Each backup holds its own `restore.sh`, which needs nothing but Python. It removes the links that deploy made, puts the files it moved back after checking their hashes, and reverts only the owned settings it changed. Running it twice changes nothing more. It leaves alone anything that changed after the deploy, moves it into a snapshot inside the backup, and reports it:
+
+```text
+left alone  CLAUDE.md: it was no longer cfg's link; moved into the snapshot
+snapshot: .../backups/claude-config/20261019T173302Z/restore-20261019T173353Z
+```
+
+It exits 0 when everything went back. Exit 1 means it left something alone, so read the `left alone` lines and look in the snapshot. Exit 2 means it refused, for example because it couldn't read the manifest.
+
+Not every deploy writes a backup. Only the first deploy, and later ones that move a file aside or change a setting, do; an ordinary deploy that only switches releases doesn't. The personal machine had one backup after its first two deploys.
+
+To go back to plain files, run every backup's `restore.sh`, newest first, and the first deploy's last. If a first deploy failed and was run again, the earliest backup holds your original files, so it still runs last.
+
+```sh
+ls -1r ~/.claude/backups/claude-config/
+~/.claude/backups/claude-config/<backup>/restore.sh
+```
+
+Running the first deploy's `restore.sh` also moves the deploy state aside, so `status` then says `not-deployed`. It leaves `settings.json` in place, with `cfg`'s keys taken out.
+
+`cfg restore` runs the newest backup's `restore.py` for you, or the one you name. Once the deploy state is gone, it needs the backup's path:
+
+```sh
+python3 -I tools/cfg/cli.py restore <backup>
+```
+
+## If a deploy exits 3
+
+Exit 3 means a deploy or rollback failed after it had started changing the live config. The message names the `restore.sh` that undoes this deploy. Run that `restore.sh` first, then `status`, then `cfg rollback` if `current` points at the failed release. Open an issue with the full output before deploying again.
+
+## Releases and pruning
+
+Each deploy makes or reuses a release worktree under `~/.local/share/claude-config/releases/`, named by commit (`<sha>`, or `<sha>-2` and so on for later releases of the same commit). After each deploy, `cfg` removes old releases but keeps the five newest, the current one, and any release with edits in it.
+
+To remove a release with edits by hand, first capture or discard its edit, and make sure it isn't `current`. Then:
+
+```sh
+git -C ~/.local/share/claude-config/releases/<sha> status --short
+git worktree remove --force ~/.local/share/claude-config/releases/<sha>
+```
+
+Run the second command from your clone. Without `--force`, git refuses a worktree with changes, which is the safety you're overriding. The next deploy may build a fresh release under the freed name and switch to it; that's expected.
+
+## Checking that sync and /plugin leave links alone
+
+Do this after a Claude Code update, or when a link looks wrong. claude.ai skill sync and the `/plugin` menu can only be checked in an interactive session.
+
+1. Save an inventory of the managed paths:
+
+   ```sh
+   python3 -I eval/symlink_check.py --inventory ~/.claude > /tmp/inventory-before.json
+   ```
+
+2. In another terminal, run `cd /tmp && claude`, wait about a minute for sync, type `/plugin` and close the menu with Esc without changing anything, then type `/exit`.
+
+3. Take a second inventory and compare. `diff` prints nothing when no link changed:
+
+   ```sh
+   python3 -I eval/symlink_check.py --inventory ~/.claude > /tmp/inventory-after.json
+   diff /tmp/inventory-before.json /tmp/inventory-after.json
+   ```
+
+`--inventory` only reads and exits 0. A full run of `eval/symlink_check.py` without `--inventory` exits 2 on every run today (#44), so read its results table instead of the exit code.
+
+## Setting up a second machine
+
+The work machine's own profile and setup are #17. For any other machine:
+
+1. Clone the repo and [set up the clone](#set-up-a-clone).
+2. Pick a host profile from `hosts/`, or add one in a PR. A profile lists which paths, skills and plugins the machine gets. The config folder's path must not contain spaces or shell characters; `cfg` refuses such a `claude_home`.
+3. Install the plugins the profile lists, before the first deploy. Audit third-party ones with the `skill-security-auditor` skill first, as the global CLAUDE.md requires. For the personal profile:
+
+   ```sh
+   claude plugin marketplace add alirezarezvani/claude-skills
+   claude plugin install engineering-skills@claude-code-skills
+   claude plugin install engineering-advanced-skills@claude-code-skills
+   claude plugin install claude-md-management@claude-plugins-official
+   ```
+
+   `claude-plugins-official` is usually configured already; `claude plugin marketplace list` shows it. If it's missing, add `anthropics/claude-plugins-official` the same way.
+
+4. `claude plugin install` takes the marketplace's current version, not the one in `plugins.lock.json`. Compare them, and review any difference before deploying:
+
+   ```sh
+   python3 -I tools/cfg/lock.py --check
+   ```
+
+   Expect `{"ok": true, ...}`.
+
+5. Run a trial deploy first. Follow [Practice on a trial directory](#practice-on-a-trial-directory) with your profile.
+6. Run the real first deploy: [on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config), or [on an empty machine](#the-first-deploy-on-an-empty-machine).
+
+These steps haven't been run on a real second machine yet.
+
+## Updating your checkout
+
+`git pull` refuses when your clone has untracked files that the repo now tracks. On 2026-10-19 the owner's checkout had an untracked `docs/` folder, left over from before the docs were committed. Move such files aside, never delete them, then pull:
+
+```sh
+git status --short
+mv docs /tmp/old-untracked-docs
+git pull --ff-only
+```
+
+Compare the moved files with the repo's versions before throwing them away.
+
+## What was removed after the first deploy
+
+After the personal machine's first deploy passed on 2026-10-19, the owner approved deleting two leftovers of the v1 config: the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` and the v2 install backup in `~/.claude/backups/claude-md-v2-20261015T230435/` (recorded in the plan's [open question on deleting them, Q-2](architecture/plan.md#open-questions)). `~/.old-claude/work-skills/` is kept.
+
+Don't delete the first deploy's own backup, `~/.claude/backups/claude-config/20261019T160515Z/`. It's the only way back to the files from before the first deploy.
+
+## Known quirks
+
+- `plan` exits 1 even when no path differs (#48). Read its output.
+- A full `eval/symlink_check.py` run exits 2 every time today (#44). Read its table.
+- Claude can't edit a linked file such as `~/.claude/CLAUDE.md` in place; its edits land in the release and show as drift ([ADR-0001](adr/0001-deployment-model.md)).
+- In a trial directory, `status` warns `plugin-lock` because the trial has no synced skills. Ignore it there.
+
+## Practice on a trial directory
+
+This walks through the first deploy, drift, rollback, undo and cleanup on a temporary directory. Every `cfg` command here carries `--target`, so your live `~/.claude` is never touched. Run it from your clone's root, in one terminal, from top to bottom. It takes about five minutes.
+
+### Set up the trial
+
+```sh
+TRIAL=$(mktemp -d)
+mkdir "$TRIAL/home"
+ln -s ~/.claude/plugins "$TRIAL/home/plugins"
+echo "an old CLAUDE.md" > "$TRIAL/home/CLAUDE.md"
+```
+
+The `plugins` link lets the deploy's hook test find your installed plugins. Nothing in this walkthrough writes through it, and the cleanup removes only the link.
+
+### First deploy with a conflict
+
+```sh
+python3 -I tools/cfg/cli.py plan --host hosts/personal.json --target "$TRIAL/home"
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home"
+```
+
+`plan` shows `CLAUDE.md differs` and every other path `missing`. The deploy stops on `CLAUDE.md` with a diff and exits 1. Discard the old file, look at the change list, then go ahead:
+
+```sh
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home" --discard-live CLAUDE.md
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home" --discard-live CLAUDE.md --yes
+python3 -I tools/cfg/cli.py status --target "$TRIAL/home"
+```
+
+Expect `deployed`, a `backup:` line, and then `status: clean` with one `warning plugin-lock` line.
+
+### Drift
+
+Edit the release through the link, the way a tool would:
+
+```sh
+echo "a live edit" >> "$TRIAL/home/CLAUDE.md"
+python3 -I tools/cfg/cli.py status --target "$TRIAL/home"
+python3 -I tools/cfg/cli.py diff --target "$TRIAL/home" CLAUDE.md
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home" --discard-live CLAUDE.md --yes
+python3 -I tools/cfg/cli.py status --target "$TRIAL/home"
+```
+
+`status` shows `drift config/CLAUDE.global.md: changed in the release`, `diff` shows the added line, and the deploy switches to a new release ending in `-2`. `status` is clean again.
+
+### Roll back
+
+Deploy an older commit, come back to `main`, then roll back:
+
+```sh
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home" --ref 09f1fac --yes
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home" --yes
+python3 -I tools/cfg/cli.py rollback --target "$TRIAL/home"
+python3 -I tools/cfg/cli.py status --target "$TRIAL/home"
+```
+
+The rollback prints `rolled back from <release> to 09f1fac…`, and `status` reports `behind`. Deploy once more to get back to `clean`:
+
+```sh
+python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --target "$TRIAL/home" --yes
+```
+
+### Undo with restore.sh
+
+Run every backup's `restore.sh`, newest first:
+
+```sh
+for b in $(ls -1r "$TRIAL/home/backups/claude-config"); do "$TRIAL/home/backups/claude-config/$b/restore.sh"; done
+python3 -I tools/cfg/cli.py status --target "$TRIAL/home"
+cat "$TRIAL/home/CLAUDE.md"
+```
+
+The restore prints `restored` lines and puts back `an old CLAUDE.md`. `status` says `not-deployed`.
+
+### Clean up
+
+This removes the trial directory, its deploy state and the release worktrees git registered for it. The `case` line refuses anything that isn't a directory `mktemp` made.
+
+```sh
+case "$TRIAL" in "${TMPDIR:-/tmp}"/tmp.*) rm -rf -- "$TRIAL" && git worktree prune && git worktree list ;; *) echo "not removing $TRIAL" ;; esac
+```
+
+`git worktree list` should show only your clone, its other worktrees and your live releases under `~/.local/share/claude-config/releases/`.
+
+## When this runbook goes stale
+
+Check this runbook again, and update its "Last verified" line, when any of these change: `tools/cfg/cli.py`, `tools/cfg/deploy.py`, `tools/cfg/restore.py`, `hosts/*.json`, `config/settings.fragment.json`, [ADR-0001](adr/0001-deployment-model.md), [ADR-0004](adr/0004-drift-and-adoption.md) or [ADR-0006](adr/0006-repo-workflow.md).
+
+There's no escalation path: claude-config has one owner.

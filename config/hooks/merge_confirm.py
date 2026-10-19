@@ -1,7 +1,8 @@
 """PreToolUse(Bash) hook: every PR merge waits for the user's click.
 
 Prints a permissionDecision of "ask" for `gh … pr … merge`, `gh api …/merge`
-and a GraphQL `mergePullRequest` sent with `gh api`; prints nothing otherwise. Always exits 0 and never denies.
+and a GraphQL `mergePullRequest` sent with `gh api`; prints nothing otherwise.
+Always exits 0 and never denies.
 
 The check runs on every Bash command, so it reads the command once, left to
 right, in time proportional to its length. A regular expression with nested
@@ -77,11 +78,17 @@ def main() -> None:
     except Exception:
         return
     if isinstance(command, str) and merges_a_pr(command):
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "ask",
-            "permissionDecisionReason": REASON,
-        }}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "ask",
+                        "permissionDecisionReason": REASON,
+                    }
+                }
+            )
+        )
 
 
 if __name__ == "__main__":

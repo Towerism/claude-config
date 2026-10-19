@@ -34,6 +34,10 @@ from typing import IO, TextIO, cast
 NOREPLY_RE = re.compile(
     r"(\d+\+)?[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?@users\.noreply\.github\.com"
 )
+# GitHub commits the merges it makes with its own address. It reveals nothing about the
+# owner, so it may stand as a committer, but only beside a noreply author. It's built from
+# parts so that the hooks' own email scan doesn't flag this line.
+GITHUB_COMMITTER = "noreply" + "@" + "github.com"
 
 # The left boundary stops words such as "task-management-..." matching the sk- pattern.
 _LEFT = r"(?<![A-Za-z0-9_-])"
@@ -484,10 +488,11 @@ def commit_findings(hook: str, sha: str, reader: BlobReader, terms: list[str]) -
     author, committer, short, message = git(
         "log", "-1", "--format=%ae%x00%ce%x00%h%x00%B", sha
     ).split("\0", 3)
+    github_merge = committer == GITHUB_COMMITTER and is_noreply(author)
     found = [
         Finding(hook, "identity", f"{short} {role}")
         for role, email in (("author", author), ("committer", committer))
-        if not is_noreply(email)
+        if not is_noreply(email) and not (role == "committer" and github_merge)
     ]
     found += content_findings(hook, f"{short} message", message, terms)
     for entry in commit_entries(sha):

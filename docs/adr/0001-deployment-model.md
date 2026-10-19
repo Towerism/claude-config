@@ -132,7 +132,7 @@ Every component works through a link, so nothing is copied and the link table ab
 
 | Other tools (check 5) | Outcome |
 |---|---|
-| claude.ai skill sync during a headless run | it ran, created `skills/synced/`, and left every link alone |
+| claude.ai skill sync during a headless run | a `skills/synced/` directory, where claude.ai sync puts its skills, appeared during the runs; every link stayed as it was |
 | `claude plugin marketplace add`, `install`, `uninstall`, `marketplace remove` | every link and every settings key outside `enabledPlugins` and `extraKnownMarketplaces` unchanged |
 
 What this means for `cfg` (#6) and the first deploy (#8):

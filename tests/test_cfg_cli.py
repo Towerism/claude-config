@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.cfg_helpers import deploy_with_library, make_home, make_repo
+from tests.cfg_helpers import deploy_with_library, git, make_home, make_repo
 from tools.cfg import cli
 
 pytestmark = pytest.mark.usefixtures("cfg_isolation")
@@ -80,7 +80,7 @@ def test_status_lists_findings_and_warnings(
 ) -> None:
     deploy_with_library(repo, home, data_dir())
     (home / "skills" / "alpha" / "SKILL.md").write_text("edited\n")
-    os.remove(Path(repo / ".git" / "refs" / "remotes" / "origin" / "main"))
+    git(repo, "update-ref", "-d", "refs/remotes/origin/main")
     assert run(repo, home, "status") == 1
     out = capsys.readouterr().out
     assert "drift  config/skills/alpha/SKILL.md: changed in the release" in out

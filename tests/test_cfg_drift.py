@@ -431,3 +431,20 @@ def test_diff_after_the_release_is_gone_still_runs(
 ) -> None:
     git(repo, "worktree", "remove", "--force", str(release_of(data, deployed)))
     assert drift.diff(repo, data, home) == []
+
+
+def test_diff_shows_drift_outside_the_managed_paths_that_status_reports(
+    repo: Path, home: Path, data: Path, deployed: state.State
+) -> None:
+    (release_of(data, deployed) / "README-local.md").write_text("note\n")
+    assert ("drift", "README-local.md") in kinds(drift.status(repo, data, home))
+    assert "+note" in dict(drift.diff(repo, data, home))["README-local.md"]
+
+
+def test_an_edited_profile_in_the_release_is_drift_not_a_crash(
+    repo: Path, home: Path, data: Path, deployed: state.State
+) -> None:
+    (release_of(data, deployed) / "hosts" / "test.json").write_text("{broken")
+    result = drift.status(repo, data, home)
+    assert kinds(result) == [("drift", "hosts/test.json")]
+    assert "hosts/test.json" in dict(drift.diff(repo, data, home))

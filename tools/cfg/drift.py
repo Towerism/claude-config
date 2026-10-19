@@ -141,13 +141,23 @@ def _check_current(data_dir: Path, st: state.State) -> list[Finding]:
     return []
 
 
-def _deployed_paths(rel: Path, st: state.State, home: Path, data_dir: Path) -> tuple[Any, ...]:
+def _deployed_paths(
+    rel: Path, st: state.State, home: Path, data_dir: Path
+) -> tuple[state.ManagedPath, ...]:
+    """The deployed profile, rendered from its release; the state's copy if that can't render.
+
+    A release whose own host profile was edited (drift) or that is gone still
+    has its paths recorded in the state file.
+    """
     if rel.is_dir():
-        return render.render(rel, st.host, home, data_dir).paths
+        try:
+            return render.render(rel, st.host, home, data_dir).paths
+        except CfgError:
+            pass
     return st.paths
 
 
-def _check_paths(paths: tuple[Any, ...], home: Path, rel: Path) -> list[Finding]:
+def _check_paths(paths: tuple[state.ManagedPath, ...], home: Path, rel: Path) -> list[Finding]:
     found = []
     for p in paths:
         kind = link.classify(home / p.live, p.target, rel / p.source)
@@ -341,7 +351,8 @@ def diff(
     out: list[tuple[str, str]] = []
     if rel.is_dir():
         for dirty in release.dirty_paths(rel):
-            if any(dirty == p.source or dirty.startswith(p.source + "/") for p in chosen):
+            under = any(dirty == p.source or dirty.startswith(p.source + "/") for p in chosen)
+            if path is None or under:
                 out.append((dirty, _drift_diff(rel, dirty)))
     for p in chosen:
         if link.classify(claude_home / p.live, p.target, rel / p.source) in ("match", "differs"):

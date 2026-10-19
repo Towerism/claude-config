@@ -17,7 +17,7 @@
   "id": "C-03",
   "text": "Spec every piece of work on its issue",
   "disposition": "claude-md",
-  "mustAppear": "stored where the lifecycle skill says (the issue body)",
+  "mustAppear": "stored where the lifecycle skill says (the issue or ticket body)",
   "reason": null
  },
  {
@@ -557,6 +557,20 @@
   "text": "Load the writing-docs skill before the first text a person will read later too; it loads plain-prose itself and adds the reader-first steps (the owner's decision D-1 on #13, 2026-10-17: \"the full live line\"; ADR-0010; not in the v1 CLAUDE.md)",
   "disposition": "claude-md",
   "mustAppear": "Load `writing-docs` once before the first such text too",
+  "reason": null
+ },
+ {
+  "id": "C-81",
+  "text": "Start with the lifecycle skill for the repo's tracker: the one the repo's CLAUDE.md names, else the machine default stated at session start (a new rule from ADR-0011 and #15; not in the v1 CLAUDE.md)",
+  "disposition": "claude-md",
+  "mustAppear": "the lifecycle skill for the repo's tracker",
+  "reason": null
+ },
+ {
+  "id": "C-82",
+  "text": "A commit subject ends with the issue or ticket reference, (#N) on GitHub or (KEY-N) on Jira (a new rule from ADR-0011 and #15; the v1 CLAUDE.md allowed only (#N))",
+  "disposition": "claude-md",
+  "mustAppear": "`(#N)` or `(KEY-N)`",
   "reason": null
  }
 ]

@@ -44,6 +44,26 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I {claude_home}/hooks/lifecycle_default.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I {claude_home}/hooks/lifecycle_default.py"
+          }
+        ]
+      }
     ]
   }
 }

@@ -7,12 +7,12 @@ Project CLAUDE.md files win on specifics (commands, paths, conventions); this fi
 Use these in order. Each injects a "Skill overlay"; if none appears, read `~/.claude/skill-overlays/<full skill name>.md`.
 
 1. New project or major design: `senior-architect` drafts the architecture doc and ADRs (stack, data model, module boundaries) before feature work. Once reviewed they're the source of truth; a departure needs a new or updated ADR.
-2. Start: `github-issue-lifecycle`. Every code-change request in a GitHub repo, even a bare "fix X", starts here, before reading or editing code.
-3. Spec: `spec-driven-workflow`, stored where the lifecycle skill says (the issue body).
+2. Start: the lifecycle skill for the repo's tracker: the one the repo's CLAUDE.md names, else the machine default stated at session start. Every code-change request in a repo with an issue tracker, even a bare "fix X", starts here, before reading or editing code.
+3. Spec: `spec-driven-workflow`, stored where the lifecycle skill says (the issue or ticket body).
 4. Test plan: `senior-qa` and/or `api-test-suite-builder` (HTTP routes), before the spec's test plan and again before the tests. Changes to `.github/workflows/*`, `.gitlab-ci.yml`, deploy jobs or the scripts they call: `ci-cd-pipeline-builder` before the pipeline plan and again before the YAML.
 5. Implement: `tdd-guide` for all code (red-green-refactor).
 6. Review: `adversarial-reviewer`, once on the spec and once on the PR diff.
-7. Merge: `ship-gate`, then `github-issue-lifecycle` closes out.
+7. Merge: `ship-gate`, then the lifecycle skill closes out.
 
 Prose, alongside every step: load `plain-prose` once per session before the first text a person will read later: code comments, docstrings, assertion and error messages, CLI and UI text, commits, issue and PR text, docs and review notes (not the chat reply itself, and not text written for Claude). Load `writing-docs` once before the first such text too; it loads `plain-prose` itself and adds the reader-first steps, with templates and a lint for document files. Their rules then cover every later such text. Never re-invoke one while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
 
@@ -39,7 +39,7 @@ Conflicts: manual review beats "no review"; else the more specific statement win
 
 ## Git
 
-- Conventional Commits typed by release impact (`feat`, `fix`, `!` plus a `BREAKING CHANGE:` footer); subject ends with `(#N)`; atomic commits; no squash, so every branch commit is conventional.
+- Conventional Commits typed by release impact (`feat`, `fix`, `!` plus a `BREAKING CHANGE:` footer); subject ends with the issue or ticket reference, `(#N)` or `(KEY-N)`; atomic commits; no squash, so every branch commit is conventional.
 - Branch/worktree: `feature|fix|hotfix|docs|chore/{issue}-{slug}`. Delete after merge. Never commit to or force-push the default branch. Roll back with `git revert`. Only semantic-release tags.
 
 ## Splitting and forks

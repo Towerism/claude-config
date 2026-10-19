@@ -32,6 +32,11 @@ HEAD_REF = "${{ github.event.pull_request.head.sha || github.sha }}"
 # Only the jobs that install requirements-dev.txt cache pip, keyed on that hash-pinned file.
 PIP_CACHED = {"lint", "test"}
 PIP_CACHE = {"cache": "pip", "cache-dependency-path": "requirements-dev.txt"}
+# A PR that changes only docs/ skips these; a failed changes job makes them "skipped",
+# which a required check accepts, so changes is itself a required check.
+CODE_GATED = {"lint", "test", "config"}
+CODE_CONDITION = "needs.changes.outputs.code == 'true'"
+PR_ONLY = {"commits": "github.event_name == 'pull_request'"}
 
 
 def load(text: str) -> dict[str, Any]:
@@ -63,7 +68,17 @@ def problems(workflow: dict[str, Any], text: str) -> list[str]:
         found.append("default shell")
     if tuple(workflow["jobs"]) != REQUIRED_CHECKS:
         found.append("job list")
+    outputs = workflow["jobs"].get("changes", {}).get("outputs", {})
+    if set(outputs) != {"base", "code"}:
+        found.append("changes: outputs")
     for job_id, job in workflow["jobs"].items():
+        needs = job.get("needs", [])
+        needs = [needs] if isinstance(needs, str) else needs
+        expected_if = CODE_CONDITION if job_id in CODE_GATED else PR_ONLY.get(job_id)
+        if job.get("if") != expected_if:
+            found.append(f"{job_id}: condition")
+        if job_id != "changes" and "changes" not in needs:
+            found.append(f"{job_id}: needs changes")
         if job.get("permissions", {"contents": "read"}) != {"contents": "read"}:
             found.append(f"{job_id}: permissions")
         if job.get("name", job_id) != job_id:
@@ -194,6 +209,12 @@ BREAKAGES: dict[str, Callable[[dict[str, Any]], None]] = {
         "test", "cache-dependency-path", "pyproject.toml"
     ),
     "a cache on a job that installs nothing": _set_setup_python_option("hygiene", "cache", "pip"),
+    "test runs without the code condition": _set(("jobs", "test", "if"), None),
+    "config needs only test": _set(("jobs", "config", "needs"), "test"),
+    "hygiene gated on code": _set(("jobs", "hygiene", "if"), CODE_CONDITION),
+    "eval-record gated on code": _set(("jobs", "eval-record", "if"), CODE_CONDITION),
+    "commits on pushes too": _set(("jobs", "commits", "if"), None),
+    "changes without the code output": _set(("jobs", "changes", "outputs"), {"base": "x"}),
     "an extra job": _add_job,
     "an expression inside run": _run_with_expression,
 }

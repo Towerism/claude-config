@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       base: ${{ steps.base.outputs.base }}
+      code: ${{ steps.code.outputs.code }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,6 +39,11 @@ jobs:
       - id: base
         name: Find the commit the range checks start from
         run: echo "base=$(python3 -I tools/ci.py base)" >> "$GITHUB_OUTPUT"
+      - id: code
+        name: Decide whether the code jobs run (a PR touching only docs/ skips them)
+        env:
+          BASE: ${{ steps.base.outputs.base }}
+        run: python3 -I tools/ci.py changes --base "$BASE" >> "$GITHUB_OUTPUT"
 
   hygiene:
     needs: changes
@@ -90,6 +96,7 @@ jobs:
 
   lint:
     needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -109,7 +116,8 @@ jobs:
       - run: mypy
 
   test:
-    needs: lint
+    needs: [changes, lint]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -138,7 +146,8 @@ jobs:
       - run: python -I -m pytest config/skills/github-issue-lifecycle/tests
 
   config:
-    needs: test
+    needs: [changes, test]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

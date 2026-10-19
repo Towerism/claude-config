@@ -1,14 +1,16 @@
-# ADR-0004: Drift and adoption (hash-verified adoption that links after a warning and a backup; drift read from the release worktree)
+# ADR-0004: Drift and the first deploy (the first deploy warns, backs up and links; drift read from the release worktree)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Revised on 2026-10-18, when the owner dropped hash-verified adoption and chose the first deploy for a machine that already has the config installed ([plan Q-19](../architecture/plan.md#open-questions)).
 
-On a machine that already has the config installed, the first deploy proves by sha256 that the repo holds exactly what is live. It then replaces the live files with symlinks, after a warning and a backup. After that, `cfg status` reports drift, meaning live changes the repo doesn't have. Drift is never overwritten silently: it either goes back into the repo through a reviewed commit, or is discarded on an explicit command. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
+On a machine that already has the config installed, the first deploy compares every managed path with the repo. It stops on any difference until the owner decides about each one, then replaces the live files with symlinks, after a warning and a backup. After that, `cfg status` reports drift, meaning live changes the repo doesn't have. Drift is never overwritten silently: it either goes back into the repo through a reviewed commit, or is discarded on an explicit command. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
 ## Context
 
-The config was installed on 2026-10-15 by the v2 installer, and on that date all 34 files in its sha256 manifests matched what was live. Adoption is the first contact between `cfg` and that install. It has to show by hash that the repo matches the live config. Then, following the owner's decision of 2026-10-16 on symlinks ([ADR-0001](0001-deployment-model.md)), it replaces the live files with links, warning and backing up first.
+The config was installed on 2026-10-15 by the v2 installer, and on that date all 34 files in its sha256 manifests matched what was live. The first contact between `cfg` and that install has to take it over without losing anything. Then, following the owner's decision of 2026-10-16 on symlinks ([ADR-0001](0001-deployment-model.md)), it replaces the live files with links, warning and backing up first.
 
-After adoption, the live config can change without going through the repo:
+By 2026-10-18 the live config no longer matched those manifests. The owner had edited the live `~/.claude/CLAUDE.md` (#28), and merged issues had changed files the manifests list (#35). A check that the repo, the manifest and the live file all have the same hash would abort on every run.
+
+After the first deploy, the live config can change without going through the repo:
 
 - `/revise-claude-md` edits `CLAUDE.md`, now through the link;
 - a tool may replace a link with a plain file;
@@ -20,11 +22,12 @@ The owner needs to see each change, know which direction it went, and turn the w
 
 ## Options
 
-For adoption:
+For the first contact with an installed machine:
 
 1. Reinstall over the top. This hides any mismatch and writes the same content again for no reason.
 2. Trust the repo and create the links without checking. Nothing is verified.
-3. Verify that the repo, the v2 manifest and the live file all have the same sha256, then warn, back up and link. On any mismatch, abort before changing anything.
+3. Adoption: verify that the repo, the v2 manifest and the live file all have the same sha256, then warn, back up and link. On any mismatch, abort before changing anything.
+4. The first deploy: compare each live path with the repo, stop on any difference until the owner decides about that path, then warn, back up and link, using [ADR-0001](0001-deployment-model.md)'s rule for files that are already there.
 
 For drift:
 
@@ -34,16 +37,25 @@ For drift:
 
 ## Decision
 
-Option 3 for adoption. `cfg adopt --host personal` works in six steps:
+Option 4 for the first contact, decided on 2026-10-18. The owner chose option 3 on 2026-10-16; it is superseded because the v2 manifests no longer match the live config (#28, #35), so adoption would always abort, and because option 4 already protects everything adoption protected. Issue 7, which was to build `cfg adopt`, is dropped.
 
-1. It refuses to run if a deploy state already exists.
-2. It creates the first release worktree at HEAD and reads every `~/.claude/backups/claude-md-v2-*/{deliverable,bundle}-manifest.sha256`.
-3. It checks each managed path. A path with a manifest entry needs the repo sha, the manifest sha and the live sha to be equal. Some files have no manifest entry because the v2 installer never wrote them: the lifecycle skill's `SPEC.md` and `REVIEW-NOTE.md`, and linux-troubleshooting. Those need the repo sha to equal the live sha, and are reported separately. For settings, the rendered fragment must mean the same as the live owned keys. `__pycache__/`, `.pytest_cache/` and `*.pyc` are ignored on both sides.
-4. On any mismatch it aborts with the list, having changed nothing.
-5. If everything matches, it prints the list of every regular file and directory it is about to replace and asks to continue. It then moves each one into `~/.claude/backups/claude-config/<timestamp>/` with a manifest, creates the links, writes the state file, and runs the hook smoke test through the links. `settings.json` is not rewritten, because its entries already match.
-6. It reports how many paths were adopted by manifest, how many by direct comparison, and how many were linked, along with the backup location and its `restore.sh`.
+The first deploy is `cfg deploy --host personal` on a machine with no deploy state yet. It works in six steps:
 
-Skill directories that aren't listed in the host profile are invisible to `cfg`, which never reads, reports, copies or touches them. Adoption also changes nothing in the `claude-md-v2-*` backup. The owner doesn't intend to return to the v1 config, so after adoption that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` serve no rollback purpose. On 2026-10-16 the owner told Claude to delete both once adoption passes on the personal machine; issue 7 does it, listing the two paths first. See the cleanup question in [plan.md](../architecture/plan.md).
+1. It sorts every managed path into one of four kinds: missing; a link already pointing where `cfg` would put it; a plain file or directory matching the repo; or a plain file or directory that differs from the repo. It also compares the rendered settings fragment with the live owned keys. `__pycache__/`, `.pytest_cache/` and `*.pyc` are ignored on both sides.
+2. If any path or owned settings key differs, it stops before changing anything. It shows a unified diff for each difference and says how to resolve it.
+3. The owner resolves each difference. `cfg capture <path>` copies the live version onto a feature branch, where it goes through review like any other change. `--discard-live <path>` accepts the repo's version, and the live file still goes into the backup. A difference in the owned settings keys is resolved the same way, with `settings.json` as the path: `cfg capture settings.json` writes the live values back into `config/settings.fragment.json` on a branch, and `--discard-live settings.json` lets the repo's values win.
+4. It lists every file and directory it is about to replace and asks to continue. `--yes` skips the question, but never a difference from step 2.
+5. It backs up, links (or copies, for any component the symlink check in issue 14 records as copied), merges the owned settings keys, writes the state file and runs the hook smoke test, as the [deploy section of the architecture overview](../architecture/README.md#deploying) describes.
+6. It reports what it linked, what already matched, what was discarded, and where the backup and its `restore.sh` are.
+
+What the first deploy guarantees:
+
+- Nothing is replaced or deleted without first being moved into `~/.claude/backups/claude-config/<timestamp>/` and recorded in its manifest.
+- No path whose content differs from the repo is replaced without the owner's explicit decision for that path.
+- `settings.json` is backed up before it is written, and only the owned keys change.
+- `restore.sh` in the backup returns the machine to plain files, checking hashes first.
+- Skill directories that aren't listed in the host profile are invisible to `cfg`, which never reads, reports, copies or touches them.
+- The `claude-md-v2-*` backup is left alone by `cfg`. The owner doesn't intend to return to the v1 config, so once the first deploy passes on the personal machine, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` serve no rollback purpose. Issue 8 lists the two paths and deletes them after the owner's go-ahead. See Q-2 in [plan.md](../architecture/plan.md#open-questions).
 
 Option 3 for drift. `cfg status` reports these states:
 

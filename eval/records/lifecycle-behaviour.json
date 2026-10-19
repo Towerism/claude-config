@@ -1,0 +1,127 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "config/skills/github-issue-lifecycle/evals/fake_gh.py": "1078ed59a226e45e07c5534dd455d2db63ffdab9d3950bc9c534fb538ae20972",
+    "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py": "1868c9da965c97b8410d83349b140e3ce84d7780a39eca2958984f00136c3162"
+  },
+  "inputs": {
+    "config/skills/github-issue-lifecycle/SKILL.md#body": "f67e9280efb507f53db8ded31da93605d90bf1f224682944170b5d30094067b0",
+    "config/skills/github-issue-lifecycle/assets/pr-body-template.md": "2fa987122fb6ca8f8794538491cefd40a85645391f15991ecfc7e093a245a94f",
+    "config/skills/github-issue-lifecycle/evals/evals.json": "7af24072dfc01192262ed274dcddc831fcae6eaeba2e34c9aea525753c338e3e",
+    "config/skills/github-issue-lifecycle/references/gh-commands.md": "00c5fbe73390255d9fb81bb6fb44e69c41ecca853cd9a2a164dcceedcc5c47d9",
+    "config/skills/github-issue-lifecycle/references/git-workflow.md": "c593a3e84702c1cb8357bbb6babb35c212554be8f1bdd2242816c06e09e6c5bb",
+    "config/skills/github-issue-lifecycle/scripts/issue_lifecycle.py": "65c89f5a8a4e500fc52655f28c54ee16ac9dc31d9b9947665459daba197087c2"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-19T03:17:19Z",
+  "result": {
+    "cases": [
+      {
+        "id": "1",
+        "result": "pass"
+      },
+      {
+        "id": "2",
+        "result": "pass"
+      },
+      {
+        "id": "3",
+        "result": "pass"
+      },
+      {
+        "id": "4",
+        "result": "pass"
+      },
+      {
+        "id": "5",
+        "result": "pass"
+      },
+      {
+        "id": "6",
+        "result": "pass"
+      },
+      {
+        "id": "7",
+        "result": "pass"
+      },
+      {
+        "id": "8",
+        "result": "pass"
+      },
+      {
+        "id": "9",
+        "result": "pass"
+      },
+      {
+        "id": "10",
+        "result": "pass"
+      },
+      {
+        "id": "11",
+        "result": "pass"
+      },
+      {
+        "id": "12",
+        "result": "pass"
+      },
+      {
+        "id": "13",
+        "result": "pass"
+      },
+      {
+        "id": "14",
+        "result": "pass"
+      },
+      {
+        "id": "15",
+        "result": "fail"
+      },
+      {
+        "id": "16",
+        "result": "pass"
+      },
+      {
+        "id": "17",
+        "result": "pass"
+      },
+      {
+        "id": "18",
+        "result": "pass"
+      },
+      {
+        "id": "19",
+        "result": "pass"
+      },
+      {
+        "id": "20",
+        "result": "pass"
+      },
+      {
+        "id": "21",
+        "result": "pass"
+      },
+      {
+        "id": "22",
+        "result": "pass"
+      },
+      {
+        "id": "23",
+        "result": "pass"
+      },
+      {
+        "id": "25",
+        "result": "pass"
+      },
+      {
+        "id": "26",
+        "result": "pass"
+      }
+    ],
+    "exitCode": 0,
+    "pass": true
+  },
+  "suite": "lifecycle-behaviour"
+}

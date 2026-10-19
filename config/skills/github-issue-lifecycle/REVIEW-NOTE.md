@@ -107,3 +107,23 @@ This pass used `engineering-skills:adversarial-reviewer` once, inline in the sam
 | N1 | NOTE | Saboteur | "Commits made during the case" needs a definition. Counting every ref would include `refs/stash`, so a model that stashes its edits would fail the case falsely. | **Fixed in the code, not the spec**: the grader reads branches, pushed branches and every worktree's `HEAD`, never the stash. That is what "any branch or worktree" already says. |
 | N2 | NOTE | Security Auditor | After the run the harness reads the workspace with git, and the model could have set a config such as `core.fsmonitor` that runs a command. | **Fixed in the code**: the grader uses plumbing commands only (`rev-list`, `diff-tree`, `worktree list`) with `core.fsmonitor` and `core.hooksPath` overridden. |
 | N3 | NOTE | New Hire | The Status line now nests the earlier status inside the new one and is long. | **Listed.** It keeps the approval history in one place, as before. |
+
+
+---
+
+# Adversarial pass on the stateful fake gh and the comment-case removal (one pass, 2026-10-18)
+
+The second live behaviour run (on `bcc38f8`) failed on cases 9, 11 and 24. An analysis with senior-prompt-engineer found that the fake `gh` never showed a run's own edits, so the model, which checks its writes, decided they hadn't landed (cases 8 and 9). The owner approved a fix plan with "approve". This change adds FR-34, a fake `gh` that answers from per-case state updated by the run's writes, with a supported `--jq` subset. It rewords AC-3 and the test plan to match, adds AC-31 to test FR-34, and adds the seed fields to the data model. FR-27 now names `GIT_ALLOW_PROTOCOL=file` and the `insteadOf` remote. The comment case leaves AC-26 until #37 brings it back.
+
+This pass used `engineering-skills:adversarial-reviewer` once, inline in the same fork, with its three personas.
+
+**Verdict: CONCERNS** (no CRITICAL, 1 WARNING, 5 NOTES). The warning changed the spec, so the pass isn't clean and the owner has to approve the change in their own words.
+
+| ID | Sev | Persona | Finding | Handling |
+|---|---|---|---|---|
+| W1 | WARNING | Saboteur | FR-34 had the state answer `pr view` and issue reads ahead of a case's canned responses. Case 11 tests the path where GitHub lists a PR's closing reference only after `pr edit`, using a canned `pr view`; under FR-34 the state would show the reference at once, so that path could never run, and case 13's canned merge result would be overridden too. | **Fixed in the spec.** FR-34's last item now says: "a case's canned response wins over the state when its pattern matches, so a case can still simulate GitHub behaviour the state doesn't model: an error, a merge and what it closes, or a pull request whose closing references appear only after `pr edit` (case 11, for the relinking path)." |
+| N1 | NOTE | Saboteur | The model can run two `gh` commands at once, and two writes to the state file could lose one update. | **Handled in the code:** each change to the state holds a file lock. |
+| N2 | NOTE | Saboteur | `--add-label a,b` names two labels, and `issue create --label` sets labels on the new issue. | **Handled in the code**, with tests. |
+| N3 | NOTE | Saboteur | With `origin` rewritten by `insteadOf`, `GIT_ALLOW_PROTOCOL=file` must still allow the rewritten local path. | **Checked in the code** with a test that pushes through the rewrite. |
+| N4 | NOTE | Security Auditor | The fake reads any file the model passes as `--body-file` and keeps it in the case's state and log. | **Listed.** The old fake did the same; the files stay in the run's temp folder and the git-ignored `eval/out/`. |
+| N5 | NOTE | New Hire | The Status line keeps nesting earlier statuses and is now long. | **Listed**, as before. |

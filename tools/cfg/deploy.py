@@ -454,10 +454,10 @@ def prune(clone: Path, data: Path, history: list[str], current: str) -> tuple[li
     left, warnings = [], []
     for name in history:
         path = release.releases_dir(data) / name
-        if name in keep or not path.is_dir() or release.dirty_paths(path):
-            left.append(name)
-            continue
         try:
+            if name in keep or not path.is_dir() or release.dirty_paths(path):
+                left.append(name)
+                continue
             release.remove(clone, data, name)
         except CfgError as e:
             warnings.append(f"couldn't prune release {name}: {e}")
@@ -650,37 +650,55 @@ def rollback(clone: Path, home: Path, data: Path) -> RollbackResult:
         live, _ = settings_merge.preflight(home / "settings.json")
         result = RollbackResult(left=st.release, to=name)
         release.swap_current(data, name)
-        for p in ds.paths:
-            path = home / p.live
-            if not os.path.lexists(path):
-                link.make_link(path, p.target)
-                result.relinked.append(p.live)
-            elif not (path.is_symlink() and os.readlink(path) == p.target):
-                result.left_alone.append(p.live)
-        wanted = {p.live for p in ds.paths}
-        for old in st.paths:
-            path = home / old.live
-            if old.live in wanted or not os.path.lexists(path):
-                continue
-            if path.is_symlink() and os.readlink(path) == old.target:
-                path.unlink()
-                result.removed.append(old.live)
-            else:
-                result.left_alone.append(old.live)
-        sha = release.release_sha(rel)
-        state.save(
-            data, state.State(**{**vars(st), "release": name, "sha": sha, "paths": ds.paths})
-        )
-        owned = settings_merge.owned_items(ds.fragment)
-        result.settings_differ = any(
-            settings_merge.live_value(live, k) != v for k, v in owned.items()
-        ) or any(
-            k not in owned and settings_merge.live_value(live, k) is not settings_merge.MISSING
-            for k in st.settings
-        )
-        if result.settings_differ:
-            result.command = f"cfg deploy --host {st.host} --ref {sha}"
-        left = release.releases_dir(data) / st.release
-        if left.is_dir() and release.dirty_paths(left):
-            result.warnings.append(f"the edits in release {st.release} stay there on disk")
+        try:
+            _after_swap(home, data, st, name, rel, ds, live, result)
+        except Exception as e:
+            raise DeployFailed(
+                f"rollback failed after switching current to {name}: {e}\n"
+                "run cfg status to see what is linked, then cfg deploy to go forward again"
+            ) from e
         return result
+
+
+def _after_swap(
+    home: Path,
+    data: Path,
+    st: state.State,
+    name: str,
+    rel: Path,
+    ds: render.DeploySet,
+    live: dict[str, Any],
+    result: RollbackResult,
+) -> None:
+    """Rollback's work once current points at the earlier release."""
+    for p in ds.paths:
+        path = home / p.live
+        if not os.path.lexists(path):
+            link.make_link(path, p.target)
+            result.relinked.append(p.live)
+        elif not (path.is_symlink() and os.readlink(path) == p.target):
+            result.left_alone.append(p.live)
+    wanted = {p.live for p in ds.paths}
+    for old in st.paths:
+        path = home / old.live
+        if old.live in wanted or not os.path.lexists(path):
+            continue
+        if path.is_symlink() and os.readlink(path) == old.target:
+            path.unlink()
+            result.removed.append(old.live)
+        else:
+            result.left_alone.append(old.live)
+    sha = release.release_sha(rel)
+    state.save(data, state.State(**{**vars(st), "release": name, "sha": sha, "paths": ds.paths}))
+    owned = settings_merge.owned_items(ds.fragment)
+    result.settings_differ = any(
+        settings_merge.live_value(live, k) != v for k, v in owned.items()
+    ) or any(
+        k not in owned and settings_merge.live_value(live, k) is not settings_merge.MISSING
+        for k in st.settings
+    )
+    if result.settings_differ:
+        result.command = f"cfg deploy --host {st.host} --ref {sha}"
+    left = release.releases_dir(data) / st.release
+    if left.is_dir() and release.dirty_paths(left):
+        result.warnings.append(f"the edits in release {st.release} stay there on disk")

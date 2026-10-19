@@ -907,3 +907,37 @@ def test_a_home_without_plugins_still_runs_the_smoke_test(
 ) -> None:
     shutil.rmtree(home / "plugins")
     assert run(repo, home, data).result == "deployed"
+
+
+def test_a_release_git_cannot_read_is_kept_with_a_warning_not_an_error(
+    repo: Path, installed: Path, data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = run(repo, installed, data).release
+    commit_change(repo, "config/skill-overlays/alpha.md", "v1\n")
+    push(repo)
+    second = run(repo, installed, data).release
+
+    def unreadable(path: Path) -> list[str]:
+        raise CfgError("git status failed")
+
+    monkeypatch.setattr(deploy, "KEEP_RELEASES", 1)
+    monkeypatch.setattr(release, "dirty_paths", unreadable)
+    kept, warnings = deploy.prune(repo, data, [first, second], second)
+    assert kept == [first, second]
+    assert "couldn't prune" in warnings[0]
+
+
+def test_a_rollback_that_fails_after_the_switch_says_so(
+    repo: Path, installed: Path, data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run(repo, installed, data)
+    commit_change(repo, HOST, json.dumps({**PROFILE, "skills": ["alpha"]}, indent=2) + "\n")
+    push(repo)
+    run(repo, installed, data)
+
+    def broken(live: Path, target: str, replace_link: bool = False) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(deploy.link, "make_link", broken)
+    with pytest.raises(deploy.DeployFailed, match="after switching current"):
+        deploy.rollback(repo, installed, data)

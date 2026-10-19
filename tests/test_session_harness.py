@@ -285,6 +285,9 @@ def test_missing_credentials_stop_the_check_and_leave_nothing_behind(ctx):
          '"content": "CANARY"}, {"type": "tool_result", "tool_use_id": "a", '
          '"content": "CANARY too"}]}}\n', True),
         ('{"type": "user", "message": {"content": "text"}}\n', False),
+        # A fork inherits the parent's SessionStart context, so its reply proves nothing.
+        (stream("x", {"prompt": "p", "subagent_type": "fork"}, "CANARY here"), False),
+        (stream("x", {"prompt": "p", "subagent_type": "general-purpose"}, "CANARY here"), True),
         ('{"type": "assistant", "message": {"content": [{"type": "text", "text": "CANARY"}]}}\n',
          False),
     ],

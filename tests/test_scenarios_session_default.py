@@ -65,7 +65,8 @@ def test_every_scenario_names_a_known_default():
 def test_every_prompt_starts_with_the_hooks_exact_line_for_its_default(lines):
     for s in SCENARIOS:
         prefix = FRAME + lines[s["sessionDefault"]] + "\n\n"
-        assert s["prompt"].startswith(prefix), s["id"]
+        # On a wording change in the hook, paste this prefix over the old one.
+        assert s["prompt"].startswith(prefix), f"{s['id']} should start with {prefix!r}"
         assert len(s["prompt"]) > len(prefix), s["id"]
 
 

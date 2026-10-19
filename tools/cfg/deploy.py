@@ -411,7 +411,7 @@ def smoke_test(
                     for a in argv
                 ]
             script = Path(argv[-1]).name if argv else ""
-            for payload, check in smoke_cases(event, matcher, script, overlay, rel is None):
+            for payload, check in smoke_cases(event, matcher, script, overlay, after=rel is None):
                 why = _one_case(argv, payload, check, env, timeout)
                 if why:
                     problems.append(f"{event}/{matcher or '-'} {script}: {why}")

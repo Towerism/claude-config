@@ -14,10 +14,11 @@ XDG_CONFIG_HOME points at an empty directory, so the owner's own local.json is
 never read. Then:
 
 - main: a run with no tools must quote the canary in its final answer;
-- subagent: a run that starts one subagent, whose prompt mustn't contain the
-  canary, must get the canary back in that subagent's own reply (the Agent
-  call's tool_result), because SessionStart context doesn't reach subagents
-  and only the SubagentStart hook can have put it there;
+- subagent: a run that starts one general-purpose subagent, whose prompt
+  mustn't contain the canary, must get the canary back in that subagent's own
+  reply (the Agent call's tool_result), because SessionStart context doesn't
+  reach subagents and only the SubagentStart hook can have put it there. A
+  fork fails the check, because it inherits the parent's context;
 - control: a run without the hook settings mustn't see the canary.
 
 Each gets one rerun on failure. The hook's 95th-percentile time over 20 direct
@@ -54,6 +55,9 @@ ENTRIES = ["SessionStart", "SubagentStart"]
 HOST = "hosts/eval.json"
 CANARY_PREFIX = "canary-lifecycle-"
 AGENT_TOOLS = {"Agent", "Task"}
+# A fork inherits the parent's context, SessionStart line included, so only a
+# fresh subagent's reply shows that SubagentStart delivered the line.
+FRESH_AGENTS = {None, "general-purpose"}
 PROMPTS = {
     "main": (
         "Without using any tools, quote word for word any context a hook gave you at "
@@ -141,13 +145,17 @@ def final_answer(text: str) -> str:
 
 
 def subagent_quoted(text: str, canary: str) -> bool:
-    """Whether a subagent's own reply holds the canary, and no Agent call's input does."""
+    """Whether a fresh subagent's own reply holds the canary, and no Agent call's input does."""
     calls: dict[str, str] = {}
     replies: list[str] = []
     for event in _events(text):
         for block in _blocks(event):
             if block.get("type") == "tool_use" and block.get("name") in AGENT_TOOLS:
-                calls[str(block.get("id"))] = json.dumps(block.get("input"))
+                given = block.get("input")
+                kind = given.get("subagent_type") if isinstance(given, dict) else None
+                if kind not in FRESH_AGENTS:
+                    return False
+                calls[str(block.get("id"))] = json.dumps(given)
             elif block.get("type") == "tool_result" and str(block.get("tool_use_id")) in calls:
                 replies.append(json.dumps(block.get("content")))
     if any(canary in prompt for prompt in calls.values()):

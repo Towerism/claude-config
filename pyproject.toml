@@ -58,6 +58,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 # restore.py, each with python3 and an argument list, never a shell.
 "tools/cfg/deploy.py" = ["S603", "S607"]
 "tools/cfg/cli.py" = ["S603", "S607"]
+# The CI helper runs git and the repo's own checkers with argument lists and no shell.
+"tools/ci.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/scripts/issue_lifecycle.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/evals/*.py" = ["S603", "S607"]
 

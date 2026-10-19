@@ -43,7 +43,7 @@ A new issue is built from the prompt (or what the prompt points to): an imperati
 gh issue create --title "Add CSV export to the roster page" --body-file "$tmp/issue.md"
 ```
 
-**Filing only.** When asked to *file* an issue (a follow-up or a bug noticed along the way), create it and stop: no assignee, no `in progress`, no branch, no work on it.
+**Filing only.** When asked to *file* an issue (a follow-up or a bug noticed along the way), create it at once and stop: no assignee, no `in progress`, no branch, no work on it. Don't ask for confirmation or more detail first; write the body from what the prompt gives, and say in the body what isn't known yet.
 
 Ask before reopening a closed issue, and before taking over one assigned to someone else or already labelled `in progress`.
 

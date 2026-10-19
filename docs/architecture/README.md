@@ -46,7 +46,7 @@ The design starts from these facts, each verified on the owner's machine on 2026
 | Four files contain absolute `/home/mfracker` paths: `install_v2.py`; `eval/run_eval.py` (including a plugin-version path and a temp directory under `~/.claude/jobs/`); the lifecycle skill's `evals/run_behaviour_evals.py` (which points at the scratch build); and the lifecycle `SPEC.md`. | `grep` |
 | No file proposed for import contains an email address or token. | `grep` with the email and token patterns from the v2 spec's quality check (AC-4), plus the account email |
 | The GitHub repo `Towerism/claude-config` already exists, is public and is empty, and `origin` points at it. On 2026-10-16 the owner decided it stays public. | `gh repo view` |
-| The pipeline skill's stack detector finds no signals yet, because the repo has no `pyproject.toml`. CI commands therefore come from the scripts themselves, and the detector is run again once `pyproject.toml` exists. | `stack_detector.py` |
+| The pipeline skill's stack detector found no signals then, because the repo had no `pyproject.toml`. Run again on 2026-10-19 for #10, it reports Python and pip, with `ruff check .` and `pytest`, and CI was built from that. | `stack_detector.py` |
 | The lifecycle skill's rule against requirement IDs in code (lifecycle spec FR-16) would fail on this repo's eval data and test fixtures. [ADR-0009](../adr/0009-spec-id-hygiene-for-eval-data.md) resolves this. | Read `cmd_diff_check` and searched the candidate files |
 | `~/.claude/CLAUDE.md` loads a second time, through ancestor-directory discovery, for any working directory under `$HOME`. A file named `CLAUDE.md` inside the repo would also load, as project or subdirectory memory. This shapes the repo layout in [ADR-0002](../adr/0002-repo-layout.md). | The harness mechanism check recorded in the v2 implementation's `FR-18a-results.md` |
 
@@ -148,8 +148,9 @@ claude-config/
 │   │   ├── restore.py           the standalone undo copied into every deploy backup; standard library only
 │   │   ├── lock.py
 │   ├── check_config.py          the ported config checker, with an offline mode that reads the plugin lock
+│   ├── ci.py                    what the CI workflow runs: the base commit, docs-only gating, commit and spec checks (#10)
 │   └── vendor/claude-skills/spec_validator.py  plus VENDORED.json (source, version, sha256, MIT licence)
-├── schemas/                     a vendored snapshot of the settings schema, plus a schema for the fragment
+├── schemas/                     SchemaStore's Claude Code settings schema, vendored with its licence (#10)
 ├── tests/                       pytest for tools/ and config/hooks (each skill keeps its own tests)
 │
 ├── eval/                        model evals, run locally only; CI only verifies their records
@@ -300,7 +301,7 @@ flowchart LR
 
 | Gate | Where it runs | How it blocks a merge |
 |---|---|---|
-| ruff, mypy, pytest (about 175 tests today), config checker, spec validator, settings schema, gitleaks, commit-message check, requirement-ID check | GitHub Actions, free for public repos | CI goes red. These jobs are required checks in the ruleset protecting `main`. |
+| ruff, mypy, pytest (about 1,500 tests across four suites on 2026-10-19), config checker, spec validator, settings schema, gitleaks, commit-message check, requirement-ID check | GitHub Actions, free for public repos (`.github/workflows/ci.yml`, #10) | CI goes red. These jobs become required checks in the ruleset protecting `main` once the owner approves the ruleset change. |
 | Scenario eval, comparing the merge-base config with HEAD | Locally, with `cfg eval` | CI's record verifier requires a record for each required suite, whose input hashes equal the PR head's files and whose result is a pass |
 | CLAUDE.md quality rubric | Locally | The same verifier, for CLAUDE.md changes only |
 | Hook harness runs (overlay injection with a canary, the merge "ask" prompt) and 95th-percentile timing | Locally | The same verifier, for changes to hooks or hook settings |

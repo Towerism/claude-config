@@ -113,11 +113,40 @@ Plan issue 14 runs a time-boxed check against the installed Claude Code before `
 
 If check 1, 2 or 3 fails, that component is copied instead, with the same backup rules as option B, and the result is recorded in this ADR. The result of check 4 decides how `cfg status` reports drift ([ADR-0004](0004-drift-and-adoption.md)).
 
+#### Results (2026-10-18, Claude Code 2.1.299)
+
+Every component works through a link, so nothing is copied and the link table above stands. The check is `eval/symlink_check.py`. It built this layout in temporary config directories and ran headless `claude -p` five times: once in the main session, three times with a subagent (two attempts through links, then one with plain files), and once for Edit and Write. Its evidence is in [`docs/evidence/symlink-check.md`](../evidence/symlink-check.md), from commit `7cb5f7e`. An earlier run on `41f78e1` gave the same results. A run before that crashed on a parser bug, after five model runs, and recorded nothing.
+
+| What was checked | Main session | Subagent |
+|---|---|---|
+| A skill in a linked directory is listed and loads (check 1) | yes | yes |
+| A linked `CLAUDE.md` loads (check 2) | yes | yes |
+| The overlay hook runs through its linked script and reads the linked `skill-overlays/` (check 3) | yes | yes |
+| `SessionStart` hook context reaches the model | yes | no, with links or with plain files |
+
+| Edit and Write (check 4) | Outcome |
+|---|---|
+| Edit on a file that is a link | refused |
+| Write on a file that is a link | refused |
+| Edit on a file inside a linked directory | written through to the target |
+
+| Other tools (check 5) | Outcome |
+|---|---|
+| claude.ai skill sync during a headless run | a `skills/synced/` directory, where claude.ai sync puts its skills, appeared during the runs; every link stayed as it was |
+| `claude plugin marketplace add`, `install`, `uninstall`, `marketplace remove` | every link and every settings key outside `enabledPlugins` and `extraKnownMarketplaces` unchanged |
+
+What this means for `cfg` (#6) and the first deploy (#8):
+
+- **Edit and Write never replace a link.** Claude Code refuses to write a path that is itself a symlink. Its error says "Write target is a symbolic link" and names the target path. So when Claude edits `~/.claude/CLAUDE.md`, the edit lands only if Claude then writes to the target path inside the release worktree, which `git status` shows as drift. Edits to files inside a linked skill directory go straight through to the release worktree. Either way, `cfg status` finds Claude's edits as `git status` changes in the release worktree. It still has to look for a regular file where a link should be, because other editors save by renaming a new file over the old one.
+- **Skills see the link path.** The "Base directory for this skill" shown to the model is the path under the config directory, not the release path. So the overlay hook's rewritten paths and any skill script paths stay under `~/.claude/skills/<name>/` and survive a release swap. The subagent's stream doesn't include that message, so it was only checked in the main session.
+- **`SessionStart` doesn't reach subagents**, whether or not anything is linked. [ADR-0011](0011-tracker-agnostic-lifecycle.md) records what that means for #15.
+- **Interactive checks move to #8.** The interactive `/plugin` menu, and claude.ai sync in a logged-in interactive session, are checked by hand during #8's first deploy. Run `python3 -I eval/symlink_check.py --inventory ~/.claude` before and after one interactive session, then compare the two outputs.
+
 ## Consequences
 
 The first deploy on a machine that already has the config is not free of changes. Regular files become links after a warning and a backup, and any file whose content differs from the repo needs the owner's decision first. `settings.json` changes only where the repo's owned keys differ from the live ones.
 
-Edits made in the live config, for example by `/revise-claude-md`, go through the link into the current release worktree, where `git status` shows them. The working clone is unaffected.
+Edits made in the live config land in the current release worktree, where `git status` shows them. Claude's Edit and Write tools refuse to write through a file link such as `~/.claude/CLAUDE.md` and point at the target path instead; edits inside a linked skill directory go through (see the results above). The working clone is unaffected.
 
 Deleting or moving the working clone doesn't break the live config, because the release worktrees hold real files. Only `git` commands inside them stop working until the clone is back.
 
@@ -126,5 +155,6 @@ The tests from `install_v2.py` seed `tests/test_settings_merge.py` and the backu
 ## Revisit when
 
 - The symlink check (plan issue 14) shows that a component doesn't work through a link. Copy that component, as described above.
+- Claude Code changes version. Run `python3 -I eval/symlink_check.py` again before a deploy that depends on these results.
 - A third machine or a second person needs this config. A plugin (option D) then pays for its packaging cost.
 - Claude Code adds a supported way to load user skills or memory from another directory, or a way to include settings from another file.

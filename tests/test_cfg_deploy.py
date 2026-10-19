@@ -260,12 +260,15 @@ def test_a_hook_that_hangs_fails_the_smoke_test(repo: Path, installed: Path, dat
 # ---- the repo's own hooks in the smoke test ---------------------------------------
 
 
+REAL_HOOKS = ["merge_confirm.py", "skill_overlay.py", "lifecycle_default.py"]
+
+
 def real_hooks_repo(root: Path, home: Path) -> Path:
-    """A repo whose hooks are this repo's real merge_confirm.py and skill_overlay.py."""
+    """A repo whose hooks are this repo's real ones, each on the events it runs on."""
     repo = make_deploy_repo(root)
-    for name in ("merge_confirm.py", "skill_overlay.py"):
+    for name in REAL_HOOKS:
         shutil.copyfile(REPO_ROOT / "config" / "hooks" / name, repo / "config" / "hooks" / name)
-    profile = {**PROFILE, "hooks": ["merge_confirm.py", "skill_overlay.py"]}
+    profile = {**PROFILE, "hooks": REAL_HOOKS}
     hook = "python3 -I {claude_home}/hooks/"
     fragment = {
         "hooks": {
@@ -285,6 +288,12 @@ def real_hooks_repo(root: Path, home: Path) -> Path:
                 {"hooks": [{"type": "command", "command": hook + "skill_overlay.py"}]}
             ],
             "Stop": [{"hooks": [{"type": "command", "command": hook + "merge_confirm.py"}]}],
+            "SessionStart": [
+                {"hooks": [{"type": "command", "command": hook + "lifecycle_default.py"}]}
+            ],
+            "SubagentStart": [
+                {"hooks": [{"type": "command", "command": hook + "lifecycle_default.py"}]}
+            ],
         }
     }
     write_tree(
@@ -305,6 +314,53 @@ def test_the_repos_own_hooks_pass_the_smoke_test(tmp_path: Path, home: Path, dat
     repo = real_hooks_repo(tmp_path / "real", home)
     result = deploy.deploy(repo, home, data, HOST, yes=True, clock=clock)
     assert result.result == "deployed"
+
+
+def test_a_redeploy_passes_when_the_old_release_already_states_a_default(
+    tmp_path: Path, home: Path, data: Path
+) -> None:
+    repo = real_hooks_repo(tmp_path / "real", home)
+    deploy.deploy(repo, home, data, HOST, yes=True, clock=clock)
+    commit_change(repo, "config/skill-overlays/alpha.md", "Use `scripts/run.py` again.\n")
+    push(repo)
+    assert deploy.deploy(repo, home, data, HOST, yes=True, clock=clock).result == "deployed"
+
+
+def test_a_lifecycle_hook_that_states_no_default_after_the_switch_fails(
+    tmp_path: Path, home: Path, data: Path
+) -> None:
+    repo = real_hooks_repo(tmp_path / "real", home)
+    commit_change(repo, "config/hooks/lifecycle_default.py", "import sys\nsys.stdin.read()\n")
+    push(repo)
+    with pytest.raises(CfgError, match="failed after the switch") as caught:
+        deploy.deploy(repo, home, data, HOST, yes=True, clock=clock)
+    message = str(caught.value)
+    for event in ("SessionStart", "SubagentStart"):
+        assert f"{event}/- lifecycle_default.py: stated no default lifecycle" in message
+
+
+LIFECYCLE_LINE = "Default lifecycle skill on this machine: `alpha` (set in `hosts/test.json`). ..."
+
+
+def context(text: str) -> dict[str, Any]:
+    return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}
+
+
+@pytest.mark.parametrize("event", ["SessionStart", "SubagentStart"])
+def test_the_lifecycle_hook_may_be_silent_before_the_switch_but_not_after(event: str) -> None:
+    [(before_payload, before)] = deploy.smoke_cases(event, "", "lifecycle_default.py", None)
+    [(after_payload, after)] = deploy.smoke_cases(
+        event, "", "lifecycle_default.py", None, after=True
+    )
+    assert before_payload == after_payload == {"hook_event_name": event}
+    assert before is not None and after is not None
+    assert before(None) is None
+    assert before(context(LIFECYCLE_LINE)) is None
+    assert after(context(LIFECYCLE_LINE)) is None
+    assert after(None) == "stated no default lifecycle"
+    for out in (context("something else"), {"hookSpecificOutput": {}}, {"other": 1}):
+        assert before(out) == "stated no default lifecycle"
+        assert after(out) == "stated no default lifecycle"
 
 
 def test_a_merge_hook_that_no_longer_asks_fails_the_smoke_test(
@@ -385,6 +441,7 @@ def test_smoke_cases_cover_each_known_handler() -> None:
     assert len(deploy.smoke_cases("PreToolUse", "Bash", "merge_confirm.py", "x")) == 2
     assert deploy.smoke_cases("PostToolUse", "Skill", "skill_overlay.py", None) == [({}, None)]
     assert deploy.smoke_cases("Stop", "", "other.py", "x") == [({}, None)]
+    assert deploy.smoke_cases("Stop", "", "lifecycle_default.py", "x") == [({}, None)]
 
 
 # ---- ordinary deploys -------------------------------------------------------------

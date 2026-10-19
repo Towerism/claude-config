@@ -121,9 +121,10 @@ def commit_change(repo: Path, rel: str, text: str, message: str = "change") -> s
 
 @pytest.fixture
 def cfg_isolation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Point HOME, XDG_DATA_HOME and git's config at tmp_path, so no test sees the real ones."""
+    """Point HOME, the XDG data and config dirs and git's config at tmp_path, not the real ones."""
     monkeypatch.setenv("HOME", str(tmp_path / "isolated-home"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "isolated-xdg"))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "isolated-config"))
     for key, value in GIT_ENV.items():
         monkeypatch.setenv(key, value)
 

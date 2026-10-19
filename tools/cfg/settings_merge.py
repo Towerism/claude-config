@@ -258,11 +258,13 @@ def write(
     original: bytes | None,
     data_dir: Path,
     before_replace: Callable[[], None] | None = None,
+    locked: bool = False,
 ) -> bool:
     """Write `new` over settings.json unless nothing changed; return whether it wrote.
 
     `original` is what preflight read. Right before the rename the file is read
-    again; if another program changed it in between, nothing is written.
+    again; if another program changed it in between, nothing is written. A
+    caller that already holds the cfg lock, such as a deploy, passes `locked`.
     """
     current = json.loads(original) if original is not None else {}
     if new == current:
@@ -278,6 +280,9 @@ def write(
                 "nothing was written, so run the command again"
             )
 
+    if locked:
+        state.write_atomic(path, render_text(new).encode(), before_replace=unchanged_since_read)
+        return True
     with state.cfg_lock(data_dir):
         state.write_atomic(path, render_text(new).encode(), before_replace=unchanged_since_read)
     return True

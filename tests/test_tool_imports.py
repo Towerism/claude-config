@@ -67,7 +67,7 @@ CFG_MODULES = [
         "settings_merge.py",
         "link.py",
         "drift.py",
-        "cli.py",
+        "restore.py",
     )
 ]
 
@@ -96,3 +96,16 @@ def test_cfg_release_runs_only_git():
         first = call.args[0]
         assert isinstance(first, ast.List)
         assert isinstance(first.elts[0], ast.Constant) and first.elts[0].value == "git"
+
+
+# deploy runs git, the release's checker and the hook commands; cli runs a backup's
+# restore.py; capture runs git. Each uses subprocess with an argument list, and
+# none may reach the network directly.
+CFG_RUNNERS = [REPO_ROOT / "tools" / "cfg" / name for name in ("deploy.py", "capture.py", "cli.py")]
+
+
+@pytest.mark.parametrize("module", CFG_RUNNERS, ids=lambda p: p.name)
+def test_cfg_commands_that_run_programs_reach_no_network(module):
+    imports = top_level_imports(module)
+    assert imports - set(sys.stdlib_module_names) <= {"tools"}
+    assert not imports & (BANNED - {"subprocess"})

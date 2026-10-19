@@ -55,13 +55,15 @@ Overlays are per-skill policy files that a hook injects when the matching skill 
 
 ### How a deploy runs
 
-1. Create the release worktree for the target commit with `git worktree add --detach`.
-2. Run `cfg check` and a smoke test of the hooks against the new release.
-3. Swap `current` atomically: create a temporary symlink, then `os.replace` it over `current`.
-4. Merge the settings keys.
-5. Write the deploy state file.
+1. Read the target commit's `config/` and `hosts/` and look for conflicts: a managed path whose content differs from the target, an edit in the deployed release that the target doesn't already have, and an owned settings key someone else changed. Any conflict stops the deploy before it changes anything, unless `--discard-live <path>` names it ([ADR-0004](0004-drift-and-adoption.md)).
+2. Create the release worktree for the target commit with `git worktree add --detach`, or reuse a clean release of it.
+3. Run the release's own config checker, and a smoke test of the hooks against the new release that checks what each hook prints, not only its exit code.
+4. Show the change list and ask before going on; `--yes` skips the question.
+5. Write a backup directory with `restore.py`, `restore.sh` and `restore.json`, but only when the deploy will move a path, create or remove a link, or write `settings.json`. Then move anything in the way into it, writing the manifest first.
+6. Swap `current` atomically: create a temporary symlink, then `os.replace` it over `current`. Create any missing links, and remove `cfg`'s own links for paths that left the profile.
+7. Merge the settings keys, write the deploy state file, smoke-test the hooks again through the live commands, and prune old releases.
 
-The previous release stays on disk, which makes rollback another swap. `cfg` keeps the last five releases, plus any release with uncommitted edits; those are never pruned.
+Any failure after step 5 begins exits 3 and names the backup's `restore.sh` (#8). The previous release stays on disk, which makes rollback another swap. `cfg` keeps the last five releases, plus any release with uncommitted edits; those are never pruned. `cfg rollback` switches `current` and fixes `cfg`'s own links, but leaves `settings.json` alone; `cfg deploy --ref <sha>` rolls the owned settings back too.
 
 ### Replacing files that are already there
 

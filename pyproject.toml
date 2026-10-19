@@ -50,6 +50,10 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 # module runs git the same way.
 "tools/git_hooks.py" = ["S603", "S607"]
 "tools/cfg/release.py" = ["S603", "S607"]
+# deploy runs the release's checker and the hook commands, and cli runs a backup's
+# restore.py, each with python3 and an argument list, never a shell.
+"tools/cfg/deploy.py" = ["S603", "S607"]
+"tools/cfg/cli.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/scripts/issue_lifecycle.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/evals/*.py" = ["S603", "S607"]
 

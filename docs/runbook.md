@@ -77,7 +77,7 @@ Run this after any PR merges to `main`. Until you do, `status` reports `behind`,
    python3 -I tools/cfg/cli.py plan --host hosts/personal.json
    ```
 
-3. Run the deploy without `--yes`. On a terminal it shows the change list and asks `continue? [y/N]`. Without a terminal it prints the list, ends with `nothing was changed; rerun with --yes to go ahead`, and exits 1.
+3. Run the deploy without `--yes`. On a terminal it shows the change list and asks `continue? [y/N]` (this prompt comes from #8's tests; the trials for this runbook ran without a terminal). Without a terminal it prints the list, ends with `nothing was changed; rerun with --yes to go ahead`, and exits 1.
 
    ```sh
    python3 -I tools/cfg/cli.py deploy --host hosts/personal.json
@@ -125,7 +125,7 @@ The first deploy compares every managed path and owned setting with the repo, an
    a deploy would stop until each difference is captured or discarded (ADR-0004)
    ```
 
-2. Decide each `differs` path. To keep your live version, capture it into a branch (see [Capturing a live change](#capturing-a-live-change)), merge that branch, pull, and start again. To let the repo's version win, name the path with `--discard-live`; your live copy goes into the backup either way. A settings difference is decided the same way, with `settings.json` as the path.
+2. Decide each `differs` path. To keep your live version, capture it into a branch (see [Capturing a live change](#capturing-a-live-change)), merge that branch, pull, and start again. Before the first deploy there's no deploy state yet, so `capture` needs the host profile too: add `--host hosts/personal.json`, or it refuses with `nothing is deployed yet, so name the host profile with --host`. To let the repo's version win, name the path with `--discard-live`; your live copy goes into the backup either way. A settings difference is decided the same way, with `settings.json` as the path.
 
 3. Run the deploy with your choices and without `--yes`, and read the change list:
 
@@ -237,10 +237,10 @@ It never touches `settings.json`. When the owned settings differ between the two
 
 ### When cfg won't run
 
-Point `current` at an earlier release by hand. List the releases, then pick the one to go back to:
+Point `current` at an earlier release by hand. The deploy history lists the releases oldest first; the last line is the current one, and the line before it is the one to go back to:
 
 ```sh
-ls ~/.local/share/claude-config/releases/
+python3 -I -c 'import json, os; print(*json.load(open(os.path.expanduser("~/.local/share/claude-config/state.json")))["history"], sep="\n")'
 ln -sfn releases/<sha> ~/.local/share/claude-config/current
 ```
 
@@ -257,7 +257,7 @@ snapshot: .../backups/claude-config/20261019T173302Z/restore-20261019T173353Z
 
 It exits 0 when everything went back. Exit 1 means it left something alone, so read the `left alone` lines and look in the snapshot. Exit 2 means it refused, for example because it couldn't read the manifest.
 
-Not every deploy writes a backup. Only the first deploy, and later ones that move a file aside or change a setting, do; an ordinary deploy that only switches releases doesn't. The personal machine had one backup after its first two deploys.
+Not every deploy writes a backup. A deploy writes one when it creates or removes a link or writes `settings.json`, which the first deploy always does. An ordinary deploy that only switches `current` to a new release doesn't. The personal machine had one backup after its first two deploys.
 
 To go back to plain files, run every backup's `restore.sh`, newest first, and the first deploy's last. If a first deploy failed and was run again, the earliest backup holds your original files, so it still runs last.
 
@@ -369,7 +369,7 @@ Don't delete the first deploy's own backup, `~/.claude/backups/claude-config/202
 
 ## Practice on a trial directory
 
-This walks through the first deploy, drift, rollback, undo and cleanup on a temporary directory. Every `cfg` command here carries `--target`, so your live `~/.claude` is never touched. Run it from your clone's root, in one terminal, from top to bottom. It takes about five minutes.
+This walks through the first deploy, drift, rollback, undo and cleanup on a temporary directory. Every `cfg` command here carries `--target`, so your live `~/.claude` is never touched. Run it from your clone's root, in one terminal, from top to bottom. It takes a few minutes.
 
 ### Set up the trial
 

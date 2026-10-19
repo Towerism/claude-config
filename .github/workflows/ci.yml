@@ -67,13 +67,16 @@ jobs:
           python-version-file: .python-version
       - name: Identities, tokens, email addresses and denied paths in every commit
         run: python3 -I tools/git_hooks.py check-range "$BASE"
+      # gitleaks runs even when check-range fails, so one run reports every finding.
       - name: Install gitleaks from its release, checksum first
+        if: ${{ !cancelled() }}
         run: |
           tarball="$RUNNER_TEMP/gitleaks.tar.gz"
           curl -fsSL -o "$tarball" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           echo "${GITLEAKS_SHA256}  ${tarball}" | sha256sum --check --strict
           tar -xzf "$tarball" -C "$RUNNER_TEMP" gitleaks
       - name: gitleaks over every commit in the range
+        if: ${{ !cancelled() }}
         run: '"$RUNNER_TEMP/gitleaks" git --log-opts="$BASE..HEAD" --config .gitleaks.toml --redact --no-banner --exit-code 1 .'
 
   commits:

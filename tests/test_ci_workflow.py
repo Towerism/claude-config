@@ -68,6 +68,13 @@ def problems(workflow: dict[str, Any], text: str) -> list[str]:
         found.append("default shell")
     if tuple(workflow["jobs"]) != REQUIRED_CHECKS:
         found.append("job list")
+    # A hygiene failure should report every finding, so gitleaks runs even after check-range fails.
+    for step in workflow["jobs"]["hygiene"]["steps"]:
+        if (
+            "gitleaks" in str(step.get("name", "")).lower()
+            and step.get("if") != "${{ !cancelled() }}"
+        ):
+            found.append(f"hygiene: {step.get('name')} skipped after a failure")
     outputs = workflow["jobs"].get("changes", {}).get("outputs", {})
     if set(outputs) != {"base", "code"}:
         found.append("changes: outputs")
@@ -182,6 +189,12 @@ def _set_setup_python_option(job: str, option: str, value: str) -> Callable[[dic
     return change
 
 
+def _drop_gitleaks_condition(workflow: dict[str, Any]) -> None:
+    for step in workflow["jobs"]["hygiene"]["steps"]:
+        if "gitleaks over" in str(step.get("name", "")):
+            step.pop("if", None)
+
+
 def _add_job(workflow: dict[str, Any]) -> None:
     workflow["jobs"]["extra"] = copy.deepcopy(workflow["jobs"]["lint"])
 
@@ -221,6 +234,7 @@ BREAKAGES: dict[str, Callable[[dict[str, Any]], None]] = {
     "a failure hidden inside echo": _first_step(
         "changes", "run", 'echo "base=$(python3 -I tools/ci.py base)" >> "$GITHUB_OUTPUT"'
     ),
+    "gitleaks skipped when check-range fails": _drop_gitleaks_condition,
     "an extra job": _add_job,
     "an expression inside run": _run_with_expression,
 }

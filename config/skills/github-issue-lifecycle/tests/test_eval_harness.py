@@ -117,25 +117,49 @@ def shim_env(tmp_path, harness):
         "PATH": f"{bin_dir}:{os.environ['PATH']}",
         "GIT_LOG": str(log),
         "REAL_GIT": shutil.which("git"),
+        "EVAL_ORIGIN": str(tmp_path / "origin.git"),
+        "EVAL_REPO_URL": "https://github.com/o/r.git",
     }
     return env, log
 
 
-def test_git_shim_refuses_network_remotes_but_allows_the_local_origin(tmp_path, harness):
-    case = {"id": 1, "origin_url": "https://github.com/o/r.git"}
-    ws = harness.make_workspace(case, tmp_path)
+def test_git_shim_refuses_network_remotes_but_allows_the_rewritten_origin(tmp_path, harness):
+    ws = harness.make_workspace({"id": 1}, tmp_path)
     env, log = shim_env(tmp_path, harness)
-    refused = subprocess.run(["git", "push", "origin", "main"], cwd=ws, env=env, text=True,
-                             capture_output=True)  # fmt: skip
+    env["GIT_ALLOW_PROTOCOL"] = "file"
+    shown = subprocess.run(["git", "remote", "get-url", "origin"], cwd=ws, env=env,
+                           capture_output=True, text=True)  # fmt: skip
+    assert shown.stdout.strip() == "https://github.com/o/r.git"
+    # The shim rewrites origin to the local bare repo, which the file-only transport allows.
+    ok = subprocess.run(["git", "push", "-q", "origin", "main:refs/heads/check"], cwd=ws, env=env,
+                        capture_output=True, text=True)  # fmt: skip
+    assert ok.returncode == 0, ok.stderr
+    subprocess.run(["git", "remote", "add", "other", "https://example.invalid/o/r.git"], cwd=ws,
+                   env=env, check=True)  # fmt: skip
+    refused = subprocess.run(["git", "push", "other", "main"], cwd=ws, env=env,
+                             capture_output=True, text=True)  # fmt: skip
     assert refused.returncode == 1 and "refused" in refused.stderr
-    assert ["push", "origin", "main"] in [json.loads(x) for x in log.read_text().splitlines()]
+    assert ["push", "other", "main"] in [json.loads(x) for x in log.read_text().splitlines()]
     network = ("https://example.com/x.git", "ssh://example.invalid/o/r.git", "host.invalid:o/r")
     for args in [["fetch", url] for url in network] + [["pull", "--rebase", network[2]]]:
         assert subprocess.run(["git", *args], cwd=ws, env=env, capture_output=True).returncode == 1
-    local = harness.make_workspace({"id": 2}, tmp_path / "local")
-    ok = subprocess.run(["git", "push", "-q", "origin", "main"], cwd=local, env=env,
-                        capture_output=True, text=True)  # fmt: skip
-    assert ok.returncode == 0, ok.stderr
+
+
+def test_commits_can_carry_files_so_fixtures_match_the_branch(tmp_path, harness):
+    commit = {"message": "feat(roster): add CSV export (#42)",
+              "files": {"server/export.ts": "export const quote = (s) => s;\n"}}  # fmt: skip
+    ws = harness.make_workspace({"id": 6, "commits": [commit, "chore: tidy (#42)"]}, tmp_path)
+    tracked = git_out(ws, "ls-tree", "-r", "--name-only", "HEAD").split()
+    assert "server/export.ts" in tracked and "change1.txt" in tracked
+
+
+def test_the_fake_gh_state_is_seeded_from_the_case(harness):
+    case = {"issues": {"42": {"title": "t", "labels": ["approved"]}}, "next_number": 77,
+            "prs": {"43": {"head": "feature/42-x", "closes": [42]}}}  # fmt: skip
+    state = harness.seed_state(case)
+    assert state["issues"]["42"]["labels"] == ["approved"]
+    assert state["issues"]["42"]["comments"] == [] and state["next"] == 77
+    assert state["prs"]["43"]["number"] == 43 and state["login"] == "mfracker"
 
 
 def calls(*items):
@@ -399,26 +423,3 @@ def test_files_touched_counts_branches_and_worktrees_but_not_the_stash(tmp_path,
 def test_commits_only_touch_checks_every_committed_file(harness, touched, passed):
     exp = r"commits-only-touch: skills/foo/(SPEC|REVIEW-NOTE)\.md"
     assert harness.grade([exp], [], [], "", [], touched=touched)[0]["passed"] is passed
-
-
-def test_fake_gh_answers_from_the_latest_state_an_earlier_call_reached(tmp_path, harness):
-    (tmp_path / "gh").write_text(harness.FAKE_GH)
-    (tmp_path / "gh").chmod(0o755)
-    state = tmp_path / "state"
-    state.mkdir()
-    responses = [{"match": "^issue view 42", "stdout": "v0", "states": [
-        {"after_call": "^issue edit 42 --body-file", "stdout": "v1"},
-        {"after_call": "--add-label approved", "stdout": "v2"},
-    ]}]  # fmt: skip
-    (state / "responses.json").write_text(json.dumps(responses))
-    env = {**os.environ, "GH_STATE": str(state), "GH_LOG": str(tmp_path / "gh.log")}
-
-    def gh(*args):
-        cmd = [str(tmp_path / "gh"), *args]
-        return subprocess.run(cmd, env=env, capture_output=True, text=True).stdout.strip()
-
-    assert gh("issue", "view", "42") == "v0"
-    gh("issue", "edit", "42", "--body-file", "b.md")
-    assert gh("issue", "view", "42") == "v1"
-    gh("issue", "edit", "42", "--add-label", "approved")
-    assert gh("issue", "view", "42") == "v2"

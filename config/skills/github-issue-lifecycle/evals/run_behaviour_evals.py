@@ -42,57 +42,8 @@ OTHER_SHARE = 0.9
 ALLOWED_TOOLS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
 TURN_TIMEOUT = 900
 
-FAKE_GH = r"""#!/usr/bin/env python3
-import json, os, re, sys
-args = sys.argv[1:]
-state = os.environ["GH_STATE"]
-entry = {"args": args}
-for flag in ("--body-file", "-F"):
-    if flag in args and args.index(flag) + 1 < len(args):
-        try:
-            path = args[args.index(flag) + 1]
-            entry["body"] = open(path, encoding="utf-8", errors="replace").read()
-        except OSError:
-            pass
-if "--body" in args and args.index("--body") + 1 < len(args):
-    entry["body"] = args[args.index("--body") + 1]
-with open(os.environ["GH_LOG"], "a") as f:
-    f.write(json.dumps(entry) + "\n")
-joined = " ".join(args)
-responses = json.load(open(os.path.join(state, "responses.json")))
-jq = None
-for flag in ("--jq", "-q"):
-    if flag in args and args.index(flag) + 1 < len(args):
-        jq = args[args.index(flag) + 1]
-log_lines = [json.loads(l)["args"] for l in open(os.environ["GH_LOG"]).read().splitlines()[:-1]]
-for i, r in enumerate(responses):
-    if not re.search(r["match"], joined):
-        continue
-    out = r.get("stdout", "")
-    if "after_call" in r and any(re.search(r["after_call"], " ".join(a)) for a in log_lines):
-        out = r["after_stdout"]
-    for st in r.get("states", []):
-        # The last state an earlier call reached wins, so read-backs show earlier edits.
-        if any(re.search(st["after_call"], " ".join(a)) for a in log_lines):
-            out = st["stdout"]
-    if "sequence" in r:
-        counter = os.path.join(state, f"seq-{i}")
-        n = int(open(counter).read()) if os.path.exists(counter) else 0
-        seq = r["sequence"]
-        out = seq[min(n, len(seq) - 1)]
-        open(counter, "w").write(str(n + 1))
-    if jq and out.strip().startswith(("{", "[")) and re.fullmatch(r"\.[A-Za-z_][\w.]*", jq):
-        value = json.loads(out)
-        for key in jq[1:].split("."):
-            value = value.get(key) if isinstance(value, dict) else None
-        out = value if isinstance(value, str) else json.dumps(value)
-    if out:
-        sys.stdout.write(out if out.endswith("\n") else out + "\n")
-    if r.get("stderr"):
-        sys.stderr.write(r["stderr"] + "\n")
-    sys.exit(r.get("exit", 0))
-sys.exit(0)
-"""
+FAKE_GH = Path(__file__).resolve().parent / "fake_gh.py"
+REPO_URL = "https://github.com/o/r.git"
 
 FAKE_GIT = r"""#!/usr/bin/env python3
 import json, os, subprocess, sys
@@ -103,16 +54,23 @@ with open(os.environ["GIT_LOG"], "a") as f:
 rest = list(args)
 while rest and rest[0].startswith("-"):
     rest = rest[2:] if rest[0] in ("-c", "-C") else rest[1:]
+# origin is stored as the GitHub address the fake gh reports. Only commands that move data
+# get the rewrite to the local copy, so `git remote -v` still shows the GitHub address.
+rewrite = []
+if os.environ.get("EVAL_ORIGIN") and rest and rest[0] in ("push", "fetch", "pull", "ls-remote"):
+    rewrite = ["-c", f"url.{os.environ['EVAL_ORIGIN']}.insteadOf={os.environ['EVAL_REPO_URL']}"]
 if rest and rest[0] in ("push", "fetch", "pull"):
     words = [a for a in rest[1:] if not a.startswith("-")]
     remote = words[0] if words else "origin"
-    got = subprocess.run([real, "remote", "get-url", remote], capture_output=True, text=True)
+    # ls-remote --get-url applies insteadOf, so this is the address git would really use.
+    got = subprocess.run([real, *rewrite, "ls-remote", "--get-url", remote],
+                         capture_output=True, text=True)
     url = got.stdout.strip() if got.returncode == 0 else remote
     # Only a local path or a file:// URL may pass; anything else could reach a network.
     if not (url.startswith(("/", "./", "../", "file://")) or os.path.isdir(url)):
         sys.stderr.write(f"eval: git {rest[0]} to {url} refused; evals never reach a network\n")
         sys.exit(1)
-os.execv(real, [real, *args])
+os.execv(real, [real, *rewrite, *args])
 """
 
 DEFAULT_GH = [
@@ -121,27 +79,11 @@ DEFAULT_GH = [
         "stdout": "github.com\n  ✓ Logged in to github.com account mfracker",
     },
     {"match": r"^api user", "stdout": json.dumps({"login": "mfracker"})},
-    {"match": r"^api repos/.*/events", "stdout": "[]"},
     {
         "match": r"^repo view",
         "stdout": json.dumps({"defaultBranchRef": {"name": "main"}, "nameWithOwner": "o/r"}),
     },
-    {
-        "match": r"^issue view",
-        "stdout": "",
-        "stderr": "GraphQL: Could not resolve to an issue",
-        "exit": 1,
-    },
     {"match": r"^issue list", "stdout": "[]"},
-    {"match": r"^issue create", "stdout": "https://github.com/o/r/issues/99"},
-    {"match": r"^pr list", "stdout": "[]"},
-    {"match": r"^pr create", "stdout": "https://github.com/o/r/pull/42"},
-    {
-        "match": r"^pr view",
-        "stdout": json.dumps(
-            {"number": 42, "state": "OPEN", "closingIssuesReferences": [{"number": 42}]}
-        ),
-    },
 ]
 
 
@@ -307,15 +249,31 @@ def make_workspace(case, root):
         git("push", "-q", "origin", f"main:refs/heads/{branch}")
     if case.get("commits"):
         git("switch", "-q", "-c", "feature/42-add-csv-export")
-        for i, msg in enumerate(case["commits"]):
-            (ws / f"change{i}.txt").write_text(msg + "\n")
+        for i, commit in enumerate(case["commits"]):
+            if isinstance(commit, str):
+                commit = {"message": commit, "files": {f"change{i}.txt": commit + "\n"}}
+            write_files(ws, commit["files"])
             git("add", ".")
-            git("commit", "-q", "-m", msg)
-    if case.get("origin_url"):
-        git("remote", "set-url", "origin", case["origin_url"])
+            git("commit", "-q", "-m", commit["message"])
     if not case.get("commit_files"):
         write_files(ws, case.get("files", {}))
+    # origin shows as the GitHub repo the fake gh reports; the git shim sends data commands to
+    # the local copy (EVAL_ORIGIN), so the remote looks real and nothing leaves the machine.
+    git("remote", "set-url", "origin", case.get("origin_url", REPO_URL))
     return ws
+
+
+def seed_state(case):
+    """The fake gh's starting state: the case's issues and pull requests."""
+    state = {"login": "mfracker", "repo": "o/r", "issues": {}, "prs": {}}
+    for n, issue in case.get("issues", {}).items():
+        state["issues"][str(n)] = {"number": int(n), "labels": [], "assignees": [],
+                                   "comments": [], "events": [], **issue}  # fmt: skip
+    for n, pr in case.get("prs", {}).items():
+        state["prs"][str(n)] = {"number": int(n), **pr}
+    if "next_number" in case:
+        state["next"] = case["next_number"]
+    return state
 
 
 def write_files(ws, files):
@@ -488,10 +446,12 @@ def _run_case_in(case, cfg, model):
         bin_dir, state = root / "bin", root / "state"
         bin_dir.mkdir()
         state.mkdir()
-        for name, src in (("gh", FAKE_GH), ("git", FAKE_GIT)):
+        for name, src in (("gh", FAKE_GH.read_text()), ("git", FAKE_GIT)):
             (bin_dir / name).write_text(src)
             (bin_dir / name).chmod(0o755)
-        (state / "responses.json").write_text(json.dumps(case.get("fake_gh", []) + DEFAULT_GH))
+        responses = {"case": case.get("fake_gh", []), "defaults": DEFAULT_GH}
+        (state / "responses.json").write_text(json.dumps(responses))
+        (state / "state.json").write_text(json.dumps(seed_state(case)))
         env = base_env(cfg)
         env.update(
             {
@@ -500,6 +460,8 @@ def _run_case_in(case, cfg, model):
                 "GH_LOG": str(root / "gh.log"),
                 "GIT_LOG": str(root / "git.log"),
                 "REAL_GIT": shutil.which("git"),
+                "EVAL_ORIGIN": str(root / "origin.git"),
+                "EVAL_REPO_URL": case.get("origin_url", REPO_URL),
             }
         )
         session, answers, bash, turn1, loaded, tools, calls = None, [], [], None, [], [], []

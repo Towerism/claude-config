@@ -78,6 +78,7 @@ jobs:
       - name: gitleaks over every commit in the range
         if: ${{ !cancelled() }}
         # The report also holds each commit's author email, so only rule, commit and place print.
+        # %r quotes the path, so a path holding a newline can't start a workflow-command line.
         run: |
           report="$RUNNER_TEMP/gitleaks.json"
           status=0
@@ -85,7 +86,7 @@ jobs:
             --exit-code 1 --report-format json --report-path "$report" . || status=$?
           python3 -I -c 'import json, sys
           for f in json.load(open(sys.argv[1])):
-              print("%s: %s %s:%s" % (f["RuleID"], f["Commit"][:7], f["File"], f["StartLine"]))' "$report"
+              print("%s: %s %r:%s" % (f["RuleID"], f["Commit"][:7], f["File"], f["StartLine"]))' "$report"
           exit "$status"
 
   commits:

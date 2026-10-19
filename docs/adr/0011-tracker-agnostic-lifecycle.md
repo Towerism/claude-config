@@ -95,6 +95,7 @@ The owner decided on 2026-10-16 that work repos follow the global git rules inst
 
 - The global CLAUDE.md change touches pipeline wording that the clause inventory guards, so its PR needs updated clause rows and a scenario eval record covering both trackers.
 - A third hook joins the hook review bar, and the symlink mechanism check (plan issue 14) also verifies that `SessionStart` context reaches the model, in the main session and in subagents.
+- The symlink mechanism check ran on 2026-10-18 with Claude Code 2.1.299 ([results](../evidence/symlink-check.md)). `SessionStart` context reaches the main session, but not subagents, with links or with plain files. So the default-lifecycle line won't reach a subagent through `SessionStart`. #15 has to find another way to give subagents that line, and check that it works; the `UserPromptSubmit` fallback below also only adds context to the main session's prompt.
 - The GitHub lifecycle skill's scripts (`commit-check`, `diff-check`, `pr-body-check`) assume `#N` references. The Jira skill needs its own equivalents for `KEY-N`. Sharing code between them is left for later, once both exist.
 - The Jira skill's diff check follows the same rule for requirement IDs as the GitHub lifecycle skill: an ID is allowed in code only when it appears in living documentation, and a spec counts as living when it sits next to the thing it documents ([ADR-0009](0009-spec-id-hygiene-for-eval-data.md)). The owner set this on 2026-10-16.
 - The work machine needs nothing machine-specific in the repo beyond `hosts/work.json`.

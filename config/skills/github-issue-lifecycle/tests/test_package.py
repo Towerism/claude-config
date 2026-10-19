@@ -175,3 +175,26 @@ def test_grader_checks_skills_loaded_and_tools_used():
         tools=["Edit"],
     )
     assert not any(r["passed"] for r in graded)
+
+
+def temp_line():
+    return next(line.strip() for line in SKILL.splitlines() if "mktemp" in line)
+
+
+@pytest.mark.parametrize("job_dir", [False, True])
+def test_the_temp_folder_line_never_writes_into_the_working_tree(tmp_path, job_dir):
+    import os
+    import subprocess
+
+    cwd, tmpdir, job = tmp_path / "repo", tmp_path / "sys-tmp", tmp_path / "job"
+    for d in (cwd, tmpdir, job / "tmp"):
+        d.mkdir(parents=True)
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_JOB_DIR"}
+    env["TMPDIR"] = str(tmpdir)
+    if job_dir:
+        env["CLAUDE_JOB_DIR"] = str(job)
+    script = temp_line() + '\nprintf %s "$tmp"'
+    out = subprocess.run(["bash", "-c", script], cwd=cwd, env=env, capture_output=True, text=True)
+    made = Path(out.stdout)
+    assert made.is_dir() and not list(cwd.iterdir())
+    assert made.parent == (job / "tmp" if job_dir else tmpdir)

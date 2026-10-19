@@ -19,7 +19,7 @@ The helper script does every text check and body edit deterministically. Run it 
 - **GitHub only through `gh`** with the user's login. Start with `gh auth status`; if it fails, stop and ask the user to run `! gh auth login`. Make no writes before that.
 - **Temp files** go in a fresh directory per run, never in the working tree and never reused across issues or repos:
   ```bash
-  tmp=$(mktemp -d "${CLAUDE_JOB_DIR:+$CLAUDE_JOB_DIR/tmp/}issue-XXXXXX" 2>/dev/null || mktemp -d)
+  base=${CLAUDE_JOB_DIR:+$CLAUDE_JOB_DIR/tmp}; tmp=$(mktemp -d "${base:-${TMPDIR:-/tmp}}/issue-XXXXXX")
   ```
 - **Merging is not yours to decide.** See "Merge and close out".
 - **Prose for people.** Before the first issue title or body, comment, PR title or body, or commit message in a session, load `writing-docs` with the Skill tool (it loads `plain-prose` first), unless it's already loaded; load `plain-prose` alone if `writing-docs` isn't installed. Follow their rules for every such text: someone reading it months from now, with none of today's context, should understand it. `commit-check` and `pr-body-check` list AI-writing tells as `TELL` lines; fix the ones that would distract a reader. They never fail the check.

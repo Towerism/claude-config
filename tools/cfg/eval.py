@@ -1,4 +1,4 @@
-"""Run the eval suites a branch needs and write their records: the interim `cfg eval`.
+"""Run the eval suites a branch needs and write their records: `cfg eval`.
 
     python3 -I tools/cfg/eval.py [--suite <name>[,<name>...]] [--base origin/main]
                                  [--model <id>] [--workers N]
@@ -14,7 +14,7 @@ Exit codes: 0 every suite passed or none was needed; 1 a suite failed, an
 isolation probe failed, or HEAD moved during a run (no record is written for
 that suite); 2 refused before or during a run; 130 interrupted.
 
-The `cfg` command arrives with #6; until then this file is its eval subcommand.
+`python3 -I tools/cfg/cli.py eval` passes its arguments to this file unchanged.
 """
 
 from __future__ import annotations

@@ -33,9 +33,12 @@ Option A2. `cfg` is a Python command-line tool in `tools/cfg/`, using only the s
 Releases sit outside `~/.claude`, under `${XDG_DATA_HOME:-~/.local/share}/claude-config/`:
 
 ```text
-releases/<sha>/      git worktree of the clone, detached at that commit (one per deployed commit)
-current -> releases/<sha>
+releases/<sha>/      git worktree of the clone, detached at that commit
+releases/<sha>-<n>/  a later release of the same commit (n = 2, 3, …)
+current -> releases/<name>
 ```
+
+A release is named after its commit. A second release of the same commit gets the next free `-<n>` suffix (added on 2026-10-19 in #6). That case arises when a deploy has to replace an edited release without `main` having moved, such as `cfg deploy --discard-live` ([ADR-0004](0004-drift-and-adoption.md)): the edited release stays on disk under its own name. A deploy reuses a clean release of the commit instead of making a new one.
 
 ### What gets linked
 

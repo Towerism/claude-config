@@ -136,11 +136,13 @@ claude-config/
 ├── tools/                       repo tooling; never deployed
 │   ├── cfg/                     commands: check, plan, status, diff, deploy, capture, rollback, restore, lock, eval
 │   │   ├── render.py            applies the host profile and {claude_home} to produce the deploy set
-│   │   ├── release.py           release worktrees, the atomic `current` swap, pruning of old releases
+│   │   ├── cli.py               the cfg command; plan, status and diff since #6, the rest with #8
+│   │   ├── release.py           release worktrees, the atomic `current` swap; pruning lands with #8
 │   │   ├── link.py              warn, back up, link; checks that links are intact
 │   │   ├── settings_merge.py    merges owned keys, idempotent and atomic (grown from install_v2.py)
-│   │   ├── state.py             deploy state and sha256 manifests
-│   │   ├── drift.py             git status of the release worktree, link checks, owned settings keys
+│   │   ├── state.py             deploy state, sha256 manifests and the cfg lock
+│   │   ├── errors.py            the error types the command line turns into exit code 2
+│   │   ├── drift.py             status, plan and diff: the release's git status, link checks, owned settings keys
 │   │   ├── deploy.py restore.py capture.py lock.py
 │   ├── check_config.py          the ported config checker, with an offline mode that reads the plugin lock
 │   └── vendor/claude-skills/spec_validator.py  plus VENDORED.json (source, version, sha256, MIT licence)

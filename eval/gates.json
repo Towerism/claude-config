@@ -90,7 +90,8 @@
         }
       ],
       "harness": [
-        "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py"
+        "config/skills/github-issue-lifecycle/evals/run_behaviour_evals.py",
+        "config/skills/github-issue-lifecycle/evals/fake_gh.py"
       ]
     },
     "plain-prose-trigger": {

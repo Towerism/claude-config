@@ -569,6 +569,7 @@ LIFECYCLE = "config/skills/github-issue-lifecycle"
         ({f"{LIFECYCLE}/evals/run_behaviour_evals.py": "print(2)\n"},
          ["lifecycle-behaviour", "lifecycle-trigger"]),
         ({f"{LIFECYCLE}/scripts/issue_lifecycle.py": "print(2)\n"}, ["lifecycle-behaviour"]),
+        ({f"{LIFECYCLE}/evals/fake_gh.py": "print(2)\n"}, ["lifecycle-behaviour"]),
         ({f"{LIFECYCLE}/references/gh-commands.md": "# New\n"}, ["lifecycle-behaviour"]),
         ({f"{LIFECYCLE}/assets/pr-body-template.md": "Closes #N\n"}, ["lifecycle-behaviour"]),
         ({f"{LIFECYCLE}/tests/test_x.py": "def test_x(): pass\n"}, []),

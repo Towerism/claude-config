@@ -919,3 +919,24 @@ def test_an_error_in_the_edit_run_leaves_nothing_behind(ctx):
     with pytest.raises(RuntimeError):
         run(ctx, FakeClaude(raise_on=lambda cmd: "Read,Edit,Write" in cmd))
     assert leftovers(ctx.root) == []
+
+
+def test_events_whose_message_or_content_isnt_an_object_are_skipped():
+    stream = joined(
+        line({"type": "system", "subtype": "status", "message": "retrying the request"}),
+        line({"type": "user", "message": {"content": "a bare string"}}),
+        main_stream(),
+    )
+    parsed = sc.parse_stream(stream)
+    assert parsed.init_skills == ["probe-skill"]
+    assert sc.judge_main(parsed, CAN)["skill-load-main"] == "pass"
+
+
+def test_the_edit_stream_is_saved_before_it_is_judged(ctx, monkeypatch):
+    def broken(*a, **k):
+        raise ValueError("judging failed")
+
+    monkeypatch.setattr(sc, "judge_edit", broken)
+    with pytest.raises(ValueError):
+        run(ctx, FakeClaude())
+    assert (ctx.out / "E-1-links.stream").is_file()

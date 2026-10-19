@@ -297,7 +297,9 @@ def parse_stream(text: str) -> Stream:
             s.init_skills = [str(x) for x in event.get("skills") or []]
         elif kind == "result":
             s.answer = str(event.get("result") or "")
-        for block in (event.get("message") or {}).get("content") or []:
+        message = event.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        for block in content if isinstance(content, list) else []:
             if not isinstance(block, dict):
                 continue
             if block.get("type") == "tool_use":
@@ -585,9 +587,9 @@ def _edit_run(ctx: run_eval.Context, tally: Tally, stub: Path, sha: str) -> None
             env = isolated_env(cfg, stub, {"CLAUDE_HOME": str(cfg)})
             tally.model_runs += 1
             _, out = _call(ctx, ["claude", *edit_args(workdir)], EDIT_PROMPT, env, workdir)
+            (ctx.out / "E-1-links.stream").write_text(out)
             found = judge_edit(workdir, parse_stream(out), before)
             inv_after = inventory(cfg)
-    (ctx.out / "E-1-links.stream").write_text(out)
     tally.inventories["E-1-links"] = {"before": inv_before, "after": inv_after}
     tally.changes += diff_inventory(inv_before, inv_after)
     s = parse_stream(out)

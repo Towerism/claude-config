@@ -12,7 +12,7 @@ Work here is tracked in GitHub (`Towerism/claude-config`) with `github-issue-lif
 ## Commands
 
 - Tests: `.venv/bin/python -I -m pytest` (add `--cov` for branch coverage; `tools/git_hooks.py` stays at 100%)
-- The two Claude Code hooks stay at 100% branch coverage (ADR-0007, H2): `.venv/bin/python -I -m pytest tests/test_hook_skill_overlay.py tests/test_hook_merge_confirm.py tests/test_hook_output_unchanged.py --cov=config/hooks --cov-branch --cov-fail-under=100`
+- The three Claude Code hooks stay at 100% branch coverage (ADR-0007, H2): `.venv/bin/python -I -m pytest tests/test_hook_skill_overlay.py tests/test_hook_merge_confirm.py tests/test_hook_lifecycle_default.py tests/test_hook_output_unchanged.py --cov=config/hooks --cov-branch --cov-fail-under=100`
 - Skill tests, which the command above doesn't collect: `.venv/bin/python -I -m pytest config/skills/plain-prose/tests --cov=config/skills/plain-prose/scripts --cov-branch` (`prose_check.py` stays at 100%); likewise `.venv/bin/python -I -m pytest config/skills/writing-docs/tests --cov=config/skills/writing-docs/scripts --cov-branch` (`doc_lint.py` stays at 100%); and for the lifecycle skill, which runs its script as a subprocess, `LIFECYCLE_COVERAGE_DIR=$(mktemp -d) .venv/bin/python -m pytest config/skills/github-issue-lifecycle/tests --cov=config/skills/github-issue-lifecycle/evals --cov-branch`, then `coverage combine` and `coverage report` in that directory for the script
 - Lint: `.venv/bin/ruff check .` and `.venv/bin/ruff format --check .`
 - Types: `.venv/bin/mypy`

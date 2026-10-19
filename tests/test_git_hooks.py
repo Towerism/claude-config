@@ -603,6 +603,47 @@ def test_check_range_covers_tree_and_commits(
     assert run_main(["check-range", "no-such-ref"], capsys)[0] == 2
 
 
+def _base_commit(inproc: Repo) -> str:
+    inproc.write("base.txt", "base\n")
+    assert inproc.commit("base.txt").returncode == 0
+    return inproc.git("rev-parse", "HEAD").stdout.strip()
+
+
+def _github_merge(inproc: Repo, name: str, author: str, committer: str) -> str:
+    inproc.write(name, name + "\n")
+    env = {"GIT_COMMITTER_EMAIL": committer, "GIT_COMMITTER_NAME": "GitHub"}
+    extra = ("--no-verify", "--author", f"Owner <{author}>")
+    result = inproc.commit(name, message="chore: merge (#1)", extra=extra, extra_env=env)
+    assert result.returncode == 0
+    return inproc.git("rev-parse", "--short", "HEAD").stdout.strip()
+
+
+def test_check_range_accepts_merges_github_commits_for_a_noreply_author(
+    inproc: Repo, capsys: pytest.CaptureFixture[str]
+) -> None:
+    base = _base_commit(inproc)
+    _github_merge(inproc, "m.txt", NOREPLY, fake_email("noreply", "github.com"))
+    code, err = run_main(["check-range", base], capsys)
+    assert code == 0
+    assert "identity" not in err
+
+
+def test_check_range_still_refuses_githubs_address_as_author_or_other_committers(
+    inproc: Repo, capsys: pytest.CaptureFixture[str]
+) -> None:
+    base = _base_commit(inproc)
+    github = fake_email("noreply", "github.com")
+    as_author = _github_merge(inproc, "a.txt", github, github)
+    other = _github_merge(inproc, "b.txt", NOREPLY, fake_email("someone", "example.invalid"))
+    lookalike = _github_merge(inproc, "c.txt", NOREPLY, fake_email("noreply", "github.com.evil.io"))
+    code, err = run_main(["check-range", base], capsys)
+    assert code == 1
+    assert f"check-range: identity: {as_author} author" in err
+    assert f"check-range: identity: {as_author} committer" in err
+    assert f"check-range: identity: {other} committer" in err
+    assert f"check-range: identity: {lookalike} committer" in err
+
+
 def test_check_range_reports_term_count(inproc: Repo, capsys: pytest.CaptureFixture[str]) -> None:
     Path(inproc.env["CLAUDE_CONFIG_DENY_TERMS"]).write_text("one\ntwo\n# c\n")
     inproc.write("a.txt", "a\n")

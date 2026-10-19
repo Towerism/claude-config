@@ -27,8 +27,8 @@ from typing import Any
 GATES_PATH = "eval/gates.json"
 RECORDS_DIR = "eval/records"
 RUNNERS = {
-    "scenario", "rubric", "hook-overlay", "hook-merge", "script", "trigger", "cold-reader",
-    "doc-trigger", "doc-reader",
+    "scenario", "rubric", "hook-overlay", "hook-merge", "hook-session-start", "script",
+    "trigger", "cold-reader", "doc-trigger", "doc-reader",
 }  # fmt: skip
 # Runners from eval/skill_evals.py and eval/doc_evals.py, which need the skill under
 # test and its case file; the doc_evals ones also need the companions it runs beside.

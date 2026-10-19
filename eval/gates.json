@@ -6,6 +6,7 @@
         "config/CLAUDE.global.md",
         "config/skill-overlays/**",
         "config/hooks/skill_overlay.py",
+        "config/hooks/lifecycle_default.py",
         "eval/scenarios.json",
         "eval/clauses.json"
       ],
@@ -55,6 +56,27 @@
       ],
       "harness": [
         "eval/hook_harness.py"
+      ]
+    },
+    "hook-session-start": {
+      "runner": "hook-session-start",
+      "paths": [
+        "config/hooks/lifecycle_default.py"
+      ],
+      "selectors": [
+        {
+          "file": "config/settings.fragment.json",
+          "pointer": "/hooks/SessionStart"
+        },
+        {
+          "file": "config/settings.fragment.json",
+          "pointer": "/hooks/SubagentStart"
+        }
+      ],
+      "harness": [
+        "eval/session_harness.py",
+        "eval/hook_harness.py",
+        "eval/run_eval.py"
       ]
     },
     "lifecycle-trigger": {

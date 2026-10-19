@@ -38,7 +38,7 @@ from typing import Any
 if __package__ in (None, ""):  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from eval import doc_evals, hook_harness, run_eval, skill_evals  # noqa: E402
+from eval import doc_evals, hook_harness, run_eval, session_harness, skill_evals  # noqa: E402
 from tools.cfg import eval_records as er  # noqa: E402
 
 SuiteRunner = Callable[[run_eval.Context, er.Suite], dict[str, Any]]
@@ -124,6 +124,7 @@ RUNNERS: dict[str, SuiteRunner] = {
     "rubric": lambda ctx, suite: run_eval.run_rubric(ctx),
     "hook-overlay": lambda ctx, suite: hook_harness.run_overlay(ctx),
     "hook-merge": lambda ctx, suite: hook_harness.run_merge(ctx),
+    "hook-session-start": lambda ctx, suite: session_harness.run_session(ctx),
     "script": run_script_suite,
     "trigger": skill_evals.run_trigger,
     "cold-reader": skill_evals.run_cold_reader,

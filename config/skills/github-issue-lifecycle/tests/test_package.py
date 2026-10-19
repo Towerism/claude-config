@@ -198,3 +198,21 @@ def test_the_temp_folder_line_never_writes_into_the_working_tree(tmp_path, job_d
     made = Path(out.stdout)
     assert made.is_dir() and not list(cwd.iterdir())
     assert made.parent == (job / "tmp" if job_dir else tmpdir)
+
+
+def test_seeded_issues_are_read_from_the_state_not_a_canned_response():
+    import json
+
+    cases = json.loads((SKILL_DIR / "evals/evals.json").read_text())["evals"]
+    for case in cases:
+        for n in case.get("issues", {}):
+            shadowing = [r["match"] for r in case.get("fake_gh", [])
+                         if re.fullmatch(rf"\^issue view {n}", r["match"])]  # fmt: skip
+            assert not shadowing, (case["id"], shadowing)
+
+
+def test_the_comment_case_stays_out_until_its_follow_up_lands():
+    import json
+
+    names = {c["name"] for c in json.loads((SKILL_DIR / "evals/evals.json").read_text())["evals"]}
+    assert "prose-skill-before-comment" not in names

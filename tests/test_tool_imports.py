@@ -101,7 +101,9 @@ def test_cfg_release_runs_only_git():
 # deploy runs git, the release's checker and the hook commands; cli runs a backup's
 # restore.py; capture runs git. Each uses subprocess with an argument list, and
 # none may reach the network directly.
-CFG_RUNNERS = [REPO_ROOT / "tools" / "cfg" / name for name in ("deploy.py", "cli.py")]
+CFG_RUNNERS = [
+    REPO_ROOT / "tools" / "cfg" / name for name in ("deploy.py", "capture.py", "cli.py")
+]
 
 
 @pytest.mark.parametrize("module", CFG_RUNNERS, ids=lambda p: p.name)

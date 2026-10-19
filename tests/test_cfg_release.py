@@ -176,3 +176,9 @@ def test_remove_deletes_a_clean_release_and_refuses_a_dirty_one(repo: Path, data
     with pytest.raises(CfgError):
         release.remove(repo, data, second)
     assert (release.releases_dir(data) / second).is_dir()
+
+
+def test_is_release_is_false_for_a_directory_outside_any_repo(repo: Path, tmp_path: Path) -> None:
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    assert not release.is_release(plain, repo)

@@ -26,13 +26,16 @@ def claude_home() -> Path:
 
 
 def skill_from_payload(d: dict):
+    """The event name and the skill it names; None for any field of the wrong type."""
     event = d.get("hook_event_name")
     if event == "PostToolUse":
-        return event, (d.get("tool_input") or {}).get("skill")
+        tool_input = d.get("tool_input")
+        return event, tool_input.get("skill") if isinstance(tool_input, dict) else None
     if event == "UserPromptExpansion":
         return event, d.get("command_name")
     if event == "UserPromptSubmit":
-        m = SLASH.match(d.get("prompt") or "")
+        prompt = d.get("prompt")
+        m = SLASH.match(prompt) if isinstance(prompt, str) else None
         return event, m.group(1) if m else None
     return event, None
 
@@ -58,7 +61,9 @@ def skill_dir(home: Path, skill: str) -> Path:
         raise OverlayError(f"user skill directory not found for {skill}")
     bundle, name = skill.split(":", 1)
     try:
-        installed = json.loads((home / "plugins" / "installed_plugins.json").read_text())
+        installed = json.loads(
+            (home / "plugins" / "installed_plugins.json").read_text(encoding="utf-8")
+        )
     except Exception as e:
         raise OverlayError(f"cannot read installed_plugins.json: {e}") from e
     for key, installs in (installed.get("plugins") or {}).items():
@@ -93,7 +98,7 @@ def emit(event: str, context: str) -> None:
 
 def main() -> None:
     try:
-        d = json.loads(sys.stdin.read())
+        d = json.loads(sys.stdin.buffer.read().decode("utf-8"))
         if not isinstance(d, dict):
             return
     except Exception:
@@ -106,7 +111,7 @@ def main() -> None:
     if overlay is None:
         return
     try:
-        body = overlay.read_text()
+        body = overlay.read_text(encoding="utf-8")
         emit(event, render(resolved, body, skill_dir(home, resolved)))
     except Exception as e:
         traceback.print_exc(file=sys.stderr)

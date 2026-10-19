@@ -29,6 +29,9 @@ ALLOWED_ACTIONS = {
     "actions/setup-python": ("5fda3b95a4ea91299a34e894583c3862153e4b97", "v7.0.0"),
 }
 HEAD_REF = "${{ github.event.pull_request.head.sha || github.sha }}"
+# Only the jobs that install requirements-dev.txt cache pip, keyed on that hash-pinned file.
+PIP_CACHED = {"lint", "test"}
+PIP_CACHE = {"cache": "pip", "cache-dependency-path": "requirements-dev.txt"}
 
 
 def load(text: str) -> dict[str, Any]:
@@ -89,6 +92,10 @@ def problems(workflow: dict[str, Any], text: str) -> list[str]:
         version_file = with_.get("python-version-file")
         if action == "actions/setup-python" and version_file != ".python-version":
             found.append(f"{job_id}: python version")
+        if action == "actions/setup-python":
+            cache = {k: v for k, v in with_.items() if k.startswith("cache")}
+            if cache != (PIP_CACHE if job_id in PIP_CACHED else {}):
+                found.append(f"{job_id}: pip cache")
     for action, (sha, tag) in ALLOWED_ACTIONS.items():
         for line in text.splitlines():
             if f"uses: {action}@" in line and not line.rstrip().endswith(f"@{sha} # {tag}"):
@@ -136,6 +143,27 @@ def _drop_checkout_option(option: str) -> Callable[[dict[str, Any]], None]:
     return change
 
 
+def _setup_python(workflow: dict[str, Any], job: str) -> dict[str, Any]:
+    step = workflow["jobs"][job]["steps"][1]
+    assert step["uses"].startswith("actions/setup-python@")
+    with_: dict[str, Any] = step["with"]
+    return with_
+
+
+def _drop_setup_python_option(job: str, option: str) -> Callable[[dict[str, Any]], None]:
+    def change(workflow: dict[str, Any]) -> None:
+        _setup_python(workflow, job).pop(option, None)
+
+    return change
+
+
+def _set_setup_python_option(job: str, option: str, value: str) -> Callable[[dict[str, Any]], None]:
+    def change(workflow: dict[str, Any]) -> None:
+        _setup_python(workflow, job)[option] = value
+
+    return change
+
+
 def _add_job(workflow: dict[str, Any]) -> None:
     workflow["jobs"]["extra"] = copy.deepcopy(workflow["jobs"]["lint"])
 
@@ -161,6 +189,11 @@ BREAKAGES: dict[str, Callable[[dict[str, Any]], None]] = {
     "checkout keeping the token": _drop_checkout_option("persist-credentials"),
     "checkout of the merge commit": _drop_checkout_option("ref"),
     "a shallow checkout": _drop_checkout_option("fetch-depth"),
+    "lint without the pip cache": _drop_setup_python_option("lint", "cache"),
+    "a cache keyed on the wrong file": _set_setup_python_option(
+        "test", "cache-dependency-path", "pyproject.toml"
+    ),
+    "a cache on a job that installs nothing": _set_setup_python_option("hygiene", "cache", "pip"),
     "an extra job": _add_job,
     "an expression inside run": _run_with_expression,
 }

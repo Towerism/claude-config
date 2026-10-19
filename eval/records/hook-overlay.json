@@ -1,10 +1,10 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/hook_harness.py": "f0d2746bbbed24c16325b29af4310cc8f784295f80b7b49353537f0b9390b966"
+    "eval/hook_harness.py": "b15d42124c4d4ea3fedce98dbec6790a86145d2c0b9703b573890b2640c5958f"
   },
   "inputs": {
-    "config/hooks/skill_overlay.py": "1646a991ce459d71e472590b0e08b748b05f6739ca94d22a689b94ef365f47be",
+    "config/hooks/skill_overlay.py": "b5e5392742fccfbc995bb1f3e3fb29a12bfa80bf3e92c2eb778628763a7c5145",
     "config/settings.fragment.json#/hooks/PostToolUse": "cf12546900304c26191328b46c02462d69dbfa33b5cf0d0b55898e1d3550bd1f",
     "config/settings.fragment.json#/hooks/UserPromptExpansion": "33408f8410248f62241d058b0668ddbce583f2ac7081eb52f346ea1efe1298e1"
   },
@@ -12,7 +12,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T22:09:16Z",
+  "ranAt": "2026-10-19T19:43:52Z",
   "result": {
     "cases": [
       {
@@ -32,7 +32,7 @@
         "result": "pass"
       }
     ],
-    "p95Ms": 33.9,
+    "p95Ms": 46.7,
     "pass": true,
     "rerunsUsed": 0
   },

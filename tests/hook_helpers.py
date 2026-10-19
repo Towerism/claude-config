@@ -38,7 +38,9 @@ def run_main(module: ModuleType, stdin: bytes, monkeypatch, capsys) -> tuple[str
     return out.out, out.err
 
 
-def run_script(name: str, stdin: bytes, home: Path, **env: str) -> subprocess.CompletedProcess:
+def run_script(
+    name: str, stdin: bytes, home: Path, timeout: float = 10, **env: str
+) -> subprocess.CompletedProcess:
     """Run the hook as Claude Code does, with an environment built from scratch."""
     base = {
         "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
@@ -51,7 +53,7 @@ def run_script(name: str, stdin: bytes, home: Path, **env: str) -> subprocess.Co
         input=stdin,
         capture_output=True,
         env={**base, **env},
-        timeout=10,
+        timeout=timeout,
         check=False,
     )
 

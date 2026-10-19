@@ -25,6 +25,7 @@ def sample_state(**changes: object) -> state.State:
         ),
         "settings": {"enabledPlugins/p@m": True},
         "backups": ("/home/u/.claude/backups/claude-config/20261019T120000Z",),
+        "history": ("b" * 40, "a" * 40),
     }
     base.update(changes)
     return state.State(**base)  # type: ignore[arg-type]
@@ -34,6 +35,15 @@ def test_saved_state_loads_back_equal(tmp_path: Path) -> None:
     st = sample_state()
     state.save(tmp_path, st)
     assert state.load(tmp_path) == st
+
+
+def test_a_state_file_without_history_loads_with_an_empty_history(tmp_path: Path) -> None:
+    raw = state.to_json(sample_state())
+    del raw["history"]
+    (tmp_path / "state.json").write_text(json.dumps(raw))
+    loaded = state.load(tmp_path)
+    assert loaded is not None
+    assert loaded.history == ()
 
 
 def test_missing_state_file_means_not_deployed(tmp_path: Path) -> None:
@@ -57,6 +67,7 @@ def test_missing_state_file_means_not_deployed(tmp_path: Path) -> None:
             }
         ),
         json.dumps({**state.to_json(sample_state()), "backups": [3]}),
+        json.dumps({**state.to_json(sample_state()), "history": "abc"}),
     ],
     ids=[
         "unparseable",
@@ -68,6 +79,7 @@ def test_missing_state_file_means_not_deployed(tmp_path: Path) -> None:
         "path-fields",
         "path-kind",
         "backups-type",
+        "history-type",
     ],
 )
 def test_unusable_state_file_is_refused_naming_it(tmp_path: Path, text: str) -> None:

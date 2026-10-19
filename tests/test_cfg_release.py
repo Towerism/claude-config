@@ -155,3 +155,24 @@ def test_is_ancestor_and_archive_report_git_failures(
     monkeypatch.setenv("PATH", str(repo / "no-bin"))
     with pytest.raises(CfgError, match="git not found"):
         release.is_ancestor(repo, head, head)
+
+
+def test_is_release_tells_a_release_of_this_clone_from_anything_else(
+    repo: Path, data: Path, tmp_path: Path
+) -> None:
+    name = release.create(repo, "HEAD", data)
+    assert release.is_release(release.releases_dir(data) / name, repo)
+    assert not release.is_release(tmp_path / "nowhere", repo)
+    other = make_repo(tmp_path / "other")
+    assert not release.is_release(other, repo)
+
+
+def test_remove_deletes_a_clean_release_and_refuses_a_dirty_one(repo: Path, data: Path) -> None:
+    first = release.create(repo, "HEAD", data)
+    second = release.create(repo, "HEAD", data, fresh=True)
+    (release.releases_dir(data) / second / "config" / "CLAUDE.global.md").write_text("# edit\n")
+    release.remove(repo, data, first)
+    assert not (release.releases_dir(data) / first).exists()
+    with pytest.raises(CfgError):
+        release.remove(repo, data, second)
+    assert (release.releases_dir(data) / second).is_dir()

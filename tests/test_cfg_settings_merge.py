@@ -283,3 +283,10 @@ def test_removing_the_last_owned_handler_removes_the_hooks_key() -> None:
     deployed = sm.merge({"theme": "dark"}, old, {}).settings
     result = sm.merge(deployed, {}, sm.owned_items(old))
     assert result.settings == {"theme": "dark"}
+
+
+def test_a_caller_holding_the_lock_can_write_without_taking_it_again(tmp_path: Path) -> None:
+    path = tmp_path / "settings.json"
+    with state.cfg_lock(tmp_path / "data"):
+        assert sm.write(path, FRAGMENT, None, tmp_path / "data", locked=True)
+    assert json.loads(path.read_text()) == FRAGMENT

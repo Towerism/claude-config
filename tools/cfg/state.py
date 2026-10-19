@@ -52,6 +52,7 @@ class State:
     paths: tuple[ManagedPath, ...]
     settings: dict[str, Any]
     backups: tuple[str, ...] = field(default=())
+    history: tuple[str, ...] = field(default=())
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,7 @@ def to_json(st: State) -> dict[str, Any]:
         "paths": [vars(p) for p in st.paths],
         "settings": st.settings,
         "backups": list(st.backups),
+        "history": list(st.history),
     }
 
 
@@ -148,6 +150,9 @@ def load(data_dir: Path) -> State | None:
     backups = raw.get("backups", [])
     if not isinstance(backups, list) or not all(isinstance(b, str) for b in backups):
         raise _bad(path, "backups isn't a list of strings")
+    history = raw.get("history", [])
+    if not isinstance(history, list) or not all(isinstance(h, str) for h in history):
+        raise _bad(path, "history isn't a list of strings")
     return State(
         host=raw["host"],
         claude_home=raw["claudeHome"],
@@ -157,6 +162,7 @@ def load(data_dir: Path) -> State | None:
         paths=tuple(_path_from(path, p) for p in raw["paths"]),
         settings=raw["settings"],
         backups=tuple(backups),
+        history=tuple(history),
     )
 
 

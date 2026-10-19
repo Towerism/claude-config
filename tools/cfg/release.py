@@ -89,6 +89,16 @@ def _is_release_of(path: Path, clone: Path, sha: str) -> bool:
         return False
 
 
+def is_release(path: Path, clone: Path) -> bool:
+    """Whether `path` is a worktree of `clone`, so cfg may treat it as a release."""
+    if not path.is_dir():
+        return False
+    try:
+        return _common_dir(path) == _common_dir(clone)
+    except CfgError:
+        return False
+
+
 def _ignored(path: str) -> bool:
     parts = path.split("/")
     return path.endswith(".pyc") or any(p in IGNORED_PARTS for p in parts)
@@ -155,3 +165,8 @@ def current_release(data_dir: Path) -> str | None:
     if head != "releases" or not name or "/" in name:
         raise CfgError(f"{current} points at {text!r}, not at releases/<name>")
     return name
+
+
+def remove(clone: Path, data_dir: Path, name: str) -> None:
+    """Remove release `name` with `git worktree remove`, which refuses one with changes."""
+    git(clone, "worktree", "remove", str(releases_dir(data_dir) / name))

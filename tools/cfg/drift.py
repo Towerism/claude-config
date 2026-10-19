@@ -67,7 +67,7 @@ class PlanResult:
 # ---- diffs ------------------------------------------------------------------------
 
 
-def _bytes_diff(old: bytes | None, new: bytes | None, label: str) -> str:
+def bytes_diff(old: bytes | None, new: bytes | None, label: str) -> str:
     """A unified diff from `old` (the repo's) to `new` (the live one); None means absent."""
     try:
         a = old.decode().splitlines(keepends=True) if old is not None else []
@@ -79,7 +79,7 @@ def _bytes_diff(old: bytes | None, new: bytes | None, label: str) -> str:
 
 
 def _file_diff(old: Path, new: Path, label: str) -> str:
-    return _bytes_diff(old.read_bytes(), new.read_bytes(), label)
+    return bytes_diff(old.read_bytes(), new.read_bytes(), label)
 
 
 def _describe(entry: str) -> str:
@@ -113,7 +113,7 @@ def tree_diff(live: Path, source: Path) -> str:
     return "".join(parts)
 
 
-def _value_diff(key: str, deployed: Any, live: Any) -> str:
+def value_diff(key: str, deployed: Any, live: Any) -> str:
     def lines(value: Any) -> list[str]:
         if value is settings_merge.MISSING:
             return []
@@ -247,7 +247,8 @@ def status(clone: Path, data_dir: Path, claude_home: Path) -> StatusResult:
 # ---- plan -------------------------------------------------------------------------
 
 
-def _extract(clone: Path, sha: str, home: Path) -> Path:
+def extract_tree(clone: Path, sha: str, home: Path) -> Path:
+    """Commit `sha`'s config/ and hosts/ in a new temporary directory; the caller removes it."""
     base = Path(tempfile.gettempdir()).resolve()
     for forbidden in (home, clone):
         if base.is_relative_to(Path(forbidden).resolve()):
@@ -280,12 +281,12 @@ def _settings_plan(
         )
         items.append(ItemPlan(key, kind))
         if kind != "same":
-            diffs.append((key, _value_diff(key, value, current)))
+            diffs.append((key, value_diff(key, value, current)))
     for key in st.settings if st else {}:
         current = settings_merge.live_value(live, key)
         if key not in wanted and current is not settings_merge.MISSING:
             items.append(ItemPlan(key, "extra-live"))
-            diffs.append((key, _value_diff(key, settings_merge.MISSING, current)))
+            diffs.append((key, value_diff(key, settings_merge.MISSING, current)))
     return items, diffs
 
 
@@ -298,7 +299,7 @@ def plan(clone: Path, ref: str | None, host: str, claude_home: Path, data_dir: P
             raise CfgError(f"{clone} has no {DEFAULT_REF}; pass --ref <commit>") from e
         raise
     st = _require_state(data_dir, claude_home)
-    tree = _extract(clone, sha, claude_home)
+    tree = extract_tree(clone, sha, claude_home)
     try:
         ds = render.render(tree, host, claude_home, data_dir)
         paths, diffs = [], []
@@ -332,7 +333,7 @@ def _drift_diff(rel: Path, path: str) -> str:
             member = tar.extractfile(path)
             old = member.read() if member is not None else b""
     new = (rel / path).read_bytes() if (rel / path).is_file() else None
-    return _bytes_diff(old, new, path)
+    return bytes_diff(old, new, path)
 
 
 def diff(
@@ -361,5 +362,5 @@ def diff(
         live, _ = settings_merge.preflight(claude_home / "settings.json")
         for key, value in settings_merge.live_values(live, st.settings).items():
             if value != st.settings[key]:
-                out.append((key, _value_diff(key, st.settings[key], value)))
+                out.append((key, value_diff(key, st.settings[key], value)))
     return out

@@ -1,7 +1,7 @@
 """PreToolUse(Bash) hook: every PR merge waits for the user's click.
 
-Prints a permissionDecision of "ask" for `gh … pr merge` and `gh api …/merge`;
-prints nothing otherwise. Always exits 0 and never denies.
+Prints a permissionDecision of "ask" for `gh … pr … merge`, `gh api …/merge`
+and a GraphQL `mergePullRequest` sent with `gh api`; prints nothing otherwise. Always exits 0 and never denies.
 
 The check runs on every Bash command, so it reads the command once, left to
 right, in time proportional to its length. A regular expression with nested
@@ -19,41 +19,46 @@ GH_END = re.compile(r"\bgh$")  # a word ending in a standalone "gh": gh, "gh, x&
 MERGE_WORD = re.compile(r"merge\b")
 GH_API = re.compile(r"\bgh\s+api\b")
 API_MERGE = re.compile(r"/merge\b")
+MERGE_MUTATION = re.compile(r"\bmergePullRequest\b")
 
-# Where a scan of `gh [flags] pr merge` stands after a word. Flags are words
-# starting with "-", each optionally followed by one value word.
-AFTER_GH, FLAG, VALUE, AFTER_PR = range(4)
+# Where a scan of `gh [flags] pr [flags] merge` stands after a word: before or
+# after the `pr`, and just past it (START), a flag or a flag's value. Flags are
+# words starting with "-", each optionally followed by one value word.
+BEFORE_PR, AFTER_PR = 0, 1
+START, FLAG, VALUE = 0, 1, 2
+State = tuple[int, int]
 
 
-def _step(state: int, word: str) -> set[int]:
+def _step(state: State, word: str) -> set[State]:
     """The states a scan can be in after `word`; empty when the scan fails."""
-    dash = len(word) > 1 and word.startswith("-")  # a lone "-" is not a flag
-    if state == AFTER_PR:
-        return set()
-    nxt: set[int] = set()
-    if word == "pr":
-        nxt.add(AFTER_PR)
-    if dash:
-        nxt.add(FLAG)
-    elif state == FLAG:
-        nxt.add(VALUE)
+    phase, kind = state
+    nxt: set[State] = set()
+    if len(word) > 1 and word.startswith("-"):  # a lone "-" is not a flag
+        nxt.add((phase, FLAG))
+    elif kind == FLAG:
+        nxt.add((phase, VALUE))
+    if phase == BEFORE_PR and word == "pr":
+        nxt.add((AFTER_PR, START))
     return nxt
 
 
 def merges_a_pr(command: str) -> bool:
-    """Whether the command runs `gh … pr merge` or calls the merge API through `gh api`."""
-    states: set[int] = set()
+    """Whether the command merges a pull request through `gh`."""
+    states: set[State] = set()
     for word in command.split():
-        if AFTER_PR in states and MERGE_WORD.match(word):
+        if MERGE_WORD.match(word) and any(phase == AFTER_PR for phase, _ in states):
             return True
         states = {s for state in states for s in _step(state, word)}
         if GH_END.search(word):
-            states.add(AFTER_GH)
+            states.add((BEFORE_PR, START))
     return _calls_merge_api(command)
 
 
 def _calls_merge_api(command: str) -> bool:
-    """`gh api` followed, on the same line, by a /merge path."""
+    """`gh api` followed by a /merge path on the same line, or by mergePullRequest anywhere."""
+    first = GH_API.search(command)
+    if first and MERGE_MUTATION.search(command, first.end()):
+        return True  # a GraphQL query often spans several lines
     scanned_to = -1
     for m in GH_API.finditer(command):
         if m.end() <= scanned_to:

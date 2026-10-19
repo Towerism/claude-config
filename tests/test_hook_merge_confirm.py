@@ -33,6 +33,9 @@ def decision(hook, command, monkeypatch, capsys):
     return json.loads(out)["hookSpecificOutput"] if out else None
 
 
+MUTATION = 'mergePullRequest(input: {pullRequestId: "x"}) { clientMutationId }'
+MERGEABLE_QUERY = 'repository(owner: "o", name: "r") { pullRequest(number: 5) { mergeable } }'
+
 ASKS = [
     "gh pr merge 5",
     "gh pr merge",
@@ -45,6 +48,11 @@ ASKS = [
     "gh api repos/o/r/pulls/5/merge",
     "gh api -X PUT repos/o/r/pulls/5/merge",
     "cat <<'EOF' > notes.md\nsome text\nEOF\ngh pr merge 5",
+    "gh pr -R o/r merge 5",
+    "gh pr --repo o/r merge 5",
+    "gh -R o/r pr --repo o/r merge --squash 5",
+    f"gh api graphql -f query='mutation {{ {MUTATION} }}'",
+    f"gh api graphql -f query='\nmutation {{\n  {MUTATION}\n}}'",
 ]
 
 QUIET = [
@@ -55,6 +63,10 @@ QUIET = [
     "echo gh pr mergeable",
     "gh api repos/o/r/pulls/5 --jq .mergeable_state",
     "gh pr view 5; echo merge",
+    "gh pr -R o/r view 5",
+    "gh pr --repo o/r list --search merge",
+    f"gh api graphql -f query='query {{ {MERGEABLE_QUERY} }}'",
+    "echo mergePullRequest",
     "",
 ]
 
@@ -135,17 +147,26 @@ def test_the_script_exits_0_with_nothing_on_stderr_for_malformed_input(tmp_path)
     assert (done.returncode, done.stdout, done.stderr) == (0, b"", b"")
 
 
-# The pattern the hook used until #20. It decided the same commands, but
-# backtracked exponentially on long runs of dash words.
-ORIGINAL = re.compile(r"\bgh\b(\s+-\S+(\s+\S+)?)*\s+pr\s+merge\b|\bgh\s+api\b.*/merge\b")
-WORDS = ["gh", "pr", "merge", "-R", "x", "-", "merge-x", '"gh', "o/gh-t", "api", "a/merge", "\n"]
+# The pattern the hook used until #20, which backtracked exponentially on long
+# runs of dash words, and the same pattern widened to what #20 adds: flags
+# between `pr` and `merge`, and a GraphQL mergePullRequest call anywhere after
+# `gh api`. Both are fine as references on commands of a few words.
+FLAGS = r"(\s+-\S+(\s+\S+)?)*"
+ORIGINAL = re.compile(r"\bgh\b" + FLAGS + r"\s+pr\s+merge\b|\bgh\s+api\b.*/merge\b")
+WIDENED = re.compile(
+    r"\bgh\b" + FLAGS + r"\s+pr" + FLAGS + r"\s+merge\b"
+    r"|\bgh\s+api\b.*/merge\b|\bgh\s+api\b[\s\S]*\bmergePullRequest\b"
+)
+WORDS = [
+    "gh", "pr", "merge", "-R", "x", "-", "merge-x", '"gh', "o/gh-t", "api", "a/merge",
+    "mergePullRequest", "\n",
+]  # fmt: skip
+COMMANDS = [" ".join(w) for n in range(1, 5) for w in itertools.product(WORDS, repeat=n)]
 
 
-def test_the_original_patterns_merges_are_still_caught_and_nothing_more(hook):
-    differ = [
-        command
-        for n in range(1, 5)
-        for words in itertools.product(WORDS, repeat=n)
-        if bool(ORIGINAL.search(command := " ".join(words))) != hook.merges_a_pr(command)
-    ]
-    assert differ == []
+def test_every_merge_the_original_pattern_caught_is_still_caught(hook):
+    assert [c for c in COMMANDS if ORIGINAL.search(c) and not hook.merges_a_pr(c)] == []
+
+
+def test_the_hook_catches_exactly_the_widened_set_of_merges(hook):
+    assert [c for c in COMMANDS if bool(WIDENED.search(c)) != hook.merges_a_pr(c)] == []

@@ -97,3 +97,32 @@ This section records the single adversarial review of the change that followed t
 **Fixed: the tuning could fit the eval queries instead of the work.** The regex and failing-test queries could simply be paraphrased into the description. FR-2 now asks for kinds of work in general terms and forbids copying the queries' wording.
 
 **Fixed: nothing capped the description's length.** The Agent Skills format limits a description to 1,024 characters, and the current one is already 1,096; the live runs show Claude Code accepts it, but the tuning would make it longer. FR-2 and AC-1 now cap it at 1,024 characters, so the tuning has to tighten the existing text as well.
+
+# Fifth review: eval suites without chance (#33, 2026-10-18)
+
+This section records the single adversarial review of the #33 amendment to `SPEC.md`, run on 2026-10-18 with `engineering-skills:adversarial-reviewer` and the owner's overlay. The amendment moves `plain-prose-trigger` onto `doc-trigger` with no companion, and gives `plain-prose-behaviour` a new `prose-reader` runner whose checks are all made in code, so neither suite's verdict can turn on one model reply.
+
+**Verdict:** concerns. Nothing critical. One warning is fixed and two are accepted; of the four notes, one is fixed and three are listed. Two of those fixes changed the spec, so the owner sees them before approving. Under the owner's word "33 should park once spec is ready", the spec then stays as a draft until the owner resumes #33.
+
+The review was made in the same context that wrote the amendment, because a fork can't start a fresh reviewer.
+
+## Warnings
+
+**The tell count included findings that come mostly from the case data, which put it near its floor by chance (fixed).** The draft counted `ai_tells` plus `cold_reader` findings from `prose_check.py`. The suite passes on that count if the skill arm has no more than the baseline, or at most one per case: 6 for six cases. In #12's live record the skill arm had no `ai_tells` finding in any text, but it had about four `cold_reader` findings across the three write cases, mostly undefined terms taken from the case facts. That leaves the skill arm about two below the floor, close enough for one extra acronym in two texts to fail the suite. That is the kind of chance #33 exists to remove. FR-26 now counts `ai_tells` findings only, with the reason, and AC-15 says the same. The cold reader is still graded, by the reader's answers against the 90% bar.
+
+**The skill arm is graded with the checker it can run and the baseline can't (accepted).** The skill's procedure tells Claude to run `prose_check.py` and fix what distracts, and the tell count comes from the same checker. This measures whether the skill's procedure works, which is the point: a skill arm that follows its own procedure should score well on it. #32 also shows the arm often can't run the checker, so the count partly reflects the rules alone. The reader's answers and the `mustContain` patterns guard against a text that drops content to lower its count.
+
+**Two turns may be too few for some ordinary trigger queries (accepted).** `doc-trigger` stops ordinary queries after two turns. In #13's last run, 9 of 51 runs reached that limit before loading anything. If `plain-prose` loads later than `writing-docs` does, recall could fall below 13 of 15 for that reason alone. The owner chose this cost for `writing-docs` ("Both the trigger and behavior tests have an issue. It is way too costly to test."). The record counts such runs, so a limit set too low shows up. AC-20 stops the work for the owner if the live run fails, without changing the cases or the bar.
+
+## Notes
+
+- **Fixed:** the retired `trigger` and `cold-reader` code stays in `eval/skill_evals.py`, unused but still tested, which could make a newcomer think it is live. FR-22 now has `tools/cfg/eval.py`'s runner table say so in a comment, pointing at the follow-up for OS-9.
+- **Listed:** the spec now holds two test plans, #33's and "As built in #12". The older one's suite rows describe the replaced runners, and a short line says so.
+- **Listed:** the reader is given model-written text, which could hold instructions. It runs with no tools (`--tools ""`), so nothing in the text can act.
+- **Listed:** the skill arm's pre-approval ends in a wildcard (`Bash(python3 -I <checker> *)`), as in #12 and #13, and a killed run can still leave a credentials copy behind (#29).
+
+## Spec changes made because of this review
+
+1. FR-26: "the text's **tell count** is the number of its `ai_tells` findings. `cold_reader` findings don't count: in #12's live run they were the skill arm's only findings, about four across the three write cases, mostly from terms in the case facts themselves, so they would put the count near the floor by chance; whether a cold reader understands the text is graded by the reader's answers instead." Reason: the first warning above.
+2. AC-15: "the tell count is the number of `ai_tells` findings, with `cold_reader` and readability findings left out". Reason: the same.
+3. FR-22: "`tools/cfg/eval.py`'s runner table carries a comment saying their code stays, unused, in `eval/skill_evals.py` until OS-9's follow-up removes it." Reason: the first note above.

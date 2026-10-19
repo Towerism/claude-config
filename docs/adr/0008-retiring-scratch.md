@@ -2,7 +2,7 @@
 
 **Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15).
 
-Before this repo existed, the layered config was designed and built in scratch directories. This ADR decides what moves into the repo. Specs, review notes, change diffs and the evidence the review notes cite go into `docs/history/`, byte for byte. Caches, probe output and raw logs are dropped. The payload, the deployable files under `config/`, is copied from the live config rather than from scratch, because adoption compares against the live files.
+Before this repo existed, the layered config was designed and built in scratch directories. This ADR decides what moves into the repo. Specs, review notes, change diffs and the evidence the review notes cite go into `docs/history/`, byte for byte. Caches, probe output and raw logs are dropped. The payload, the deployable files under `config/`, is copied from the live config rather than from scratch, because adoption was then planned to compare against the live files. Adoption was dropped on 2026-10-18 in favour of the first deploy ([ADR-0004](0004-drift-and-adoption.md)).
 
 Terms such as live config, payload, first deploy, clause inventory and the v2 spec are defined in the [Terms section of the architecture doc](../architecture/README.md#terms).
 

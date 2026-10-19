@@ -38,7 +38,10 @@ jobs:
           python-version-file: .python-version
       - id: base
         name: Find the commit the range checks start from
-        run: echo "base=$(python3 -I tools/ci.py base)" >> "$GITHUB_OUTPUT"
+        # An assignment, not `echo "$(...)"`, so bash -e stops the job when ci.py fails.
+        run: |
+          base=$(python3 -I tools/ci.py base)
+          echo "base=$base" >> "$GITHUB_OUTPUT"
       - id: code
         name: Decide whether the code jobs run (a PR touching only docs/ skips them)
         env:

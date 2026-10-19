@@ -90,6 +90,9 @@ def problems(workflow: dict[str, Any], text: str) -> list[str]:
     for job_id, step in steps(workflow):
         if "${{" in str(step.get("run", "")):
             found.append(f"{job_id}: expression in run")
+        # bash -e ignores a failing command inside `echo "$(...)"`, so the step would pass.
+        if re.search(r"\becho\b[^\n]*\$\(", str(step.get("run", ""))):
+            found.append(f"{job_id}: command substitution inside echo")
         uses = step.get("uses")
         if uses is None:
             continue
@@ -215,6 +218,9 @@ BREAKAGES: dict[str, Callable[[dict[str, Any]], None]] = {
     "eval-record gated on code": _set(("jobs", "eval-record", "if"), CODE_CONDITION),
     "commits on pushes too": _set(("jobs", "commits", "if"), None),
     "changes without the code output": _set(("jobs", "changes", "outputs"), {"base": "x"}),
+    "a failure hidden inside echo": _first_step(
+        "changes", "run", 'echo "base=$(python3 -I tools/ci.py base)" >> "$GITHUB_OUTPUT"'
+    ),
     "an extra job": _add_job,
     "an expression inside run": _run_with_expression,
 }

@@ -1,0 +1,13 @@
+[
+  {
+    "path": "claude-code-settings.json",
+    "upstream": {
+      "repo": "SchemaStore/schemastore",
+      "commit": "d2cbdcde9855c1bf9ea99c336163cc6c93753e39",
+      "path": "src/schemas/json/claude-code-settings.json"
+    },
+    "sha256": "6d4a6e3c7adedffce8079ccaef0a4bab5f5718b054421b4475c788a0ae4bedfe",
+    "licence": "Apache-2.0",
+    "licenceFile": "LICENSE-schemastore"
+  }
+]

@@ -54,3 +54,45 @@ def test_the_record_verifier_imports_nothing_from_the_harness():
     assert top_level_imports(REPO_ROOT / "tools" / "cfg" / "eval_records.py") <= set(
         sys.stdlib_module_names
     )
+
+
+# cfg's core modules read and write only local files. Only release.py runs a
+# program, and only git.
+CFG_MODULES = [
+    REPO_ROOT / "tools" / "cfg" / name
+    for name in (
+        "errors.py",
+        "state.py",
+        "render.py",
+        "settings_merge.py",
+        "link.py",
+        "drift.py",
+        "cli.py",
+    )
+]
+
+
+@pytest.mark.parametrize("module", CFG_MODULES, ids=lambda p: p.name)
+def test_cfg_modules_use_only_the_standard_library_and_run_nothing(module):
+    imports = top_level_imports(module)
+    assert imports - set(sys.stdlib_module_names) <= {"tools"}
+    assert not imports & BANNED
+
+
+def test_cfg_release_runs_only_git():
+    path = REPO_ROOT / "tools" / "cfg" / "release.py"
+    imports = top_level_imports(path)
+    assert imports - set(sys.stdlib_module_names) <= {"tools"}
+    assert not imports & (BANNED - {"subprocess"})
+    calls = [
+        node
+        for node in ast.walk(ast.parse(path.read_text()))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "run"
+    ]
+    assert calls
+    for call in calls:
+        first = call.args[0]
+        assert isinstance(first, ast.List)
+        assert isinstance(first.elts[0], ast.Constant) and first.elts[0].value == "git"

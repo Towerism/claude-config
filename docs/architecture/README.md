@@ -136,14 +136,17 @@ claude-config/
 ├── tools/                       repo tooling; never deployed
 │   ├── cfg/                     commands: check, plan, status, diff, deploy, capture, rollback, restore, lock, eval
 │   │   ├── render.py            applies the host profile and {claude_home} to produce the deploy set
-│   │   ├── cli.py               the cfg command; plan, status and diff since #6, the rest with #8
-│   │   ├── release.py           release worktrees, the atomic `current` swap; pruning lands with #8
+│   │   ├── cli.py               the cfg command: plan, status, diff (#6); deploy, rollback, capture, restore (#8)
+│   │   ├── release.py           release worktrees, the atomic `current` swap, removing a pruned release
 │   │   ├── link.py              warn, back up, link; checks that links are intact
 │   │   ├── settings_merge.py    merges owned keys, idempotent and atomic (grown from install_v2.py)
 │   │   ├── state.py             deploy state, sha256 manifests and the cfg lock
 │   │   ├── errors.py            the error types the command line turns into exit code 2
 │   │   ├── drift.py             status, plan and diff: the release's git status, link checks, owned settings keys
-│   │   ├── deploy.py restore.py capture.py lock.py
+│   │   ├── deploy.py            deploy and rollback: conflicts, the release checks, the hook smoke test, backups, pruning
+│   │   ├── capture.py           live changes written into a feature-branch worktree, never committed
+│   │   ├── restore.py           the standalone undo copied into every deploy backup; standard library only
+│   │   ├── lock.py
 │   ├── check_config.py          the ported config checker, with an offline mode that reads the plugin lock
 │   └── vendor/claude-skills/spec_validator.py  plus VENDORED.json (source, version, sha256, MIT licence)
 ├── schemas/                     a vendored snapshot of the settings schema, plus a schema for the fragment
@@ -194,7 +197,7 @@ A copy of `restore.py`, a standalone stdlib script, goes into every backup direc
 
 ## Deploying
 
-`cfg deploy` makes a new release worktree for the target commit, checks it, and then switches `current` to it in one atomic step. The sequence below includes the two places where it stops and asks: drift in the current release, and files sitting where links should be. Decisions are in [ADR-0001](../adr/0001-deployment-model.md) and [ADR-0004](../adr/0004-drift-and-adoption.md).
+`cfg deploy` makes a new release worktree for the target commit, checks it, and then switches `current` to it in one atomic step. It builds the release from the commit (`origin/main` as last fetched, or `--ref`) and never reads the clone's working tree, so a dirty tree or a checked-out branch can't reach the live config. The sequence below includes the two places where it stops: conflicts it found before changing anything, and the change list it shows before going ahead. Decisions are in [ADR-0001](../adr/0001-deployment-model.md) and [ADR-0004](../adr/0004-drift-and-adoption.md).
 
 ```mermaid
 sequenceDiagram
@@ -203,25 +206,23 @@ sequenceDiagram
   participant G as git
   participant R as releases/
   participant L as ~/.claude
-  U->>C: cfg deploy [--host personal] [--ref <sha>]
-  C->>G: tree clean? HEAD == origin/main (or explicit --ref)?
-  C->>C: cfg check (offline lint, plugin lock vs installed_plugins.json)
-  C->>R: current release worktree dirty? (live edits)
-  alt drift
-    C-->>U: abort: capture first, or --discard-live (old release kept)
+  U->>C: cfg deploy --host personal [--ref <sha>] [--discard-live <path>]... [--yes]
+  C->>G: resolve origin/main as last fetched (or --ref); read its config/ and hosts/
+  C->>L: classify each managed path; compare owned settings keys
+  C->>R: edits in the deployed release that the target lacks?
+  alt any conflict not passed with --discard-live
+    C-->>U: stop (exit 1): a diff per conflict; resolve with cfg capture or --discard-live
   end
-  C->>R: git worktree add --detach releases/<sha>
-  C->>C: hook smoke test against the new release
-  C->>L: any managed path that is not the expected link?
-  alt files in the way
-    C-->>U: WARN with list and hash match; confirm (y/N)
-    C->>L: move them to backups/claude-config/<ts>/ with manifest and restore.sh
-    C->>L: create links through current/
-  end
+  C->>R: git worktree add --detach releases/<sha> (or reuse a clean one)
+  C->>C: the release's own config checker; hook smoke test against the release
+  C-->>U: the change list; continue? [y/N] (--yes skips; no terminal means stop)
+  C->>L: backups/claude-config/<ts>/: restore.py, restore.sh, restore.json
+  C->>L: move what is in the way into the backup, manifest first
   C->>R: swap current -> releases/<sha> (temp link + os.replace)
-  C->>L: settings merge: owned keys only, re-read hash before os.replace, skip if unchanged
-  C->>C: write state.json; hook smoke test through the live links
-  C-->>U: deployed <sha>; rollback: cfg rollback (or backups/…/restore.sh)
+  C->>L: create links through current/; remove cfg links that left the profile
+  C->>L: settings merge: owned keys only, re-read before os.replace, skip if unchanged
+  C->>C: write state.json; hook smoke test through the live commands; prune releases
+  C-->>U: deployed <sha>; undo: cfg rollback (or backups/…/restore.sh)
 ```
 
 The version 2 installer's safety requirements (v2 spec FR-23) carry over as invariants, and each one keeps a test:
@@ -278,7 +279,7 @@ Most mistakes are fixed with a git revert and a normal deploy. The faster paths 
 | Situation | Procedure |
 |---|---|
 | A merged change is wrong, but Claude Code still works | `git revert <sha>` on a `fix/` branch, then PR, merge and `cfg deploy`. History stays honest. |
-| A deploy broke Claude Code itself, for example a hook that crashes on every tool call | `cfg rollback`, which points `current` back at the previous release in one atomic swap. If `cfg` can't run: `ln -sfn releases/<previous-sha> ~/.local/share/claude-config/current`, or the backup's `restore.sh`. Follow up with the revert PR. |
+| A deploy broke Claude Code itself, for example a hook that crashes on every tool call | `cfg rollback`, which points `current` back at the previous release in one atomic swap and fixes `cfg`'s own links. It leaves `settings.json` alone and prints the `cfg deploy --ref` command that also rolls the owned settings back when they differ. If `cfg` can't run: `ln -sfn releases/<previous-sha> ~/.local/share/claude-config/current`, or the backup's `restore.sh`. Follow up with the revert PR. |
 | Undo the first deploy completely and return to plain files | `~/.claude/backups/claude-config/<first-deploy-ts>/restore.sh`. It removes the links it made and moves the originals back, checking hashes first. |
 | A known-good state is needed now, without waiting for a PR | `cfg deploy --ref <good-sha>`. `cfg status` keeps flagging the non-HEAD release until `main` catches up through the revert PR. |
 
@@ -319,7 +320,7 @@ The table lists the risks this design guards against, with a rough likelihood an
 | T2 | A hook change breaks or subverts every tool call. Hooks run with the owner's privileges on every Skill and Bash call, and they see full Bash commands. | Low × High | The hook review bar in [ADR-0007](../adr/0007-visibility-and-security.md): a CI check that hooks use only the standard library and no network, 100% branch coverage, a real-harness eval record, 95th-percentile time under 500 ms, always exit 0, never print tool input. Deploy smoke-tests hooks before and after switching. `cfg rollback` and the standalone `restore.sh` are the undo. |
 | T3 | Plugin supply chain: a marketplace update changes skill text, or the scripts that overlays tell Claude to run | Med × High | The plugin lock records versions and git SHAs, and `cfg status` and `cfg check --live` flag any change. Each lock update is its own PR with dependency and security audits. The owner keeps marketplace auto-update on (decided 2026-10-16), so the repo detects updates rather than preventing them. |
 | T4 | A deploy overwrites settings the harness wrote, or deletes a live file | Med × Med | Only owned keys are merged. The file's hash is re-read just before `os.replace`, and the write aborts if it changed. Nothing is written when the result is semantically unchanged, so the first deploy doesn't rewrite `settings.json` when its owned keys already match. Files are never deleted: after a warning, they are moved into a backup with a manifest. |
-| T5 | Unreviewed draft config goes live, from a branch checkout or a dirty working tree | Med × Med | Links point at release worktrees pinned to a deployed commit, never at the working clone. `deploy` requires a clean tree at `origin/main`, or an explicit `--ref`. Skills live under `config/skills/`, not `.claude/skills/`, so drafts never register as project skills. |
+| T5 | Unreviewed draft config goes live, from a branch checkout or a dirty working tree | Med × Med | Links point at release worktrees pinned to a deployed commit, never at the working clone. `deploy` installs the commit `origin/main` names, or an explicit `--ref`, and never reads the working tree. Skills live under `config/skills/`, not `.claude/skills/`, so drafts never register as project skills. |
 | T6 | Personal content and the owner's email become public | Certain × Low–Med (the owner accepted a public repo) | Everything committed is world-readable, and so is the author email in every commit. The email stays obfuscated: the repo commits with the owner's GitHub noreply address, and CI fails any commit whose author or committer email isn't a noreply address. Secret and email scans run before commit and in CI. Anything that later shouldn't be public moves to a private companion repo. |
 | T7 | CI has more access than it needs | Low × Med | `permissions: contents: read`. No secrets. The trigger is `pull_request` only, never `pull_request_target`. Actions are pinned to full commit SHAs, and the gitleaks binary is checksum-verified. |
 | T8 | Instructions planted in issue or PR text steer the agent | Low × Med | The lifecycle skill treats issue text as data, not instructions (lifecycle spec FR-23). CI never feeds PR text to a model. |

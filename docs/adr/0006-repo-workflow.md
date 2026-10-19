@@ -80,7 +80,7 @@ Four checks cover a change to the global CLAUDE.md, two in CI and two run locall
 The repo takes option 3. The rollback section of the [architecture doc](../architecture/README.md) walks through each case.
 
 - **Normal:** `git revert` on a `fix/` branch, then PR, merge and `cfg deploy`.
-- **Emergency:** `cfg rollback` points `current` back at the previous release. If `cfg` can't run, `ln -sfn` does the same by hand. Undoing the first deploy itself uses the `restore.sh` written into that deploy's backup. That script is standalone stdlib Python and keeps the v2 installer's restore rules (v2 spec FR-23). It acts only on the paths in its manifest, checks hashes first, and removes only its own settings entries, so it works without the repo and without Claude.
+- **Emergency:** `cfg rollback` points `current` back at the previous release. It leaves `settings.json` alone, because Claude Code and the owner write that file too; when the previous release's owned settings differ, it prints the `cfg deploy --ref <sha>` command that rolls them back as well (#8). If `cfg` can't run, `ln -sfn` does the same by hand. Undoing the first deploy itself uses the `restore.sh` written into that deploy's backup. That script is standalone stdlib Python and keeps the v2 installer's restore rules (v2 spec FR-23). It acts only on the paths in its manifest, checks hashes first, and removes only its own settings entries, so it works without the repo and without Claude.
 - **Bridge:** `cfg deploy --ref <sha>` deploys a known-good commit. `cfg status` flags it until `main` contains the same fix.
 
 ## Consequences

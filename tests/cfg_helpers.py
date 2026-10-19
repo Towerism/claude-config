@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -157,3 +158,70 @@ def deploy_with_library(
     )
     state.save(data, st)
     return st
+
+
+# ---- deploy fixtures (#8) -----------------------------------------------------------
+
+# Hooks that read their event and print nothing, which the smoke test accepts.
+QUIET_HOOK = "import sys\nsys.stdin.read()\n"
+# A stand-in for the release's tools/check_config.py; the real one needs the real payload.
+CHECKER_OK = "import sys\nsys.exit(0)\n"
+
+
+def deploy_files(**changes: Any) -> dict[str, str]:
+    files = payload_files(**changes)
+    files["config/hooks/overlay.py"] = QUIET_HOOK
+    files["config/hooks/guard.py"] = QUIET_HOOK
+    files["tools/check_config.py"] = CHECKER_OK
+    return files
+
+
+def make_deploy_repo(root: Path) -> Path:
+    """A repo cfg deploy can install: quiet hooks and a checker that passes."""
+    write_tree(root, deploy_files())
+    git(root, "init", "-q", "-b", "main")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "payload")
+    git(root, "update-ref", "refs/remotes/origin/main", "HEAD")
+    return root
+
+
+def push(repo: Path) -> str:
+    """Move origin/main to HEAD, as a merge on GitHub and a fetch would."""
+    git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    return git(repo, "rev-parse", "HEAD")
+
+
+def make_live_install(home: Path, repo: Path, host: str = "hosts/test.json") -> None:
+    """Plain copies of the payload in the Claude home, the way the v2 installer left them."""
+    profile = json.loads((repo / host).read_text())
+    copies = {"CLAUDE.md": "config/CLAUDE.global.md", "skill-overlays": "config/skill-overlays"}
+    copies |= {f"hooks/{h}": f"config/hooks/{h}" for h in profile["hooks"]}
+    copies |= {f"skills/{s}": f"config/skills/{s}" for s in profile["skills"]}
+    for live, source in copies.items():
+        src, dst = repo / source, home / live
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.is_dir():
+            shutil.copytree(src, dst)
+        else:
+            shutil.copyfile(src, dst)
+    fragment = render.render_fragment(repo, home)
+    settings = {"theme": "dark", **fragment}
+    (home / "settings.json").write_text(json.dumps(settings, indent=2) + "\n")
+    write_tree(home, {"skills/other/SKILL.md": "mine\n", "hooks/extra.py": "pass\n"})
+
+
+def inventory(*roots: Path, skip: tuple[str, ...] = ()) -> list[tuple[str, str, str, int]]:
+    """Path, type, sha256 and mtime of everything under the roots, minus names in `skip`."""
+    rows = []
+    for root in roots:
+        for path in sorted([root, *root.rglob("*")]) if root.exists() else []:
+            if path.name in skip:
+                continue
+            if path.is_symlink():
+                rows.append((str(path), "link", os.readlink(path), path.lstat().st_mtime_ns))
+            elif path.is_file():
+                rows.append((str(path), "file", state.sha256_file(path), path.stat().st_mtime_ns))
+            else:
+                rows.append((str(path), "dir", "", path.stat().st_mtime_ns))
+    return rows

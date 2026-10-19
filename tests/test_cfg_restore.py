@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -261,6 +262,17 @@ def test_a_backup_without_a_manifest_means_nothing_was_moved(install: Install) -
     install.save_meta()
     assert install.run().exit == 0
     assert not (install.home / "CLAUDE.md").exists()
+
+
+def test_with_no_manifest_the_live_originals_stay_where_they_are(install: Install) -> None:
+    (install.backup / "manifest.sha256").unlink()
+    (install.home / "CLAUDE.md").unlink()
+    os.rename(install.backup / "CLAUDE.md", install.home / "CLAUDE.md")
+    shutil.rmtree(install.backup / "skills")
+    report = install.run()
+    assert report.exit == 1
+    assert (install.home / "CLAUDE.md").read_bytes() == install.originals["CLAUDE.md"]
+    assert {"path": "skills/alpha", "why": "the backup copy is gone"} in report.left_alone
 
 
 def test_a_link_already_gone_is_fine(install: Install) -> None:

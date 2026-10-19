@@ -108,11 +108,11 @@ def read_meta(backup: Path) -> dict[str, Any]:
     }
 
 
-def read_manifest(backup: Path) -> list[Entry]:
-    """The manifest's entries; none when the deploy stopped before writing it."""
+def read_manifest(backup: Path) -> list[Entry] | None:
+    """The manifest's entries, or None when the deploy stopped before writing it."""
     path = backup / "manifest.sha256"
     if not path.exists():
-        return []
+        return None
     entries = []
     for number, line in enumerate(path.read_text().splitlines(), 1):
         head, sep, rest = line.partition("  ")
@@ -133,8 +133,8 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _under(entries: list[Entry], top: str) -> list[Entry]:
-    return [e for e in entries if e.path == top or e.path.startswith(top + "/")]
+def _under(entries: list[Entry] | None, top: str) -> list[Entry]:
+    return [e for e in entries or [] if e.path == top or e.path.startswith(top + "/")]
 
 
 def _matches(root: Path, entries: list[Entry]) -> bool:
@@ -174,12 +174,22 @@ class Snapshot:
         os.rename(path, dest)
 
 
-def _in_place(home: Path, backup: Path, top: str, entries: list[Entry]) -> bool:
-    """A moved path the deploy never actually moved: no backup copy, the original still live."""
-    return not os.path.lexists(backup / top) and _matches(home, _under(entries, top))
+def _in_place(home: Path, backup: Path, top: str, entries: list[Entry] | None) -> bool:
+    """A path the deploy never actually moved: no backup copy, the original still live.
+
+    With no manifest at all, the deploy stopped before moving anything, so
+    whatever is live is the original.
+    """
+    if os.path.lexists(backup / top):
+        return False
+    if entries is None:
+        return os.path.lexists(home / top)
+    return _matches(home, _under(entries, top))
 
 
-def undo_links(meta: dict[str, Any], backup: Path, entries: list[Entry], snap: Snapshot) -> None:
+def undo_links(
+    meta: dict[str, Any], backup: Path, entries: list[Entry] | None, snap: Snapshot
+) -> None:
     home, report = meta["home"], snap.report
     for live, target in meta["links"]:
         path = home / live
@@ -194,7 +204,9 @@ def undo_links(meta: dict[str, Any], backup: Path, entries: list[Entry], snap: S
             report.leave(live, "it was no longer cfg's link; moved into the snapshot")
 
 
-def put_back(meta: dict[str, Any], backup: Path, entries: list[Entry], report: Report) -> None:
+def put_back(
+    meta: dict[str, Any], backup: Path, entries: list[Entry] | None, report: Report
+) -> None:
     home = meta["home"]
     for top in meta["moved"]:
         mine = _under(entries, top)

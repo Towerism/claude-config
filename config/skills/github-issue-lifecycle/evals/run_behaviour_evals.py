@@ -71,6 +71,10 @@ for i, r in enumerate(responses):
     out = r.get("stdout", "")
     if "after_call" in r and any(re.search(r["after_call"], " ".join(a)) for a in log_lines):
         out = r["after_stdout"]
+    for st in r.get("states", []):
+        # The last state an earlier call reached wins, so read-backs show earlier edits.
+        if any(re.search(st["after_call"], " ".join(a)) for a in log_lines):
+            out = st["stdout"]
     if "sequence" in r:
         counter = os.path.join(state, f"seq-{i}")
         n = int(open(counter).read()) if os.path.exists(counter) else 0

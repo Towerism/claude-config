@@ -399,3 +399,26 @@ def test_files_touched_counts_branches_and_worktrees_but_not_the_stash(tmp_path,
 def test_commits_only_touch_checks_every_committed_file(harness, touched, passed):
     exp = r"commits-only-touch: skills/foo/(SPEC|REVIEW-NOTE)\.md"
     assert harness.grade([exp], [], [], "", [], touched=touched)[0]["passed"] is passed
+
+
+def test_fake_gh_answers_from_the_latest_state_an_earlier_call_reached(tmp_path, harness):
+    (tmp_path / "gh").write_text(harness.FAKE_GH)
+    (tmp_path / "gh").chmod(0o755)
+    state = tmp_path / "state"
+    state.mkdir()
+    responses = [{"match": "^issue view 42", "stdout": "v0", "states": [
+        {"after_call": "^issue edit 42 --body-file", "stdout": "v1"},
+        {"after_call": "--add-label approved", "stdout": "v2"},
+    ]}]  # fmt: skip
+    (state / "responses.json").write_text(json.dumps(responses))
+    env = {**os.environ, "GH_STATE": str(state), "GH_LOG": str(tmp_path / "gh.log")}
+
+    def gh(*args):
+        cmd = [str(tmp_path / "gh"), *args]
+        return subprocess.run(cmd, env=env, capture_output=True, text=True).stdout.strip()
+
+    assert gh("issue", "view", "42") == "v0"
+    gh("issue", "edit", "42", "--body-file", "b.md")
+    assert gh("issue", "view", "42") == "v1"
+    gh("issue", "edit", "42", "--add-label", "approved")
+    assert gh("issue", "view", "42") == "v2"

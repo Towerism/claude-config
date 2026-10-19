@@ -90,3 +90,20 @@ This pass reviewed the #4 amendment against the version the user approved on 202
 | N6 | NOTE | Saboteur | The eval configs still take `enabledPlugins` and the plugin directory from the live config, so a plugin update changes what the evals see. | **Listed.** The repo harness built in #9 does the same; the plugin lock (`plugins.lock.json`) records the versions. |
 
 **Decisions for the owner** are in the spec's open questions: D-1 (go ahead although adoption can't compare these files; #35 plans adoption), D-2 (lint the skill's Python with ruff in #4) and D-3 (record only the default-model behaviour run).
+
+
+---
+
+# Adversarial pass on the AC-26 change (one pass, 2026-10-18)
+
+The first live behaviour run (on `23b88d1`) failed case 25 because AC-26 said "no commit is made", while FR-24 keeps a draft skill spec in a committed `SPEC.md`: the model did what FR-24 asks and failed the case. The change makes AC-26 say "no commit made during the case changes `skills/foo/SKILL.md` or any file other than `skills/foo/SPEC.md` and `skills/foo/REVIEW-NOTE.md`", adds a `commit_files` case field so the skill's files are committed before the run, and lists the grader kinds `commits-only-touch` and `gh-body-never-matches` in FR-28. `gh-body-never-matches` was already in the code since `74218c2`; the spec didn't list it until now.
+
+This pass used `engineering-skills:adversarial-reviewer` once, inline in the same fork, with its three personas.
+
+**Verdict: CLEAN** (no CRITICAL, no WARNING, 3 NOTES). No finding changed the spec, so the owner's answer "approve all items with reasonable answers" approves it.
+
+| ID | Sev | Persona | Finding | Handling |
+|---|---|---|---|---|
+| N1 | NOTE | Saboteur | "Commits made during the case" needs a definition. Counting every ref would include `refs/stash`, so a model that stashes its edits would fail the case falsely. | **Fixed in the code, not the spec**: the grader reads branches, pushed branches and every worktree's `HEAD`, never the stash. That is what "any branch or worktree" already says. |
+| N2 | NOTE | Security Auditor | After the run the harness reads the workspace with git, and the model could have set a config such as `core.fsmonitor` that runs a command. | **Fixed in the code**: the grader uses plumbing commands only (`rev-list`, `diff-tree`, `worktree list`) with `core.fsmonitor` and `core.hooksPath` overridden. |
+| N3 | NOTE | New Hire | The Status line now nests the earlier status inside the new one and is long. | **Listed.** It keeps the approval history in one place, as before. |

@@ -499,7 +499,11 @@ def _config(ctx: run_eval.Context, name: str) -> Iterator[Path]:
 
 def _evidence(s: Stream, sub: bool) -> list[str]:
     lines = [f"init skills: {s.init_skills}"]
-    lines += [f"tool_use: {u.name} {json.dumps(u.input)[:300]} parent={u.parent}" for u in s.uses]
+    for u in s.uses:
+        lines.append(f"tool_use: {u.name} {json.dumps(u.input)[:300]} parent={u.parent}")
+        if u.id in s.results:
+            error, body = s.results[u.id]
+            lines.append(f"tool_result: {u.name} error={error} {body[:300]}")
     agent = _agent(s)
     if sub and agent is not None:
         lines.append(f"subagent message: {s.results.get(agent.id, (True, ''))[1][:EXCERPT]}")
@@ -842,10 +846,15 @@ def render_markdown(data: dict[str, Any]) -> str:
     ]
     lines += [f"- `{' '.join(c['argv'])}`: exit {c['exitCode']}" for c in data["pluginCommands"]]
     lines += ["", "## Evidence", ""]
+    shown = set()
     for r in data["results"]:
         for x in r["runs"]:
-            lines.append(f"### `{r['id']}`, run {x['run']}{x['attempt']} ({x['layout']})")
-            lines += ["", "```text", *[e for e in x["evidence"]], "```", ""]
+            key = (x["run"], x["attempt"], x["layout"])
+            if key in shown:
+                continue
+            shown.add(key)
+            lines.append(f"### Run {x['run']}{x['attempt']} ({x['layout']})")
+            lines += ["", "```text", *x["evidence"], "```", ""]
     return "\n".join(lines).rstrip() + "\n"
 
 

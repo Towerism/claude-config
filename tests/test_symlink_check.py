@@ -940,3 +940,24 @@ def test_the_edit_stream_is_saved_before_it_is_judged(ctx, monkeypatch):
     with pytest.raises(ValueError):
         run(ctx, FakeClaude())
     assert (ctx.out / "E-1-links.stream").is_file()
+
+
+def test_the_evidence_holds_each_tool_result_with_its_error_flag(ctx):
+    report = run(ctx, FakeClaude(edit="error"))
+    edit = next(r for r in report["results"] if r["id"] == "edit-file-link")
+    lines = edit["runs"][0]["evidence"]
+    assert any(e.startswith("tool_result: Edit error=True denied") for e in lines)
+
+
+def test_the_markdown_shows_each_run_once(ctx, tmp_path):
+    report = run(ctx, FakeClaude())
+    sc.write_results(report, tmp_path, ctx.root)
+    md = (tmp_path / "symlink-check.md").read_text()
+    assert md.count("### Run S1 (links)") == 1
+    assert md.count("### Run M1 (links)") == 1
+
+
+def test_a_tool_call_without_a_result_has_no_result_line_in_the_evidence():
+    stream = joined(init([]), tool_use("t1", "Skill", {"skill": "probe-skill"}), result("x"))
+    lines = sc._evidence(sc.parse_stream(stream), False)
+    assert [e.split(":")[0] for e in lines] == ["init skills", "tool_use", "answer"]

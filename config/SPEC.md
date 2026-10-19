@@ -3,7 +3,7 @@
 **Author:** Claude (for mfracker)
 **Date:** 2026-10-15
 **Status:** Approved — re-approved by the user ("approve"), 2026-10-15, after the post-implementation amendment and its single adversarial pass (see REVIEW-NOTE.md). Approval mode: manual review with adversarial pass.
-**Amended:** 2026-10-16 by #9, whose spec the owner approved: notes under AC-4, AC-6, AC-7 and AC-9 say how those checks run in this repo. 2026-10-16 by #12, whose spec the owner approved: FR-15a adds the `plain-prose` line, and FR-17's `adversarial-reviewer` overlay gains a `plain-prose` line. 2026-10-17 by #13, whose spec the owner approved: FR-15a's line also names `writing-docs`, which covers the same texts as `plain-prose` (the owner's decision: "Decision 1: is the full live line"), and FR-17 gains overlays for `senior-architect` and `runbook-generator`.
+**Amended:** 2026-10-16 by #9, whose spec the owner approved: notes under AC-4, AC-6, AC-7 and AC-9 say how those checks run in this repo. 2026-10-16 by #12, whose spec the owner approved: FR-15a adds the `plain-prose` line, and FR-17's `adversarial-reviewer` overlay gains a `plain-prose` line. 2026-10-17 by #13, whose spec the owner approved: FR-15a's line also names `writing-docs`, which covers the same texts as `plain-prose` (the owner's decision: "Decision 1: is the full live line"), and FR-17 gains overlays for `senior-architect` and `runbook-generator`. 2026-10-19 by #20, whose spec the owner approved: notes under FR-24 and NFR-S2 say how the two hooks changed.
 **Reviewers:** `engineering-skills:adversarial-reviewer` (one pass), then the user (this spec replaces global configuration and changes the delivery workflow)
 **Supersedes:** the `SPEC.md` of the earlier `claude-md-rewrite` scratch build (session "claude-skills-plugin-usage"), by the user's decision D-2 (2026-10-15). That spec wasn't imported into this repo ([ADR-0008](../docs/adr/0008-retiring-scratch.md)).
 **Depends on:** the `github-issue-lifecycle` skill (Option B, chosen by the user on 2026-10-15), which gets its own `SPEC.md` under FR-14 and must be built before this deliverable is installed
@@ -124,6 +124,8 @@ Alternatives considered and rejected: `@imports` and `~/.claude/rules/*.md` (bot
 
 - FR-24: **merge confirmation hook** (user decision D-3) — A `PreToolUse` hook with matcher `Bash` MUST run `python3 -I ~/.claude/hooks/merge_confirm.py`, which reads `tool_input.command` and returns `hookSpecificOutput.permissionDecision: "ask"` with `permissionDecisionReason` "Merging needs your confirmation (global rule: merge only with your authorization)" when the command matches `\bgh\b(\s+-\S+(\s+\S+)?)*\s+pr\s+merge\b` or `\bgh\s+api\b.*\/merge\b` anywhere in the string (so `gh -R o/r pr merge 5`, `cd x && gh pr merge`, and `bash -c "gh pr merge …"` are caught); otherwise it outputs nothing. It MUST NOT deny, MUST exit 0, and MUST NOT match other `gh` commands (e.g. `gh pr view`, `gh pr list --search merge`). This applies in the main session, forks and subagents.
 
+  In this repo (#20), the hook no longer uses that regular expression, which backtracked exponentially on long runs of dash-prefixed words. It reads the command's words once, left to right, and asks for everything the expression matched. It also asks when flags sit between `pr` and `merge` (`gh pr -R o/r merge 5`), and when `gh api` is followed anywhere later by a GraphQL `mergePullRequest`. The owner chose both additions.
+
 ### F. Rollout
 
 - FR-22: **review stop** — Before install, Claude MUST present to the user: the new CLAUDE.md, the overlays, the clause inventory's `dropped` and `superseded-by` rows, the eval results (AC-6/AC-7), and the token figures; installation waits for the user's go-ahead.
@@ -150,6 +152,8 @@ Alternatives considered and rejected: `@imports` and `~/.claude/rules/*.md` (bot
 ### Security
 - NFR-S1: No secrets, tokens, email addresses or customer data in any deliverable file.
 - NFR-S2: The hook script reads only `~/.claude/skill-overlays/` and the skill directories; it makes no network calls and executes no content from overlays. Skill names are validated against `^[a-z0-9-]+(:[a-z0-9-]+)?$` before any path is built (no path traversal).
+
+  In this repo (#20), the overlay hook also reads `plugins/installed_plugins.json` to find a plugin skill's directory, as it always has, and reads its input, the overlays and that index as UTF-8. A payload field of the wrong type produces no output instead of an exception.
 
 ### Maintainability
 - NFR-M1: Each rule appears in exactly one layer (checked by the clause inventory: one disposition per clause).

@@ -165,7 +165,25 @@
    "fake_gh": [
     {
      "match": "^issue view 42",
-     "stdout": "{\"number\": 42, \"title\": \"Add CSV export to the roster page\", \"body\": \"Users want to export the roster as CSV.\", \"state\": \"OPEN\", \"url\": \"https://github.com/o/r/issues/42\", \"labels\": [{\"name\": \"in progress\"}, {\"name\": \"approval: manual\"}], \"assignees\": []}"
+     "stdout": "{\"number\": 42, \"title\": \"Add CSV export to the roster page\", \"body\": \"Users want to export the roster as CSV.\", \"state\": \"OPEN\", \"url\": \"https://github.com/o/r/issues/42\", \"labels\": [{\"name\": \"in progress\"}, {\"name\": \"approval: manual\"}], \"assignees\": [], \"comments\": []}",
+     "states": [
+      {
+       "after_call": "^issue edit 42 .*--body-file",
+       "stdout": "{\"number\": 42, \"title\": \"Add CSV export to the roster page\", \"body\": \"Users want to export the roster as CSV.\\n\\n<!-- spec:start -->\\n# Spec: CSV export\\n- FR-1: export button\\n<!-- spec:end -->\\n\", \"state\": \"OPEN\", \"url\": \"https://github.com/o/r/issues/42\", \"labels\": [{\"name\": \"in progress\"}, {\"name\": \"approval: manual\"}], \"assignees\": [], \"comments\": []}"
+      },
+      {
+       "after_call": "^issue edit 42 .*--add-label (\"|')?draft",
+       "stdout": "{\"number\": 42, \"title\": \"Add CSV export to the roster page\", \"body\": \"Users want to export the roster as CSV.\\n\\n<!-- spec:start -->\\n# Spec: CSV export\\n- FR-1: export button\\n<!-- spec:end -->\\n\", \"state\": \"OPEN\", \"url\": \"https://github.com/o/r/issues/42\", \"labels\": [{\"name\": \"in progress\"}, {\"name\": \"approval: manual\"}, {\"name\": \"draft\"}], \"assignees\": [], \"comments\": []}"
+      },
+      {
+       "after_call": "^issue comment 42",
+       "stdout": "{\"number\": 42, \"title\": \"Add CSV export to the roster page\", \"body\": \"Users want to export the roster as CSV.\\n\\n<!-- spec:start -->\\n# Spec: CSV export\\n- FR-1: export button\\n<!-- spec:end -->\\n\", \"state\": \"OPEN\", \"url\": \"https://github.com/o/r/issues/42\", \"labels\": [{\"name\": \"in progress\"}, {\"name\": \"approval: manual\"}, {\"name\": \"draft\"}], \"assignees\": [], \"comments\": [{\"author\": {\"login\": \"mfracker\"}, \"body\": \"Adversarial review: CLEAN, no findings changed the spec.\"}]}"
+      },
+      {
+       "after_call": "--add-label (\"|')?approved",
+       "stdout": "{\"number\": 42, \"title\": \"Add CSV export to the roster page\", \"body\": \"Users want to export the roster as CSV.\\n\\n<!-- spec:start -->\\n# Spec: CSV export\\n- FR-1: export button\\n<!-- spec:end -->\\n\", \"state\": \"OPEN\", \"url\": \"https://github.com/o/r/issues/42\", \"labels\": [{\"name\": \"in progress\"}, {\"name\": \"approval: manual\"}, {\"name\": \"approved\"}], \"assignees\": [], \"comments\": [{\"author\": {\"login\": \"mfracker\"}, \"body\": \"Adversarial review: CLEAN, no findings changed the spec.\"}, {\"author\": {\"login\": \"mfracker\"}, \"body\": \"> Approved by the user: \\\"i approve the spec\\\"\"}]}"
+      }
+     ]
     },
     {
      "match": "^api repos/.*/issues/42/events",
@@ -255,7 +273,7 @@
     "The work for #42 is committed on this branch and the PR-diff review is in ./pr-review.md. Open the PR."
    ],
    "files": {
-    "pr-review.md": "PR-diff review: CONCERNS, W1 fixed.\n"
+    "pr-review.md": "## Review\n\nOne adversarial pass on the full diff, with the Saboteur, New Hire and Security Auditor personas. Verdict: CONCERNS, with no CRITICAL findings.\n\n| ID | Severity | Finding | Handling |\n|---|---|---|---|\n| W1 | WARNING | The export didn't quote fields, so a player name such as \"Smith, Jo\" split into two columns. | Fixed: every field is quoted, and a test covers a name with a comma. |\n| N1 | NOTE | The export button shows no progress on a slow connection. | Listed for a follow-up; it doesn't affect the file's contents. |\n"
    },
    "fake_gh": [
     {
@@ -680,10 +698,11 @@
    ],
    "expectations": [
     "gh-not-called: --add-label (\"|')?approved\\b",
-    "git-not-called: ^commit",
+    "commits-only-touch: skills/foo/(SPEC|REVIEW-NOTE)\\.md",
     "gh-body-never-matches: ^issue edit 42 ::: first line MUST name the file",
     "answer-matches: skills/foo/SPEC\\.md"
-   ]
+   ],
+   "commit_files": true
   },
   {
    "id": 26,

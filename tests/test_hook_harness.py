@@ -8,6 +8,7 @@ streams are real.
 import json
 import os
 import stat
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -329,3 +330,25 @@ def test_tool_calls_that_do_not_touch_overlays_and_text_blocks_are_not_reads():
         {"type": "text", "text": "skill-overlays"},
         {"type": "tool_use", "name": "Skill", "input": {"skill": hh.SKILL}}]}})  # fmt: skip
     assert hh.stream_findings(line) == {"canary": False, "overlayReads": []}
+
+
+def run_stub_gh(tmp_path, *args):
+    gh = tmp_path / "bin" / "gh"
+    gh.parent.mkdir(exist_ok=True)
+    gh.write_text(hh.STUB_GH)
+    gh.chmod(0o700)
+    done = subprocess.run([str(gh), *args], capture_output=True, text=True, check=False)
+    return done, (tmp_path / "bin" / "gh-calls.log").read_text().splitlines()
+
+
+def test_the_stub_gh_prints_a_usage_line_for_help(tmp_path):
+    done, calls = run_stub_gh(tmp_path, "pr", "merge", "--help")
+    assert done.returncode == 0
+    assert done.stdout.startswith("usage: gh pr merge")
+    assert calls == ["pr merge --help"]
+
+
+def test_the_stub_gh_prints_nothing_for_other_commands(tmp_path):
+    done, calls = run_stub_gh(tmp_path, "pr", "view", "5")
+    assert (done.returncode, done.stdout) == (0, "")
+    assert calls == ["pr view 5"]

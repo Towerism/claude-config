@@ -17,7 +17,7 @@ import pytest
 from tools import git_hooks
 
 # Fixtures for the config checker tests live beside their factories.
-pytest_plugins = ["tests.checker_helpers"]
+pytest_plugins = ["tests.checker_helpers", "tests.cfg_helpers"]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NOREPLY = "2057426+Towerism@users.noreply.github.com"

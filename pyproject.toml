@@ -46,8 +46,10 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 "tests/**" = ["S"]
 "config/skills/*/tests/**" = ["S"]
 # The hooks run git and gitleaks from PATH with argument lists and no shell, by design,
-# as diff-check runs git and the lifecycle evals run git and claude.
+# as diff-check runs git and the lifecycle evals run git and claude; cfg's release
+# module runs git the same way.
 "tools/git_hooks.py" = ["S603", "S607"]
+"tools/cfg/release.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/scripts/issue_lifecycle.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/evals/*.py" = ["S603", "S607"]
 

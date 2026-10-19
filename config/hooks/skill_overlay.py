@@ -5,12 +5,14 @@ Events: PostToolUse (matcher Skill) and UserPromptExpansion / UserPromptSubmit
 `references/…`, `scripts/…` style paths to absolute paths under the skill's
 active base directory. Always exits 0; never blocks.
 """
+
 import json
 import os
 import re
 import sys
 import traceback
 from pathlib import Path
+from typing import Any
 
 NAME = re.compile(r"^[a-z0-9-]+(:[a-z0-9-]+)?$")
 REL_PATH = re.compile(r"`((?:references|scripts|templates|assets|evals)/[^`\s]+)`")
@@ -25,19 +27,22 @@ def claude_home() -> Path:
     return Path(os.environ.get("CLAUDE_HOME") or Path.home() / ".claude")
 
 
-def skill_from_payload(d: dict):
+def skill_from_payload(d: dict[str, Any]) -> tuple[Any, Any]:
+    """The event name and the skill it names; None for any field of the wrong type."""
     event = d.get("hook_event_name")
     if event == "PostToolUse":
-        return event, (d.get("tool_input") or {}).get("skill")
+        tool_input = d.get("tool_input")
+        return event, tool_input.get("skill") if isinstance(tool_input, dict) else None
     if event == "UserPromptExpansion":
         return event, d.get("command_name")
     if event == "UserPromptSubmit":
-        m = SLASH.match(d.get("prompt") or "")
+        prompt = d.get("prompt")
+        m = SLASH.match(prompt) if isinstance(prompt, str) else None
         return event, m.group(1) if m else None
     return event, None
 
 
-def find_overlay(home: Path, skill: str):
+def find_overlay(home: Path, skill: str) -> tuple[str, Path] | None:
     """Exact overlay, else the unique overlay whose name ends with :<skill>."""
     overlays = home / "skill-overlays"
     exact = overlays / f"{skill}.md"
@@ -47,7 +52,7 @@ def find_overlay(home: Path, skill: str):
         hits = [p for p in overlays.glob(f"*:{skill}.md")]
         if len(hits) == 1:
             return hits[0].name[:-3], hits[0]
-    return None, None
+    return None
 
 
 def skill_dir(home: Path, skill: str) -> Path:
@@ -58,23 +63,28 @@ def skill_dir(home: Path, skill: str) -> Path:
         raise OverlayError(f"user skill directory not found for {skill}")
     bundle, name = skill.split(":", 1)
     try:
-        installed = json.loads((home / "plugins" / "installed_plugins.json").read_text())
+        installed = json.loads(
+            (home / "plugins" / "installed_plugins.json").read_text(encoding="utf-8")
+        )
     except Exception as e:
         raise OverlayError(f"cannot read installed_plugins.json: {e}") from e
     for key, installs in (installed.get("plugins") or {}).items():
         if key.split("@", 1)[0] != bundle:
             continue
         for inst in installs:
-            d = Path(inst.get("installPath", "")) / "skills" / name
+            path = inst.get("installPath")
+            if not isinstance(path, str) or not os.path.isabs(path):
+                continue  # never resolve against the session's working directory
+            d = Path(path) / "skills" / name
             if (d / "SKILL.md").is_file():
                 return d
     raise OverlayError(f"no active install of {skill}")
 
 
 def render(skill: str, body: str, base: Path) -> str:
-    missing = []
+    missing: list[str] = []
 
-    def absolutise(m):
+    def absolutise(m: re.Match[str]) -> str:
         rel = m.group(1)
         target = base / rel
         if not target.exists():
@@ -88,12 +98,14 @@ def render(skill: str, body: str, base: Path) -> str:
 
 
 def emit(event: str, context: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": context}}))
+    print(
+        json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": context}})
+    )
 
 
 def main() -> None:
     try:
-        d = json.loads(sys.stdin.read())
+        d = json.loads(sys.stdin.buffer.read().decode("utf-8"))
         if not isinstance(d, dict):
             return
     except Exception:
@@ -102,17 +114,21 @@ def main() -> None:
     if not isinstance(skill, str) or not NAME.match(skill):
         return
     home = claude_home()
-    resolved, overlay = find_overlay(home, skill)
-    if overlay is None:
+    found = find_overlay(home, skill)
+    if found is None:
         return
+    resolved, overlay = found
     try:
-        body = overlay.read_text()
+        body = overlay.read_text(encoding="utf-8")
         emit(event, render(resolved, body, skill_dir(home, resolved)))
     except Exception as e:
         traceback.print_exc(file=sys.stderr)
         reason = str(e).splitlines()[0] if str(e) else type(e).__name__
-        emit(event, f"Skill overlay for {resolved} could not be loaded ({reason}); "
-                    f"read ~/.claude/skill-overlays/{resolved}.md manually.")
+        emit(
+            event,
+            f"Skill overlay for {resolved} could not be loaded ({reason}); "
+            f"read ~/.claude/skill-overlays/{resolved}.md manually.",
+        )
 
 
 if __name__ == "__main__":

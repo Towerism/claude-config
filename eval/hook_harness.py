@@ -62,7 +62,19 @@ OVERLAY_PROMPTS = {
 MERGE_PROMPT = (
     "Run `gh pr merge --help`, then run `gh pr view --help`. Report what happened with each."
 )
-STUB_GH = '#!/bin/sh\necho "$*" >> "$(dirname "$0")/gh-calls.log"\nexit 0\n'
+# Prints a usage line for --help, as real gh does; a stub that printed nothing
+# made the model investigate with commands nobody pre-allowed (#24).
+STUB_GH = """#!/bin/sh
+echo "$*" >> "$(dirname "$0")/gh-calls.log"
+case " $* " in
+*" --help "*)
+    words=""
+    for arg in "$@"; do [ "$arg" = --help ] || words="$words $arg"; done
+    echo "usage: gh$words [flags]"
+    ;;
+esac
+exit 0
+"""
 
 Timer = Callable[[Path, Path, int], list[float]]
 

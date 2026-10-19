@@ -1,6 +1,6 @@
 # ADR-0007: Visibility and security (a public repo, secret scanning in two layers, and a high review bar for hooks)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Visibility decided by the owner on 2026-10-16. Amended 2026-10-16 by #1 (adversarial approval): the email allow-list, the commit-msg and pre-merge-commit hooks, and `check-range`. Amended 2026-10-16 by #2 (approved by the owner): the email allow-list also accepts the RFC 2606 reserved top-level domains.
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Visibility decided by the owner on 2026-10-16. Amended 2026-10-16 by #1 (adversarial approval): the email allow-list, the commit-msg and pre-merge-commit hooks, and `check-range`. Amended 2026-10-16 by #2 (approved by the owner): the email allow-list also accepts the RFC 2606 reserved top-level domains. Amended 2026-10-19 by #20 (spec approved by the owner): H4 names the plugin index the overlay hook reads, and the H1 and H6 checks are repo tests.
 
 The repo `Towerism/claude-config` is public. Secrets, the owner's email address and a private list of excluded terms are kept out by checks before every commit and again in CI. Hook scripts, which run on every tool call, can change only when they meet the eight requirements listed under the hook review bar below.
 
@@ -63,12 +63,12 @@ A change to `config/hooks/*`, or to the `hooks` key of the settings fragment, mu
 
 | # | Requirement | Checked by |
 |---|---|---|
-| H1 | Standard library only; no network, no subprocess, no dynamic code (`eval`, `exec`, or `importlib` on user data) | A CI rule that inspects the hook's syntax tree |
+| H1 | Standard library only; no network, no subprocess, no dynamic code (`eval`, `exec`, or `importlib` on user data) | A repo test that inspects the hook's syntax tree (`tests/test_hook_review_bar.py`), run in CI |
 | H2 | 100% branch coverage of the hook module | CI (`pytest-cov --cov-branch`, fail-under 100 for `config/hooks`) |
 | H3 | Always exits 0 and never blocks, apart from the merge hook's deliberate `ask`. Never echoes tool input; tracebacks go to stderr only. | Unit tests in the style of the v2 spec's hook tests (AC-5 and AC-9) |
-| H4 | Skill names are validated before any path is built, and only `skill-overlays/` and skill directories are read | Unit tests, including path-traversal cases |
+| H4 | Skill names are validated before any path is built. Only `skill-overlays/` and `plugins/installed_plugins.json` are read; the hook also checks whether files exist in a skill's directory: `SKILL.md`, in a user skill's directory or under each install path the plugin index lists, and the files an overlay names | Unit tests, including path-traversal cases and a record of every file read |
 | H5 | A real-harness eval record (the `hook-overlay` or `hook-merge` suite), with a 95th-percentile run time under 500 ms | The `eval-record` CI job |
-| H6 | Invoked as `python3 -I <absolute path>` | The fragment schema plus a checker rule |
+| H6 | Invoked as `python3 -I <absolute path>` | A repo test on the fragment's hook commands (`tests/test_hook_review_bar.py`), plus the fragment schema |
 | H7 | The adversarial review of the diff covers hostile input in hook payloads, and the PR description says so | Reviewer |
 | H8 | The deploy smoke test passes against the new release before `current` is swapped, and again through the live links afterwards. The PR's rollback section names `cfg rollback`. | `cfg deploy`, and the reviewer |
 

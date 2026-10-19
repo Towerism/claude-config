@@ -12,7 +12,13 @@ pythonpath = ["."]
 
 [tool.coverage.run]
 branch = true
-source = ["tools", "eval", "config/skills/plain-prose/scripts", "config/skills/writing-docs/scripts"]
+source = [
+    "tools",
+    "eval",
+    "config/hooks",
+    "config/skills/plain-prose/scripts",
+    "config/skills/writing-docs/scripts",
+]
 # Vendored upstream files are never edited, so their coverage isn't ours to raise.
 omit = ["tools/vendor/*", "config/skills/*/scripts/vendored/*"]
 
@@ -23,17 +29,15 @@ exclude_also = ['if __name__ == "__main__":']
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-# The hooks were imported byte for byte so adoption can compare them with the
-# live files by sha256 (ADR-0004), and they don't pass ruff yet; #20 takes them
-# off this list. Every skill is linted, except for the upstream files skills
-# vendor; the lifecycle skill joined in #4.
+# Everything the repo writes is linted, the hooks included since #20. What stays
+# excluded below is never edited here: the upstream files skills vendor, and
+# the frozen and vendored copies.
 # "./" anchors the pattern to the repo root; a bare "config" would also skip any
 # nested directory of that name, such as a future tools/config/.
 # docs/history/ holds frozen copies that are never edited (ADR-0002), so lint
 # findings there could never be fixed. tools/vendor/ holds upstream files
 # kept byte for byte, with their hashes in VENDORED.json, for the same reason.
 extend-exclude = [
-    "./config/hooks",
     "./config/skills/*/scripts/vendored",
     "./docs/history",
     "./tools/vendor",
@@ -63,6 +67,7 @@ strict = true
 files = [
     "tools",
     "eval",
+    "config/hooks",
     "config/skills/plain-prose/scripts/prose_check.py",
     "config/skills/writing-docs/scripts/doc_lint.py",
 ]

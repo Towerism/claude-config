@@ -44,7 +44,7 @@ Because a public repo can receive pull requests from forks, the workflow trigger
 
 ### Scanning for secrets, email addresses and tokens: both layers
 
-The pre-commit hook lives in `.githooks/pre-commit`. `cfg bootstrap` enables it with `git config core.hooksPath .githooks`. It runs four checks:
+The pre-commit hook lives in `.githooks/pre-commit`. `git config core.hooksPath .githooks` enables it, once per clone. That step is manual, as the [runbook](../runbook.md#set-up-a-clone) lists it; a `cfg bootstrap` command was planned but not built, and #50 tracks it (decided 2026-10-19, in #11). It runs four checks:
 
 - `gitleaks protect --staged` with the repo's `.gitleaks.toml`, which adds an email-address rule and the token patterns from the v2 spec's lint (`ghp_`, `gho_`, `github_pat_`, `sk-`, `xox[bp]-`) to gitleaks' default rules;
 - a filename deny-list that mirrors the owner's list of never-versioned paths;
@@ -80,7 +80,7 @@ The repo installs no plugins itself. It enables them through settings keys it ow
 
 The ruleset on `main` enforces PR-only merges with green CI. The hooks, `ship-gate` and the owner's merge confirmation still apply on top of it.
 
-Each fresh clone needs one `cfg bootstrap` per machine to enable the git hooks. CI catches anything a missing hook would have let through, except the excluded-terms check.
+Each fresh clone needs the manual setup steps in the [runbook](../runbook.md#set-up-a-clone) to enable the git hooks, until a `cfg bootstrap` command exists (#50). CI catches anything a missing hook would have let through, except the excluded-terms check.
 
 ## Revisit when
 

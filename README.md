@@ -2,7 +2,7 @@
 
 This repo is the source of truth for one person's Claude Code configuration: the global `CLAUDE.md`, the skill overlays, the hooks and the custom skills that live in `~/.claude`. It lets the owner review, test and redeploy that configuration from git on two machines. It is public, so everything committed here is world-readable.
 
-As of 2026-10-16 the repo holds the tooling and the design. The configuration itself arrives in issue #2, and the `cfg` deploy tool in later issues. The build order is in [docs/architecture/plan.md](docs/architecture/plan.md).
+Since 2026-10-19 the owner's personal machine runs this configuration through `cfg`, the repo's deploy tool. To deploy, handle drift, roll back or set up another machine, follow [docs/runbook.md](docs/runbook.md). The build order is in [docs/architecture/plan.md](docs/architecture/plan.md).
 
 ## Set up a clone
 
@@ -47,6 +47,7 @@ Three limits are worth knowing:
 
 ## Where the design lives
 
-- [docs/architecture/README.md](docs/architecture/README.md): how the repo is laid out, how deploys and rollbacks will work, and the threats it guards against.
+- [docs/runbook.md](docs/runbook.md): what to type to deploy, handle drift, roll back, undo and set up a second machine, with the output to expect.
+- [docs/architecture/README.md](docs/architecture/README.md): how the repo is laid out, how deploys and rollbacks work, and the threats it guards against.
 - [docs/architecture/plan.md](docs/architecture/plan.md): the 17 build issues and the owner's resolved questions.
 - [docs/adr/](docs/adr/): the architecture decision records. Any change that departs from one needs a new or updated ADR.

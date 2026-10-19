@@ -197,7 +197,7 @@ A copy of `restore.py`, a standalone stdlib script, goes into every backup direc
 
 ## Deploying
 
-`cfg deploy` makes a new release worktree for the target commit, checks it, and then switches `current` to it in one atomic step. It builds the release from the commit (`origin/main` as last fetched, or `--ref`) and never reads the clone's working tree, so a dirty tree or a checked-out branch can't reach the live config. The sequence below includes the two places where it stops: conflicts it found before changing anything, and the change list it shows before going ahead. Decisions are in [ADR-0001](../adr/0001-deployment-model.md) and [ADR-0004](../adr/0004-drift-and-adoption.md).
+`cfg deploy` makes a new release worktree for the target commit, checks it, and then switches `current` to it in one atomic step. It builds the release from the commit (`origin/main` as last fetched, or `--ref`) and never reads the clone's working tree, so a dirty tree or a checked-out branch can't reach the live config. The sequence below includes the two places where it stops: conflicts it found before changing anything, and the change list it shows before going ahead. Decisions are in [ADR-0001](../adr/0001-deployment-model.md) and [ADR-0004](../adr/0004-drift-and-adoption.md). The commands to run, with their expected output, are in the [runbook](../runbook.md).
 
 ```mermaid
 sequenceDiagram
@@ -274,7 +274,7 @@ Deploy always installs the repo's version, and it never throws away a live edit 
 
 ## Rolling back
 
-Most mistakes are fixed with a git revert and a normal deploy. The faster paths are for a deploy that breaks Claude Code itself, when there may be no working Claude session to make a PR with. [ADR-0006](../adr/0006-repo-workflow.md) records the decision.
+Most mistakes are fixed with a git revert and a normal deploy. The faster paths are for a deploy that breaks Claude Code itself, when there may be no working Claude session to make a PR with. [ADR-0006](../adr/0006-repo-workflow.md) records the decision, and the [runbook](../runbook.md#rolling-back) has the commands.
 
 | Situation | Procedure |
 |---|---|

@@ -232,7 +232,8 @@ def _deploy(args: argparse.Namespace) -> tuple[int, Any, str]:
             lines.append(f"  discarded (kept in the backup): {', '.join(result.discarded)}")
         if result.backup:
             lines.append(f"backup: {result.backup}")
-            lines.append(f"undo: cfg rollback, or {result.backup}/restore.sh")
+            undo = f"{result.backup}/restore.sh"
+            lines.append(f"undo: {undo}" if result.first else f"undo: cfg rollback, or {undo}")
     code = 0 if result.result in ("deployed", "already-deployed") else 1
     return code, payload, "\n".join(lines)
 

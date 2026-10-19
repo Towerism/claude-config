@@ -60,6 +60,7 @@ class DeployResult:
     settings_changes: list[str] = field(default_factory=list)
     backup: str | None = None
     warnings: list[str] = field(default_factory=list)
+    first: bool = False
 
 
 @dataclass
@@ -488,6 +489,7 @@ def deploy(
     result = DeployResult("deployed")
     with state.cfg_lock(data):
         st = state.load(data)
+        result.first = st is None
         if st is not None and Path(st.claude_home) != home:
             raise CfgError(f"this data directory was deployed to {st.claude_home}, not {home}")
         pl = plan(clone, home, data, host, ref, discard, st, result)

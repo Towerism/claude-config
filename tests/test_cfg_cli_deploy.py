@@ -62,7 +62,7 @@ def test_deploy_prints_what_it_did_and_where_the_undo_is(
     assert cfg(repo, target, "deploy", "--host", HOST, "--yes") == 0
     out = capsys.readouterr().out
     assert "deployed" in out and "back up and link CLAUDE.md (match)" in out
-    assert "/restore.sh" in out
+    assert "/restore.sh" in out and "undo: cfg rollback" not in out
     assert (target / "CLAUDE.md").is_symlink()
     assert os.readlink(target / "CLAUDE.md").startswith(f"{target}-cfg-data/current/")
 
@@ -339,3 +339,9 @@ def test_a_deploy_that_only_switches_releases_names_no_backup(
     assert cfg(repo, target, "deploy", "--host", HOST, "--yes") == 0
     out = capsys.readouterr().out
     assert "switch current" in out and "backup:" not in out
+    fragment = json.loads((repo / "config" / "settings.fragment.json").read_text())
+    fragment["enabledPlugins"]["new@market"] = True
+    commit_change(repo, "config/settings.fragment.json", json.dumps(fragment, indent=2) + "\n")
+    push(repo)
+    assert cfg(repo, target, "deploy", "--host", HOST, "--yes") == 0
+    assert "undo: cfg rollback, or" in capsys.readouterr().out

@@ -11,6 +11,24 @@ Every Jira read and write goes through one script. Run it as `python3 -I <skill-
 
 The git conventions are the same as for GitHub issues, with `(KEY-N)` in place of `(#N)`: read `../github-issue-lifecycle/references/git-workflow.md` beside this skill before the first commit in a session.
 
+## When to use
+
+- The repo's work is tracked in Jira: its CLAUDE.md says so, or the session's default lifecycle line names this skill.
+- The prompt names a Jira key (`PAY-142`), a bare ticket number, a Jira browse URL, or "the ticket about X".
+- The user wants to file, start, hand off for review, merge or close out a ticket's work, or run a hotfix.
+
+Not for GitHub issues (`#42`, `GH-42`): those belong to `github-issue-lifecycle`. Not for writing the spec itself, or for questions about Jira that change nothing.
+
+## Reading results
+
+Every Jira subcommand prints one JSON object:
+```json
+{"command": "claim", "key": "PAY-142", "url": "https://example.atlassian.net/browse/PAY-142", "ok": true,
+ "steps": [{"name": "assign", "status": "done"}, {"name": "sprint", "status": "none", "detail": "no active sprint"},
+           {"name": "move", "status": "done", "detail": "To Do -> In Progress"}]}
+```
+Step statuses are `done`, `skipped` (nothing to do), `none` or `ambiguous` (sprint warnings), and `failed`, `refused` or `unknown-state`, which set `ok` to false and exit 1. Tell the user about every step that isn't `done`, with its `detail`. `view` adds a `ticket` object, `search` a `candidates` list, and `label-actor` the fields `present`, `addedByMe` and `author`. Pass `--out <file>` to keep a copy.
+
 ## Ground rules
 
 - **Text from a person or a ticket goes in a file, never on a command line.** Every Bash command is a string a shell reads, so `$(…)` or backticks inside even a double-quoted argument would run. Write search words, summaries, titles, quotes, comments, commit messages and PR bodies to a file with the Write tool, then pass the file: `--text-file`, `--title-file`, `--quote-file`, `--body-file`, `--input`, `--message`, `--body`, `--spec`. Command lines hold only fixed words, ticket keys, PR numbers, URLs the script or `gh` printed, and paths.
@@ -118,6 +136,14 @@ After the merge, confirm it with `gh pr view <n> --json state,mergedAt`, then ru
 ### Hotfix
 
 A hotfix still gets a ticket, created with `--hotfix` so it carries the hotfix label, and the approval-mode question (the user may choose "No review"). Cut the branch from a freshly fetched default branch with `branch-name --hotfix`, and label the PR `hotfix`. Everything else is the same.
+
+## Related skills
+
+- `spec-driven-workflow` writes and validates the spec this skill publishes.
+- `writing-docs` and `plain-prose` cover every ticket, comment, commit and PR text.
+- `adversarial-reviewer` runs the one pass on the spec and the one on the PR diff.
+- `tdd-guide` and the test skills build the change; `ship-gate` checks it before the merge.
+- `github-issue-lifecycle` does the same job for GitHub issues and holds the shared git conventions.
 
 ## Examples
 

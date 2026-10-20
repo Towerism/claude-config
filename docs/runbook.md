@@ -380,7 +380,7 @@ Steps 1 to 5 change files only you control. Step 6 changes the live `~/.claude`,
    python3 -I tools/cfg/cli.py deploy --host hosts/work.json
    ```
 
-   This machine already has a config, so follow [The first deploy on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config) and decide each `differs` path by capture or `--discard-live`. Read the change list, then rerun the same command with `--yes`. The old Jira skill in `~/.claude/skills/` isn't in the profile, so the deploy leaves it alone. Then check:
+   This machine already has a config, so follow [The first deploy on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config) and decide each `differs` path by capture or `--discard-live`. That section's examples use `hosts/personal.json`; on this machine, use `hosts/work.json` in every `plan`, `deploy` and `capture` command, or the deploy records the personal profile and the default lifecycle becomes GitHub. Read the change list, then rerun the same command with `--yes`. The old Jira skill in `~/.claude/skills/` isn't in the profile, so the deploy leaves it alone. Then check:
 
    ```sh
    python3 -I tools/cfg/cli.py status
@@ -423,7 +423,7 @@ Steps 1 to 5 change files only you control. Step 6 changes the live `~/.claude`,
 
     The scan passes when it prints no `deny-term` line, and its last line, `check-range: terms checked: N`, shows N above 0. If it finds a term, stop and tell the owner which paths and commits it names; never repeat the term on GitHub. Other findings on old commits, such as `identity`, are reported separately.
 
-12. Record the results in a last PR that closes #17: this runbook's "Last verified" line and the note below "Setting up a second machine", the CLI version and result in the jira-commands reference, and the items #16 left for this machine in that skill's `REVIEW-NOTE.md`. Commit it on this machine, so the git hooks check it against this machine's excluded-terms list.
+12. Record the results in a last PR that closes #17: this runbook's "Last verified" line and the note below "Setting up a second machine", the CLI version and result in the jira-commands reference, and the items #16 left for this machine in that skill's `REVIEW-NOTE.md`. Commit it on this machine, so the git hooks check it against this machine's excluded-terms list. Pushing needs `gh` and git logged in as the repo owner's GitHub account, as [Before you start](#before-you-start) says; if this machine's `gh` uses a work account, stop and ask before switching it.
 
 ## Changing this machine's default lifecycle
 

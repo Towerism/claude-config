@@ -275,6 +275,17 @@
         "threat-detection"
       ],
       "version": "2.9.0"
+    },
+    "skill-creator@claude-plugins-official": {
+      "files": {},
+      "gitCommitSha": "e68e375d22866ba36c1eb0b4cc46db96c65f6a4e",
+      "marketplace": "claude-plugins-official",
+      "marketplaceRepo": "anthropics/claude-plugins-official",
+      "marketplaceSource": "github",
+      "skills": [
+        "skill-creator"
+      ],
+      "version": "e68e375d2286"
     }
   },
   "synced": [

@@ -62,6 +62,10 @@ select = ["E", "F", "W", "I", "B", "UP", "S"]
 "tools/ci.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/scripts/issue_lifecycle.py" = ["S603", "S607"]
 "config/skills/github-issue-lifecycle/evals/*.py" = ["S603", "S607"]
+# The Jira lifecycle runs jira, gh and git with argument lists and no shell. Its urllib calls go
+# only to the configured https:// site, or to a 127.0.0.1 test server, checked before any request.
+"config/skills/jira-ticket-lifecycle/scripts/ticket_lifecycle.py" = ["S603", "S607", "S310"]
+"config/skills/jira-ticket-lifecycle/evals/*.py" = ["S603", "S607"]
 
 [tool.mypy]
 python_version = "3.13"

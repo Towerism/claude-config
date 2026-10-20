@@ -12,7 +12,7 @@
     "adapted": true,
     "licence": "MIT",
     "licenceFile": "LICENSE-vendored.md",
-    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged. The sample's .co.uk domain becomes example.com, so it no longer shows a multi-label domain.",
     "localSha256": "f056f0971e18d8bb22c631c20c15b3b64ebed5583cfa58f08aa5d71743a9f7ae"
   },
   {
@@ -168,7 +168,7 @@
     "adapted": true,
     "licence": "MIT",
     "licenceFile": "LICENSE-vendored.md",
-    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged. The sample's .co.uk domain becomes example.com, so it no longer shows a multi-label domain.",
     "localSha256": "d683571cc48f9ba6db7557fbd064e29ee755faafafd494d24968a821c73caff6"
   },
   {

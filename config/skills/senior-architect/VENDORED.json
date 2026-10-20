@@ -1,0 +1,100 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/SKILL.md",
+    "sha256": "559d402c361591423b22de37485ad3900b3aba8c437bed1ebf70aa4e828e0e22",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/architecture_patterns.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/references/architecture_patterns.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/references/architecture_patterns.md",
+    "sha256": "29f2f8549551551da428181a3e728df6fb076f52760b6f82236b8b9ed7292ded",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/system_design_workflows.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/references/system_design_workflows.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/references/system_design_workflows.md",
+    "sha256": "aa88778dd7ef7a18eb71943310c348b97bf044cbd62bc7251941c8716feae260",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/tech_decision_guide.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/references/tech_decision_guide.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/references/tech_decision_guide.md",
+    "sha256": "a6a322d7199aa534640d0ede61431fce0e8232a4bd19a3d9a93c30920b58d51f",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/architecture_diagram_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/scripts/architecture_diagram_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/scripts/architecture_diagram_generator.py",
+    "sha256": "53b8b0c24065f34b4f21ce15eaf551679670bf5d9e4f4d201c3253e0fabd7b2b",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/dependency_analyzer.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/scripts/dependency_analyzer.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/scripts/dependency_analyzer.py",
+    "sha256": "bce84d2dd0a2b6d6034356f01c30ee5fec51a1fa13e7c617bde53eb1d61c2145",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/project_architect.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-architect/scripts/project_architect.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-architect/scripts/project_architect.py",
+    "sha256": "f421cd71f7ee790e292c44a29656b9b3f38bc93126a894e2faf2fed6f8aa1aab",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

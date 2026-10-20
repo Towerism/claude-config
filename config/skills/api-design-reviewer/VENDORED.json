@@ -1,0 +1,88 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-design-reviewer/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-design-reviewer/SKILL.md",
+    "sha256": "a4e61a67981d7cab02f479f959b9e83d032e705c17b72e763d07ef9a3247bf54",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "The sample Idempotency-Key UUID is replaced with an all-zero UUID, which gitleaks' generic-api-key rule doesn't flag.",
+    "localSha256": "6b52e013d1131c5ec1d9ed089fbf27129a5fd1c22ab5ca04e56c9e2d7d7a0c32"
+  },
+  {
+    "path": "references/api_antipatterns.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-design-reviewer/references/api_antipatterns.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-design-reviewer/references/api_antipatterns.md",
+    "sha256": "60901c132668746265cc74779ad36b9faf8fa3fe11787a68fa6e128a159d38a9",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/rest_design_rules.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-design-reviewer/references/rest_design_rules.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-design-reviewer/references/rest_design_rules.md",
+    "sha256": "a69236c8fa395100146c74255f3e43101021b7730acfeb03aa17872d02b05bb2",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/api_linter.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-design-reviewer/scripts/api_linter.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-design-reviewer/scripts/api_linter.py",
+    "sha256": "9acfecc26859e54be84a564fc4edefc552556c83e52f9228cc4b8282f9f617f8",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/api_scorecard.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-design-reviewer/scripts/api_scorecard.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-design-reviewer/scripts/api_scorecard.py",
+    "sha256": "a0df19fcdb7d4c137d75800d05475f47cf4fede77f33ae21bddda97c8efed302",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/breaking_change_detector.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-design-reviewer/scripts/breaking_change_detector.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-design-reviewer/scripts/breaking_change_detector.py",
+    "sha256": "068d4bc0fdab0009f4140baa19e02bd4e255a9ab39c6704f8e7e73c7a550b3fd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

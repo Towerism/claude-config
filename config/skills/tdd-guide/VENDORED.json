@@ -1,0 +1,258 @@
+[
+  {
+    "path": "HOW_TO_USE.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/HOW_TO_USE.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/HOW_TO_USE.md",
+    "sha256": "1257c94e7f8b1b06da85a11db49d3894fa76a7e633c24a17444612f88999fa65",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "localSha256": "f056f0971e18d8bb22c631c20c15b3b64ebed5583cfa58f08aa5d71743a9f7ae"
+  },
+  {
+    "path": "README.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/README.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/README.md",
+    "sha256": "0d17c8ff5780c371d76a9e5caf026f145b007e0163fce4c6b5775c25df9cbc27",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/SKILL.md",
+    "sha256": "b12e75f376db6a72d0f5a9971c720c04546d02f0ecf68f40fd0efde22e46aa6d",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/expected_output.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/assets/expected_output.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/assets/expected_output.json",
+    "sha256": "03a146673c9743856f80654c27d1d9294f5c795d88b02901a305c0b8e49c7eb6",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_coverage_report.lcov",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/assets/sample_coverage_report.lcov"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/assets/sample_coverage_report.lcov",
+    "sha256": "5d884784dcf4a2c1a952850194acc378c2018a75f2dff428ba28b13096b47d1c",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_input_python.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/assets/sample_input_python.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/assets/sample_input_python.json",
+    "sha256": "be90a513e0a6cdf6db21bf89177421b3eeb6f53d642e3b13276c3c6ad7e537d0",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_input_typescript.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/assets/sample_input_typescript.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/assets/sample_input_typescript.json",
+    "sha256": "5dee32466f71080736418ad3a36d252d6f5b117df975ba682463688ce8e9128f",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/ci-integration.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/references/ci-integration.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/references/ci-integration.md",
+    "sha256": "47cfd82bd0287c9fc6cadd6bec35459571a2af162d3449a54bdd41e808949080",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/framework-guide.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/references/framework-guide.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/references/framework-guide.md",
+    "sha256": "1a4370676a8543aa7e4e6305a72ce164b8c5a921104112fac996d7c1a3f35466",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/tdd-best-practices.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/references/tdd-best-practices.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/references/tdd-best-practices.md",
+    "sha256": "ee7a8aaaf9381692e7b4d03b111c8300e6217a65f0a9effa7817d2cb9703a2d5",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/coverage_analyzer.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/coverage_analyzer.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/coverage_analyzer.py",
+    "sha256": "1da0290c739634b4da7f6e1515e5e11bc70cb9060cc67dde4c2c50b6777fd5e4",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/fixture_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/fixture_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/fixture_generator.py",
+    "sha256": "8ee81d35b6a72fc768038e30c0ef7b997c57165b5c428ef45b9aef1cd9fc5f0a",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "localSha256": "d683571cc48f9ba6db7557fbd064e29ee755faafafd494d24968a821c73caff6"
+  },
+  {
+    "path": "scripts/format_detector.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/format_detector.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/format_detector.py",
+    "sha256": "a12f1d016967fc0a8a3b3f68b28a172494c33c9252d72d662c7a37f765a6692d",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/framework_adapter.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/framework_adapter.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/framework_adapter.py",
+    "sha256": "03a189d01310f04cb025bb9498ecd6bdc7d16eef119e992ff513774939299c58",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/metrics_calculator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/metrics_calculator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/metrics_calculator.py",
+    "sha256": "8080b0daa70cb38114cf7937e3e8f942cef99b81db3fdd786e1ca44350bd57a8",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/output_formatter.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/output_formatter.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/output_formatter.py",
+    "sha256": "e92a7559ae39c9b144a55b2dfaf6f14d9137a7e37aa9ee07adaf7c4c346b21fd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/tdd_workflow.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/tdd_workflow.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/tdd_workflow.py",
+    "sha256": "5048dda42125f9c95cd49dbf67816f5bc635fee0cc5938a74a4d1b59361f9095",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/test_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/tdd-guide/scripts/test_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/tdd-guide/scripts/test_generator.py",
+    "sha256": "6ec26f0f29339ab23f0ff65fd140eaec143751759c7ddf360ada988059959346",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

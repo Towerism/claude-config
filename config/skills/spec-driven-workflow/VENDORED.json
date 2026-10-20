@@ -1,0 +1,100 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/SKILL.md",
+    "sha256": "f4eab8a81a5b908fc7d182994f6bb1076512ed1129da7c00440a3af6ba3ab176",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/acceptance_criteria_patterns.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/references/acceptance_criteria_patterns.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/references/acceptance_criteria_patterns.md",
+    "sha256": "63c7f023c2138558b2b135bbd2c3a454bff0ac0347cee31de10b631cc110660e",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/bounded_autonomy_rules.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/references/bounded_autonomy_rules.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/references/bounded_autonomy_rules.md",
+    "sha256": "f590fd8d685ef9dace4dd1a72808815b4cca25163b0cbf340e42f923f2f001c0",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/spec_format_guide.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/references/spec_format_guide.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/references/spec_format_guide.md",
+    "sha256": "6625e272fe216dbf7e673c0da925c77bf6a55bb366321126a0829dfc0f52ed19",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/spec_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/scripts/spec_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/scripts/spec_generator.py",
+    "sha256": "28ef547c2c88c4449654e3ea1920b68c802ee79ec8fb5c3c3e0261dbc24c68c1",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/spec_validator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/scripts/spec_validator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/scripts/spec_validator.py",
+    "sha256": "b468c0417a4f3285a12e4cd502daf5eaa4430c64796255f31de4c621f8c576a4",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/test_extractor.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/spec-driven-workflow/scripts/test_extractor.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/scripts/test_extractor.py",
+    "sha256": "df459a7528dd4787f8b3111fce789620331aa42c690c6de9258667f4b7ca4fc7",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

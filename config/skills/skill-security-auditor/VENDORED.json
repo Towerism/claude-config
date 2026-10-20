@@ -1,0 +1,44 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/skill-security-auditor/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/skill-security-auditor/SKILL.md",
+    "sha256": "8281b2a45e2ab66d21d45910fa47e02158113e319391d51c60215d39090db686",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/threat-model.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/skill-security-auditor/references/threat-model.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/skill-security-auditor/references/threat-model.md",
+    "sha256": "4b181e36659bb01afc5e1663ff948728bdd17051fa861044917cc21ab0d54dd5",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/skill_security_auditor.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/skill-security-auditor/scripts/skill_security_auditor.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/skill-security-auditor/scripts/skill_security_auditor.py",
+    "sha256": "7111717862232f0368699ec96ccb09d98052149e012c9d98b600dde4c6661ac4",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

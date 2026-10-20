@@ -1,0 +1,58 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ship-gate/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ship-gate/SKILL.md",
+    "sha256": "05f7eee0d78735f3076fc02c732e4c660f55e2f058922e1ef46280a414294fa5",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/checks.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ship-gate/references/checks.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ship-gate/references/checks.md",
+    "sha256": "54f40a29d0d6431b311c6070e4fe1b2a8258d77c0c0d0642203c99875eb0cc4f",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/patterns.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ship-gate/references/patterns.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ship-gate/references/patterns.md",
+    "sha256": "d2e5d27963a5a3697f52283c1db3d200eaf0898123abf34b06fb25fdae300db0",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/ship_gate_scanner.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ship-gate/scripts/ship_gate_scanner.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ship-gate/scripts/ship_gate_scanner.py",
+    "sha256": "4f01a74f318f976ea2987835ec2232d2a0ceb3311ac1fd34978642d45957fda5",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

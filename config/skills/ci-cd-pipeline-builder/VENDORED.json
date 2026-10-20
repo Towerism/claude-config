@@ -1,0 +1,114 @@
+[
+  {
+    "path": "README.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/README.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/README.md",
+    "sha256": "1917d070634459f97f53cf85231b8a679f927f9026cb1c4c9def8f5fcd94fa3f",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/SKILL.md",
+    "sha256": "b9628224a9fe77caca4aedda49a72938147000ab275da92ebccf190c3ba8f161",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/deployment-gates.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/references/deployment-gates.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/references/deployment-gates.md",
+    "sha256": "5ce89322ba481151de81e0bfcac88ad7b9ee1554a3b4b9dfba93443cba44ab53",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/github-actions-templates.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/references/github-actions-templates.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/references/github-actions-templates.md",
+    "sha256": "e10ac9bd46a2edcf837124810f5573a3611a115dea8e321eb88988eafc4cd36a",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/gitlab-ci-templates.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/references/gitlab-ci-templates.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/references/gitlab-ci-templates.md",
+    "sha256": "fbc55219c6af120fb779bdb3d1a4049fa8047263a7bf648aaa9ec8e2dd0098e8",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/pipeline-design-notes.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/references/pipeline-design-notes.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/references/pipeline-design-notes.md",
+    "sha256": "168ea51b83c71ffb99abff52db573d4ef04e967f8456f15c59f5458b84335f5b",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/pipeline_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/scripts/pipeline_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/scripts/pipeline_generator.py",
+    "sha256": "5b675b7b821accb594b23eaae357229af1d1eef6a2e4497c7c49c6049f4f294b",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/stack_detector.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/ci-cd-pipeline-builder/scripts/stack_detector.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/ci-cd-pipeline-builder/scripts/stack_detector.py",
+    "sha256": "9b30d6a6469e4adeaa8a9e6085e7b83739e3890792dfb1969b7484acf318af1f",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

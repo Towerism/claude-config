@@ -1,0 +1,114 @@
+[
+  {
+    "path": "README.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/README.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/README.md",
+    "sha256": "5593472f3231881689ed673f55aa112fca6c82b1d1b63c4fbd5c6a6314b88793",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/SKILL.md",
+    "sha256": "a67b326aa3dccd186b2d076f7e01a2ce5775537c643bba819f759743d2b6678c",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/qa_best_practices.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/references/qa_best_practices.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/references/qa_best_practices.md",
+    "sha256": "b272275219795d35770170aa22bae52b24fcd3d698557dda15ba68571f689751",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/test_automation_patterns.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/references/test_automation_patterns.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/references/test_automation_patterns.md",
+    "sha256": "33fbc58cccbf33d16bea4e4a1e56cc21bdc3bf8acf04e9d91a6779e24b820eaf",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/testing_strategies.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/references/testing_strategies.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/references/testing_strategies.md",
+    "sha256": "3476c3db359c58c9f0f6d78205076debb5791149c6497cccebb197aae490a1aa",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/coverage_analyzer.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/scripts/coverage_analyzer.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/scripts/coverage_analyzer.py",
+    "sha256": "b7aa779998de2af639214b042a5874b22ce08cd639cdde414923eba2f5c5c169",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/e2e_test_scaffolder.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/scripts/e2e_test_scaffolder.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/scripts/e2e_test_scaffolder.py",
+    "sha256": "d20b6de521ae73803b062a80d98c582ec6d0f735b69ba52c28d1f22d7910b6b1",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/test_suite_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/senior-qa/scripts/test_suite_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/senior-qa/scripts/test_suite_generator.py",
+    "sha256": "18c00839fb053623817962bcf64244deab72c8dcce720f01e378a918755b7754",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

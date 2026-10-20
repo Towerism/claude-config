@@ -32,9 +32,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
-import urllib.error
 import urllib.parse
-import urllib.request
 import uuid
 from datetime import UTC, datetime
 
@@ -636,6 +634,9 @@ class Rest:
 
     def request(self, method, path, body=None, headers=()):
         """(status, text); a network error or timeout is status 0 with the reason."""
+        import urllib.error  # loaded only when a REST call is made, so the text checks start fast
+        import urllib.request
+
         req = urllib.request.Request(self.base + path, data=body, method=method)
         req.add_header("Authorization", self._auth)
         req.add_header("Accept", "application/json")

@@ -22,7 +22,6 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from datetime import UTC, datetime
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 SITE = "https://example.atlassian.net"
@@ -511,6 +510,8 @@ def rest(state, method, url, query, headers, body):
 
 
 def make_handler(state_path):
+    from http.server import BaseHTTPRequestHandler  # only the server needs it; CLI calls stay fast
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -551,6 +552,8 @@ def make_handler(state_path):
 
 
 def serve(port_file):
+    from http.server import ThreadingHTTPServer
+
     server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(os.environ["FAKE_CLI_STATE"]))
     tmp = port_file + ".tmp"
     with open(tmp, "w") as fh:

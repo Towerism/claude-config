@@ -1,6 +1,6 @@
 # ADR-0011: Tracker-agnostic lifecycle (a generic `jira-ticket-lifecycle` skill, a per-machine default, and a CLAUDE.md that names no tracker)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). The Jira access method and the work code host are filled in from a reading of the existing work skill (see the open questions in [plan.md](../architecture/plan.md#open-questions)). Amended 2026-10-19 by #15 (spec approved by the owner): the hook also runs on `SubagentStart`, finds its deployment from its own path, honours an absolute `XDG_CONFIG_HOME`, and the commit reference takes the exact form `(KEY-N)`.
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). The Jira access method and the work code host are filled in from a reading of the existing work skill (see the open questions in [plan.md](../architecture/plan.md#open-questions)). Amended 2026-10-19 by #15 (spec approved by the owner): the hook also runs on `SubagentStart`, finds its deployment from its own path, honours an absolute `XDG_CONFIG_HOME`, and the commit reference takes the exact form `(KEY-N)`. Amended 2026-10-20 by #16 (spec approved by the owner): two read-only REST calls, plain-text spec markers, a local working copy of each spec, hyphenated label names, and the merge left to Claude's own command; see [Amendment for #16](#amendment-for-16-2026-10-20).
 
 The global CLAUDE.md stops naming `github-issue-lifecycle` and refers instead to "the lifecycle skill for the repo's tracker". A new skill, `jira-ticket-lifecycle`, does for Jira tickets what `github-issue-lifecycle` does for GitHub issues, and holds no project-specific values. Each machine has a default lifecycle: GitHub on the personal machine, Jira on the work machine. A machine-local config file that is never synced can override it, and a repo's own CLAUDE.md overrides both. Terms are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -111,3 +111,14 @@ The owner decided on 2026-10-16 that work repos follow the global git rules inst
 - The mechanism check shows `SessionStart` context doesn't reach the model. Fall back to injecting the default line through the `UserPromptSubmit` hook on the first prompt of a session.
 - A repo uses a third tracker. Add a third lifecycle skill under the same resolution order.
 - Work repos start using more than one Jira project. Add a per-repo settings file (`.jira-lifecycle.json`) that takes precedence over `local.json`.
+
+## Amendment for #16 (2026-10-20)
+
+Writing the `jira-ticket-lifecycle` spec turned up five things this ADR didn't settle. The owner approved the spec on 2026-10-20 with the recommended option for each ([`config/skills/jira-ticket-lifecycle/SPEC.md`](../../config/skills/jira-ticket-lifecycle/SPEC.md), decisions D-1 to D-3).
+
+- **Two read-only REST calls.** Besides uploading and deleting attachments, the skill reads `GET myself` and `GET issue/{key}/changelog`. The jira CLI doesn't show who added a label, and the skill trusts an approval label only when the owner's account added it, as the GitHub lifecycle does. Work tickets sit in a shared team project, where other people can change labels, so the check matters more there. The same rules apply as for attachments: HTTPS to the configured site only, and the token used only for the header.
+- **Spec markers as plain paragraphs.** The jira CLI converts Markdown before sending it, and an HTML comment such as `<!-- spec:start -->` may not survive. The markers are paragraphs whose whole text is `spec:start` and `spec:end`. Whether they survive the real CLI is checked on the work machine in #17.
+- **A local working copy of each spec.** Text read back from Jira isn't byte-identical to what was written, so the ticket can't be the copy the spec is edited in. Each spec is edited in `~/.local/state/claude-config/jira-specs/<repo>/<KEY-N>.md`, outside the repo and `~/.claude`, and the skill keeps a hash of the description as it read it back after the last sync, so it notices when someone else edits the ticket.
+- **Hyphenated label names.** Jira labels can't hold spaces, so the defaults are `spec-draft`, `spec-approved`, `hotfix` and `approval-manual`, `approval-adversarial`, `approval-no-review`, each one a setting. The ticket's workflow state takes the place of the GitHub `in progress` label.
+- **The merge stays Claude's own command.** The skill's script checks a PR may be merged but never merges it. Claude runs `gh pr merge` as its own Bash command, so the merge-confirm hook sees it, as it does for GitHub issues.
+

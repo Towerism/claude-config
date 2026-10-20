@@ -314,7 +314,7 @@ Do this after a Claude Code update, or when a link looks wrong. claude.ai skill 
 
 ## Setting up a second machine
 
-The work machine's own profile and setup are #17. For any other machine:
+For the work machine, follow [Setting up the work machine](#setting-up-the-work-machine) instead. For any other machine:
 
 1. Clone the repo and [set up the clone](#set-up-a-clone).
 2. Pick a host profile from `hosts/`, or add one in a PR. A profile lists which paths, skills and plugins the machine gets. The config folder's path must not contain spaces or shell characters; `cfg` refuses such a `claude_home`.
@@ -341,6 +341,89 @@ The work machine's own profile and setup are #17. For any other machine:
 6. Run the real first deploy: [on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config), or [on an empty machine](#the-first-deploy-on-an-empty-machine).
 
 These steps haven't been run on a real second machine yet.
+
+## Setting up the work machine
+
+The work machine gets the same skills, hooks and plugins as the personal machine, from `hosts/work.json`. Only its default lifecycle differs: `jira-ticket-lifecycle` instead of `github-issue-lifecycle` ([ADR-0011](adr/0011-tracker-agnostic-lifecycle.md)). The plan for this setup, and the order of its checks, is the spec on [#17](https://github.com/Towerism/claude-config/issues/17).
+
+This repo is public. Nothing from the work machine's Jira project goes into it, an issue or a PR: no project key, site, ticket key, person's name, workflow state, work email or work user name. When you paste output from this machine anywhere on GitHub, leave out what `jira me` prints, and write home paths as `~`.
+
+Steps 1 to 5 change files only you control. Step 6 changes the live `~/.claude`, step 9 writes to Jira, and step 10 deletes a directory; each waits for your go-ahead.
+
+1. Clone the repo and [set up the clone](#set-up-a-clone). In the excluded-terms list, `~/.config/claude-config/deny-terms`, put one per line: the team's Jira project key, the Jira site's host name, the team's and the company's names, the work email domain, and this machine's user name and host name. The repo's git hooks then refuse any commit that contains one.
+
+2. Give non-interactive shells the Jira token. Add a line `export JIRA_API_TOKEN=<token>` to `~/.zshenv` yourself; Claude never reads or writes it. The `jira` CLI ([ankitpokhrel/jira-cli](https://github.com/ankitpokhrel/jira-cli)) must be installed and logged in with `jira init`. To check both:
+
+   ```sh
+   zsh -c 'test -n "$JIRA_API_TOKEN" && echo token set'
+   jira me > /dev/null && echo jira logged in
+   ```
+
+   Expect `token set` and `jira logged in`.
+
+3. Write the Jira settings in `~/.config/claude-config/local.json`: a `jira` object with the keys in the skill's [settings reference](../config/skills/jira-ticket-lifecycle/references/settings.md). Leave out `defaultLifecycle`, even though that page's example has it: `hosts/work.json` already sets it, and step 7 checks that the default comes from there. To check the settings without printing them:
+
+   ```sh
+   python3 -I config/skills/jira-ticket-lifecycle/scripts/ticket_lifecycle.py settings > /dev/null; echo "exit $?"
+   ```
+
+   Expect `exit 0`. `exit 6` means a required key is missing; run it without `> /dev/null` to see which.
+
+4. Install the plugins and compare them with the lock, as in steps 3 and 4 of [Setting up a second machine](#setting-up-a-second-machine). If `lock.py --check` reports a newer version, review it; a lock update is its own `chore(deps)` PR, and the deploy waits for it.
+
+5. Run a trial deploy with `--host hosts/work.json`, following [Practice on a trial directory](#practice-on-a-trial-directory).
+
+6. Run the first deploy, without `--yes` first:
+
+   ```sh
+   python3 -I tools/cfg/cli.py plan --host hosts/work.json
+   python3 -I tools/cfg/cli.py deploy --host hosts/work.json
+   ```
+
+   This machine already has a config, so follow [The first deploy on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config) and decide each `differs` path by capture or `--discard-live`. Read the change list, then rerun the same command with `--yes`. The old Jira skill in `~/.claude/skills/` isn't in the profile, so the deploy leaves it alone. Then check:
+
+   ```sh
+   python3 -I tools/cfg/cli.py status
+   ```
+
+   Expect `clean` and exit 0.
+
+7. Check the default lifecycle line:
+
+   ```sh
+   echo '{"hook_event_name": "SessionStart"}' | python3 -I ~/.claude/hooks/lifecycle_default.py
+   ```
+
+   Expect:
+
+   ```json
+   {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "Default lifecycle skill on this machine: `jira-ticket-lifecycle` (set in `hosts/work.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins."}}
+   ```
+
+   If it names `local.json` instead, remove `defaultLifecycle` from that file.
+
+8. Before anything writes to Jira, have Claude check the `jira` flags the skill uses. Claude compares every command in the skill's [jira-commands reference](../config/skills/jira-ticket-lifecycle/references/jira-commands.md) with the installed CLI's `--help` for that subcommand, and notes `jira version`. If a flag is missing, the fix is its own PR under #17, test first; once it merges, deploy again (step 6) and repeat this step.
+
+9. Check that the spec markers survive a real round trip, on the first real ticket you start with the new skill. Name the skill in your prompt, for example "use jira-ticket-lifecycle to start <key>", because the old skill is still installed and could answer instead. Claude asks before each Jira write: claiming the ticket, then storing the spec in its description. It then reads the description back. The check passes when `spec:start` and `spec:end` come back as paragraphs of their own, with the spec between them.
+
+10. Remove the old Jira skill once steps 6 to 9 pass. First compare it with the copy kept in `~/.old-claude/work-skills/`, which stays:
+
+    ```sh
+    ls ~/.old-claude/work-skills/
+    diff -r ~/.claude/skills/<old-skill> ~/.old-claude/work-skills/<old-skill> && echo same
+    ```
+
+    Expect `same`. If `diff` shows differences, decide first whether to refresh the kept copy. Then remove `~/.claude/skills/<old-skill>`, and check again: `status` says `clean`, and a new `claude` session states `jira-ticket-lifecycle` as its default.
+
+11. Run the excluded-terms scan over the whole repo. `157c698` is the repo's first commit, so this checks every later commit, its message, and every tracked file:
+
+    ```sh
+    python3 -I tools/git_hooks.py check-range 157c698
+    ```
+
+    The scan passes when it prints no `deny-term` line, and its last line, `check-range: terms checked: N`, shows N above 0. If it finds a term, stop and tell the owner which paths and commits it names; never repeat the term on GitHub. Other findings on old commits, such as `identity`, are reported separately.
+
+12. Record the results in a last PR that closes #17: this runbook's "Last verified" line and the note below "Setting up a second machine", the CLI version and result in the jira-commands reference, and the items #16 left for this machine in that skill's `REVIEW-NOTE.md`. Commit it on this machine, so the git hooks check it against this machine's excluded-terms list.
 
 ## Changing this machine's default lifecycle
 

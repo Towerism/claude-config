@@ -9,8 +9,8 @@ copy of every skill in the HEAD commit's config/skills/, as a deployed session
 does (#62). A doc-reader config holds the skill and its companions together, or
 the companions alone for the baseline. Each run's init event must list each
 skill under test and each companion exactly once, and a doc-reader run none of
-the others; otherwise the suite stops with an IsolationError and no record is
-written.
+the skill and companions its config lacks; otherwise the suite stops with an
+IsolationError and no record is written.
 
 Both runners keep chance out of the verdict without sampling much, because each
 model run costs the owner's subscription.
@@ -58,11 +58,10 @@ LINT = "scripts/doc_lint.py"
 CHECKER = "scripts/prose_check.py"
 OUTER_FENCE = re.compile(r"^(`{3,}|~{3,})\s*(markdown|md)?\s*$")
 FENCE_LINE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
-# The load decision comes in the first turn or two; later turns only write text the
-# trigger suite doesn't grade. A delegated query needs the Agent call, the
-# subagent's turn and its Skill call.
-# Three turns, because with the other repo skills listed (#62) a run may load a
-# competitor such as senior-architect before the skill under test.
+# The load decision comes in the first turns; later turns only write text the
+# trigger suite doesn't grade. Ordinary queries get three, because with the other
+# repo skills listed (#62) a run may load a competitor such as senior-architect
+# first. A delegated query needs the Agent call, the subagent's turn and its Skill call.
 ORDINARY_TURNS = "3"
 DELEGATED_TURNS = "4"
 FIRST_RUNS = 2
@@ -118,7 +117,11 @@ def trigger_run(
     ctx: run_eval.Context, cfg: Path, box: se.Sandbox, case: Case, skill: str,
     everyone: list[str],
 ) -> tuple[bool, bool, bool]:  # fmt: skip
-    """(counts as a load, errored, hit the turn limit before loading anything) for one run."""
+    """(counts as a load, errored, hit the turn limit without loading the skill) for one run.
+
+    For a delegated case only a subagent's load counts, so a run that loads the skill at
+    top level and then hits the limit is turn-limited too.
+    """
     turns = DELEGATED_TURNS if case.get("delegated") else ORDINARY_TURNS
     args = ["--max-turns", turns, "--tools", se.TRIGGER_TOOLS,
             "--allowedTools", se.TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
@@ -138,7 +141,7 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     runs: dict[int, list[tuple[bool, bool, bool]]] = {i: [] for i in range(len(cases))}
     with (
         se.sandbox(ctx) as box,
-        config_with(ctx, "trigger", se.repo_skills(ctx)) as cfg,
+        se.trigger_config(ctx, "trigger") as cfg,
     ):
 
         def one(index: int) -> tuple[int, tuple[bool, bool, bool]]:

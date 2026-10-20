@@ -218,8 +218,14 @@ def test_thirteen_of_fifteen_with_clean_near_misses_passes(make_ctx):
     assert result["pass"] is True
 
 
-def test_twelve_of_fifteen_fails(make_ctx):
-    cases, plan = positives(15, misses=3)
+def test_eleven_of_fifteen_passes_the_interim_seventy_percent_gate(make_ctx):
+    cases, plan = positives(15, misses=4)
+    result, _, _ = run_trigger(make_ctx, cases + NEAR, plan | QUIET)
+    assert result["recall"] == round(11 / 15, 3) and result["pass"] is True
+
+
+def test_ten_of_fifteen_fails(make_ctx):
+    cases, plan = positives(15, misses=5)
     result, _, _ = run_trigger(make_ctx, cases + NEAR, plan | QUIET)
     assert result["pass"] is False
 

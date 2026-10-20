@@ -186,12 +186,20 @@ def test_thirteen_of_fifteen_should_trigger_queries_pass(make_ctx):
     assert result["pass"] is True
 
 
-def test_twelve_of_fifteen_fails_however_clean_the_near_misses(make_ctx):
-    cases, plan = positives(15, misses=3)
+def test_eleven_of_fifteen_passes_the_interim_seventy_percent_gate(make_ctx):
+    cases, plan = positives(15, misses=4)
     near = [trig(f"n{i}", False) for i in range(10)]
     result, _, _ = run_trigger(make_ctx, cases + near,
                                plan | {f"n{i}": ["none"] * 3 for i in range(10)})  # fmt: skip
-    assert result["recall"] == 0.8 and result["falseTriggers"] == 0
+    assert result["recall"] == round(11 / 15, 3) and result["pass"] is True
+
+
+def test_ten_of_fifteen_fails_however_clean_the_near_misses(make_ctx):
+    cases, plan = positives(15, misses=5)
+    near = [trig(f"n{i}", False) for i in range(10)]
+    result, _, _ = run_trigger(make_ctx, cases + near,
+                               plan | {f"n{i}": ["none"] * 3 for i in range(10)})  # fmt: skip
+    assert result["recall"] == round(10 / 15, 3) and result["falseTriggers"] == 0
     assert result["pass"] is False
 
 

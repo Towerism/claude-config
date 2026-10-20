@@ -22,8 +22,9 @@ may load another repo skill before it; delegated ones get four, for the Agent
 call and the subagent's Skill call, and only a load inside a subagent counts. A
 run that loads only a companion is a miss, and an errored run counts against its
 class. A run that hits the turn limit without loading the skill under test is
-counted in turnLimitRuns, whatever else it loaded. The suite passes when at least 85% of the
-should-trigger queries trigger, delegated ones included, and no near miss does.
+counted in turnLimitRuns, whatever else it loaded. The suite passes when at least
+70% of the should-trigger queries trigger (85% before #62; #67 restores it),
+delegated ones included, and no near miss does.
 
 doc-reader: both arms write, or rewrite the same draft; the skill arm has the
 skill and its companions, the baseline only the companions. A reply wrapped

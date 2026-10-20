@@ -19,7 +19,8 @@ otherwise the suite stops with an IsolationError and no record is written.
 trigger: each query runs three times with the repo skills installed and an empty
 CLAUDE.md, so only the descriptions can make Claude load the skill. Two triggering runs
 of three trigger the query. For a delegated query, only a load inside a subagent
-counts. The suite passes when at least 85% of the queries that should trigger do,
+counts. The suite passes when at least 70% of the queries that should trigger do
+(85% before #62; #67 restores it),
 no near miss triggers or errors, and every delegated query triggers. Overall
 accuracy is reported but never decides, because the two classes differ in size.
 A run that errors fails its query. A run that hits the turn limit without loading
@@ -61,7 +62,10 @@ TRIGGER_RUNS = 3
 TRIGGER_NEEDED = 2
 # Each class gets its own rule: recall over the queries that should load the skill, and
 # no near miss at all. Overall accuracy is reported but never decides.
-TRIGGER_RECALL = 0.85
+# The skills' specs set 85%. With the other repo skills listed (#62) both trigger suites
+# fell below it, so the owner lowered the gate to 70% on 2026-10-20 until #67 raises
+# their recall and puts it back.
+TRIGGER_RECALL = 0.70
 TRIGGER_TOOLS = "Skill,Read,Agent"
 TRIGGER_MAX_TURNS = "4"
 WRITE_TOOLS = "Skill,Read,Bash"

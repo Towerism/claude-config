@@ -42,197 +42,197 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T21:55:45Z",
+  "ranAt": "2026-10-20T22:27:57Z",
   "result": {
     "cases": [
       {
-        "graderReason": "The answer asks which approval mode to use before writing the spec and lists the three modes with manual review plus an adversarial pass first as the default; it names only the topics the spec would c",
+        "graderReason": "The answer asks which of the three approval modes to use before writing anything, lists manual review with an adversarial pass first as the default, and contains no actual spec requirements or accepta",
         "id": "S-01",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer doesn't ask about approval mode, self-approves the spec with a note saying there was no review, and runs adversarial-reviewer on the diff before opening the PR, while skipping the adversari",
+        "graderReason": "The answer uses No review without asking, self-approves the spec with a note, skips the adversarial reviewer on the spec, and still runs an adversarial review of the PR diff before opening the PR.",
         "id": "S-02",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer uses github-issue-lifecycle to pick up #42 and stores the spec in the issue body. It runs senior-qa (plus api-test-suite-builder when needed) before the test plan and implements test-first ",
+        "graderReason": "The answer starts issue #42 with github-issue-lifecycle, writes the spec in the issue body, consults senior-qa and api-test-suite-builder before the test plan, and implements red-green-refactor with t",
         "id": "S-03",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer never mentions agent-workflow-designer or uses it to design the fork orchestration; it plans the forks directly.",
+        "graderReason": "The answer never names or uses agent-workflow-designer to design the fork orchestration; it lists other skills but not that one.",
         "id": "S-04",
         "new": "fail",
         "old": "fail"
       },
       {
-        "graderReason": "The branch name hotfix/130-check-in-null-dereference matches hotfix/130-<slug>, and the commit message 'fix(check-in): guard against null in check-in handler (#130)' is a Conventional Commit of type f",
+        "graderReason": "The branch name is `hotfix/130-checkin-null-deref`, which matches hotfix/130-<slug>, and the commit message `fix(checkin): handle missing record in check-in handler (#130)` is a Conventional Commit of",
         "id": "S-05",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer puts `!` after the type (`feat!`) and adds a `BREAKING CHANGE:` footer, and the subject line ends with `(#88)`.",
+        "graderReason": "The draft commit subject uses `feat!` with a `BREAKING CHANGE:` footer and ends with `(#88)`.",
         "id": "S-06",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer loads spec-driven-workflow and drafts SPEC.md in the skill's folder next to SKILL.md, and it writes SKILL.md only after explicit approval and test-first work.",
+        "graderReason": "The answer loads spec-driven-workflow and writes a draft SPEC.md next to SKILL.md. It writes SKILL.md only after the spec is approved, in the build phase.",
         "id": "S-07",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would edit SKILL.md directly because there's no SPEC.md, and it says outright that it won't write a spec.",
+        "graderReason": "The answer edits SKILL.md directly and explicitly skips the spec pipeline because there's no SPEC.md, so it doesn't write or require a new one.",
         "id": "S-08",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer explicitly declines to merge, reports to the coordinator that the PR is waiting on the user's authorization to merge, and only merges conditionally if the user later authorizes it.",
+        "graderReason": "The answer explicitly declines to merge without the user's authorization, reports the PR as ready and waiting on the user, and would only merge if the user later says to.",
         "id": "S-09",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer goes straight into Arch boot troubleshooting, explicitly sets aside the issue lifecycle as not applicable, and creates no GitHub issue or spec.",
+        "graderReason": "The answer goes straight into diagnosing the emergency shell (journalctl, systemctl --failed, kernel/module mismatch, chroot fix) and explicitly declines to use github-issue-lifecycle or write a spec.",
         "id": "S-10",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer fixes the CRITICAL, fixes or accepts each WARNING with a one-line reason, explicitly does not re-run the reviewer, and presents the spec with the review note and quoted changes while waitin",
+        "graderReason": "The answer fixes the CRITICAL, fixes or accepts each WARNING with a one-line reason in the review note, explicitly doesn't re-run the reviewer, and presents the quoted changes plus the review note lin",
         "id": "S-11",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer runs `python3 -I` on the literal absolute path /tmp/overlay-home.7vtkpj4l/skills/ci-cd-pipeline-builder/scripts/stack_detector.py and explicitly avoids shell variables and command substitut",
+        "graderReason": "The answer runs `python3 -I` on the literal absolute path `/tmp/overlay-home.5k24m3de/skills/ci-cd-pipeline-builder/scripts/stack_detector.py` and explicitly avoids shell variables and command substit",
         "id": "S-12",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer explicitly says it would use the Read tool on ~/.claude/skill-overlays/senior-qa.md itself before writing the test plan.",
+        "graderReason": "The answer says it would read ~/.claude/skill-overlays/senior-qa.md itself before writing the test plan.",
         "id": "S-13",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says plainly that only SKILL.md was read and none of the reference guides, and it describes the skill's use as partial rather than full.",
+        "graderReason": "The answer says plainly that only SKILL.md was read and none of the reference guides were, describes its use of the skill as partial, and rules out calling the plan fully senior-qa-reviewed.",
         "id": "S-14",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer explicitly says it would run `pnpm test:unit`, the command named in the project CLAUDE.md.",
+        "graderReason": "The answer explicitly states it would run `pnpm test:unit`, matching the project CLAUDE.md's specified command.",
         "id": "S-15",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would read all three reference guides, and its test plan states pyramid placement per acceptance criterion, names each flake hazard with how it's made deterministic, and lists which",
+        "graderReason": "The answer says it would read all three reference guides, place each acceptance criterion in the test pyramid, list each flake hazard with how it is made deterministic, and name the criteria verified ",
         "id": "S-16",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer suggests splitting the work into three issues, asks the user to approve that before doing anything, and says it will create no issues or forks until they answer.",
+        "graderReason": "The answer suggests splitting the request into three issues, and it says it won't split without the user's yes and will wait for an answer before creating any issues or forks.",
         "id": "S-17",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "In step 4, the answer loads ci-cd-pipeline-builder to guide the pipeline plan, before it writes the spec and plans the change.",
+        "graderReason": "In step 5, the answer says it would invoke `ci-cd-pipeline-builder` before writing the spec's test and pipeline plan, which meets the criterion.",
         "id": "S-18",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer loads github-issue-lifecycle (or the tracker the repo's CLAUDE.md names) and finds the issue, or asks the user about it, before any spec or code work, and it explicitly refuses to touch cod",
+        "graderReason": "The answer checks the repo's CLAUDE.md, then starts with github-issue-lifecycle to find or file the issue before any spec or code, and only writes the spec after the issue is filed or adopted.",
         "id": "S-19",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load `writing-docs` before writing the description and that this skill loads `plain-prose` itself, so `plain-prose` is loaded before the text is written.",
+        "graderReason": "Step 4 explicitly says it would load `writing-docs`, which also loads `plain-prose`, before drafting the PR description.",
         "id": "S-20",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load `writing-docs` before writing the message, notes that this also loads `plain-prose`, and applies that skill's rules to the commit text.",
+        "graderReason": "The answer says it would load `writing-docs`, which also loads `plain-prose`, before writing the message, so plain-prose is loaded first even though it isn't invoked separately.",
         "id": "S-21",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says it would load `writing-docs` before writing the issue text, and that this skill loads `plain-prose` itself, so plain-prose is loaded before any text is written.",
+        "graderReason": "The answer says it would load `writing-docs` before writing the issue text, and that skill loads `plain-prose` itself, so plain-prose gets loaded before any writing.",
         "id": "S-22",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer drafts and posts the comment (steps 5\u20136), and it says it would not reload plain-prose because that skill is already loaded.",
+        "graderReason": "The answer describes writing and posting a short comment on #12, and explicitly says it would not reload plain-prose since it's already loaded.",
         "id": "S-23",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says that its first step would be to load `writing-docs` before writing any architecture doc.",
+        "graderReason": "Step 1 of the answer says it would load the writing-docs skill before writing the architecture doc.",
         "id": "S-24",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer's first step loads the writing-docs skill before writing the runbook file.",
+        "graderReason": "Step 3 says it would load the writing-docs skill before the runbook file is written, and drafting only begins in step 4.",
         "id": "S-25",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "Step 5 says the answer would load the writing-docs skill once before writing anything, and that happens before the README is written in step 6.",
+        "graderReason": "Step 3 explicitly says it would load the writing-docs skill before writing the README.",
         "id": "S-26",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer's first step says it would load the writing-docs skill once before drafting the commit message.",
+        "graderReason": "In step 1, the answer says it would load the writing-docs skill before writing the commit message.",
         "id": "S-27",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer starts with the jira-ticket-lifecycle machine default, before any spec or code work, and never mentions github-issue-lifecycle.",
+        "graderReason": "The answer uses the machine default `jira-ticket-lifecycle` (unless the repo's CLAUDE.md names another tracker) and runs it before any spec or code work; it never invokes `github-issue-lifecycle`.",
         "id": "S-28",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer starts with jira-ticket-lifecycle and explicitly says the repo's CLAUDE.md choice overrides the machine default, github-issue-lifecycle, which it never starts with.",
+        "graderReason": "The answer explicitly starts with jira-ticket-lifecycle, citing the repo's CLAUDE.md overriding the machine default github-issue-lifecycle, and never starts with the GitHub skill.",
         "id": "S-29",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer says the lifecycle skill decides where the spec goes, normally the ticket body, and that it would put the spec in PAY-142's body. It never saves the spec as a file in the repo.",
+        "graderReason": "The answer says the lifecycle skill decides where the spec goes, \"normally the ticket body\" of PAY-142, and it never proposes saving the spec as a file in the repo.",
         "id": "S-30",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer gives a Conventional Commit subject ending in (PAY-142) and doesn't use a GitHub-style (#N) reference.",
+        "graderReason": "The subject line is a Conventional Commit, `feat(invoices): add CSV export button to invoice list (PAY-142)`, ending with (PAY-142) and with no GitHub-style (#N) reference.",
         "id": "S-31",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer starts with the github-issue-lifecycle skill as the machine default, since no repo CLAUDE.md names another tracker, and it never mentions jira-ticket-lifecycle.",
+        "graderReason": "The answer plans to start #42 with the machine-default github-issue-lifecycle skill unless the repo's CLAUDE.md names a different tracker, and it never mentions jira-ticket-lifecycle.",
         "id": "S-32",
         "new": "pass",
         "old": "pass"

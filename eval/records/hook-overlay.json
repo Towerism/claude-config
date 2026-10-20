@@ -12,7 +12,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T21:55:45Z",
+  "ranAt": "2026-10-20T22:27:57Z",
   "result": {
     "cases": [
       {
@@ -32,7 +32,7 @@
         "result": "pass"
       }
     ],
-    "p95Ms": 37.1,
+    "p95Ms": 40.3,
     "pass": true,
     "rerunsUsed": 0
   },

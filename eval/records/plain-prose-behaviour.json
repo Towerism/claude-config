@@ -2,7 +2,7 @@
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
     "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
-    "eval/skill_evals.py": "e14aee7d6484af41ccd3a07821771b07c8467ba67d212fd78cc04aed5ee24a5f"
+    "eval/skill_evals.py": "50e1f97105af1e30b5cc92457bb6b0937f5a1f4116e7fceb2c1f4a347d10fd86"
   },
   "inputs": {
     "config/skills/plain-prose/SKILL.md#body": "4ab58883c39b7adc3a059b6454fa43e1bf7dbe7bd092115a358e3a059b87728a",
@@ -17,7 +17,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T21:55:45Z",
+  "ranAt": "2026-10-20T22:27:57Z",
   "result": {
     "cases": [
       {
@@ -33,7 +33,7 @@
             }
           },
           "lost": [],
-          "quote": "Great question! Choosing a database is a multifaceted decision, and there are many factors at play. Let's dive in. ... In conclusion, SQLite was the optimal choice for our needs. I hope this helps!"
+          "quote": "Great question! Choosing a database is a multifaceted decision, and there are many factors at play. Let's dive in."
         },
         "id": "rewrite-drafted-reply",
         "reason": "",
@@ -79,7 +79,7 @@
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 18.2
+              "readability": 34.5
             }
           },
           "lost": [],
@@ -89,7 +89,7 @@
       {
         "baseline": {
           "aiSounding": true,
-          "correct": 3,
+          "correct": 2,
           "diagnostics": {
             "detectability": 4.0,
             "per_1000_words": {
@@ -99,9 +99,10 @@
             }
           },
           "lost": [
+            "The cache key ignores the user, so users can see each other's cached data.",
             "The export endpoint needs a rate limit."
           ],
-          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved: ... These are just suggestions \u2014 feel "
+          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved"
         },
         "id": "rewrite-review-note",
         "reason": "",
@@ -110,11 +111,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 20.6,
+            "detectability": 17.0,
             "per_1000_words": {
-              "ai_tells": 6.5,
+              "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 6.5
+              "readability": 14.7
             }
           },
           "lost": [],
@@ -129,7 +130,7 @@
             "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 30.8,
+              "cold_reader": 37.7,
               "readability": 0.0
             }
           },
@@ -143,10 +144,10 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 32.5,
+            "detectability": 20.0,
             "per_1000_words": {
-              "ai_tells": 16.4,
-              "cold_reader": 32.8,
+              "ai_tells": 0.0,
+              "cold_reader": 31.7,
               "readability": 0.0
             }
           },
@@ -159,11 +160,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 15.5,
+            "detectability": 22.6,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 16.1,
-              "readability": 48.4
+              "cold_reader": 16.9,
+              "readability": 50.8
             }
           },
           "lost": [],
@@ -176,11 +177,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 32.5,
+            "detectability": 25.8,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 18.2,
-              "readability": 36.4
+              "cold_reader": 19.6,
+              "readability": 19.6
             }
           },
           "lost": [],
@@ -192,11 +193,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 18.8,
+            "detectability": 21.6,
             "per_1000_words": {
-              "ai_tells": 8.9,
-              "cold_reader": 8.9,
-              "readability": 8.9
+              "ai_tells": 0.0,
+              "cold_reader": 8.6,
+              "readability": 8.6
             }
           },
           "lost": [],
@@ -209,11 +210,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 25.9,
+            "detectability": 20.7,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 7.9,
-              "readability": 7.9
+              "cold_reader": 7.7,
+              "readability": 7.7
             }
           },
           "lost": [],

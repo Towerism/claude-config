@@ -1,9 +1,9 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/doc_evals.py": "fd603ddd1a6dc4485d26adb02e07930fdcebd4e41e13a0906a9044a51c65dc91",
+    "eval/doc_evals.py": "c2a4e8295b52bd2947be2c87b6cfbaa55d926ecd95f0fefa2e39615412822ec8",
     "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
-    "eval/skill_evals.py": "e14aee7d6484af41ccd3a07821771b07c8467ba67d212fd78cc04aed5ee24a5f"
+    "eval/skill_evals.py": "50e1f97105af1e30b5cc92457bb6b0937f5a1f4116e7fceb2c1f4a347d10fd86"
   },
   "inputs": {
     "config/skills/writing-docs/SKILL.md#body": "84b63f9322871a2de7ef0a1b16b2a7063b4a34f1b418bad89b4f0f8e62b23bdc",
@@ -22,16 +22,16 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T21:55:45Z",
+  "ranAt": "2026-10-20T22:27:57Z",
   "result": {
     "cases": [
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 17.2,
+            "detectability": 17.6,
             "per_1000_words": {
-              "ai_tells": 9.6,
-              "cold_reader": 19.2,
+              "ai_tells": 11.0,
+              "cold_reader": 22.0,
               "readability": 0.0
             }
           },
@@ -49,14 +49,14 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 17.7,
+            "detectability": 18.4,
             "per_1000_words": {
-              "ai_tells": 7.6,
-              "cold_reader": 15.3,
-              "readability": 0.0
+              "ai_tells": 6.6,
+              "cold_reader": 13.2,
+              "readability": 13.2
             }
           },
-          "lint": 1,
+          "lint": 0,
           "missing": [],
           "right": [
             true,
@@ -71,11 +71,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 46.2,
+            "detectability": 42.7,
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 0.0
+              "readability": 17.9
             }
           },
           "lint": 3,
@@ -92,11 +92,11 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 30.3,
+            "detectability": 25.5,
             "per_1000_words": {
-              "ai_tells": 0.0,
+              "ai_tells": 7.8,
               "cold_reader": 0.0,
-              "readability": 0.0
+              "readability": 7.8
             }
           },
           "lint": 0,
@@ -114,11 +114,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 21.5,
+            "detectability": 21.0,
             "per_1000_words": {
-              "ai_tells": 12.7,
-              "cold_reader": 25.3,
-              "readability": 12.7
+              "ai_tells": 25.6,
+              "cold_reader": 25.6,
+              "readability": 12.8
             }
           },
           "lint": 1,
@@ -135,14 +135,14 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 26.0,
+            "detectability": 27.0,
             "per_1000_words": {
-              "ai_tells": 17.9,
-              "cold_reader": 17.9,
-              "readability": 26.8
+              "ai_tells": 16.1,
+              "cold_reader": 16.1,
+              "readability": 16.1
             }
           },
-          "lint": 1,
+          "lint": 0,
           "missing": [],
           "right": [
             true,
@@ -157,11 +157,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 17.0,
+            "detectability": 14.4,
             "per_1000_words": {
-              "ai_tells": 5.9,
+              "ai_tells": 8.2,
               "cold_reader": 0.0,
-              "readability": 5.9
+              "readability": 16.4
             }
           },
           "lint": 1,
@@ -178,14 +178,14 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 20.9,
+            "detectability": 19.1,
             "per_1000_words": {
-              "ai_tells": 4.9,
+              "ai_tells": 4.8,
               "cold_reader": 0.0,
-              "readability": 0.0
+              "readability": 4.8
             }
           },
-          "lint": 0,
+          "lint": 1,
           "missing": [],
           "right": [
             true,
@@ -200,11 +200,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 13.4,
+            "detectability": 12.7,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 10.5,
-              "readability": 0.0
+              "cold_reader": 9.9,
+              "readability": 19.8
             }
           },
           "lint": 2,
@@ -221,11 +221,11 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 20.7,
+            "detectability": 20.5,
             "per_1000_words": {
-              "ai_tells": 6.7,
-              "cold_reader": 6.7,
-              "readability": 26.8
+              "ai_tells": 8.8,
+              "cold_reader": 8.8,
+              "readability": 0.0
             }
           },
           "lint": 0,
@@ -243,11 +243,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 26.0,
+            "detectability": 28.7,
             "per_1000_words": {
-              "ai_tells": 5.3,
-              "cold_reader": 5.3,
-              "readability": 15.8
+              "ai_tells": 5.9,
+              "cold_reader": 5.9,
+              "readability": 5.9
             }
           },
           "lint": 3,
@@ -264,11 +264,11 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 33.7,
+            "detectability": 26.2,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 3.8,
-              "readability": 11.4
+              "cold_reader": 3.9,
+              "readability": 15.7
             }
           },
           "lint": 0,
@@ -286,7 +286,7 @@
     ],
     "lint": {
       "baseline": 10,
-      "skill": 2
+      "skill": 1
     },
     "pass": true,
     "reasons": [],

@@ -6,7 +6,9 @@ skill can use them (ADR-0005, ADR-0010).
 
 Every run gets the isolation eval/run_eval.py gives the scenario suite (a private
 CLAUDE_CONFIG_DIR outside $HOME, the live settings without hooks, a private
-credentials copy) plus three limits. `skills/` holds only the HEAD commit's copy
+credentials copy) plus three limits. For a trigger run, `skills/` holds a copy of
+every skill in the HEAD commit's config/skills/, so the session lists what a
+deployed session lists (#62); for a cold-reader run, only the HEAD commit's copy
 of the skill under test, or nothing for a baseline or a grader. The tools are set
 with --tools, which removes the others rather than merely skipping their prompts.
 And a stub gh comes first on PATH with an empty GH_CONFIG_DIR, so prompts about
@@ -14,13 +16,14 @@ issues and PRs can't reach GitHub with the owner's login. Each run's init event
 must list the skill exactly once with it installed and not at all without it;
 otherwise the suite stops with an IsolationError and no record is written.
 
-trigger: each query runs three times with only the skill installed and an empty
-CLAUDE.md, so only the description can make Claude load it. Two triggering runs
+trigger: each query runs three times with the repo skills installed and an empty
+CLAUDE.md, so only the descriptions can make Claude load the skill. Two triggering runs
 of three trigger the query. For a delegated query, only a load inside a subagent
 counts. The suite passes when at least 85% of the queries that should trigger do,
 no near miss triggers or errors, and every delegated query triggers. Overall
 accuracy is reported but never decides, because the two classes differ in size.
-A run that errors fails its query.
+A run that errors fails its query. A run that hits the turn limit without loading
+the skill under test is counted in turnLimitRuns, whatever else it loaded.
 
 cold-reader: a write case asks the skill arm (told to load the skill) and a
 baseline arm (no skill, no tools) for the same text; a rewrite case compares the
@@ -93,6 +96,27 @@ def sandbox(ctx: run_eval.Context) -> Iterator[Sandbox]:
         yield Sandbox(home, env)
     finally:
         shutil.rmtree(home, ignore_errors=True)
+
+
+def repo_skills(ctx: run_eval.Context) -> list[Path]:
+    """Every skill directory in the HEAD commit's config/skills/, as a deployed session has."""
+    return sorted(p.parent for p in (ctx.head_tree / "config" / "skills").glob("*/SKILL.md"))
+
+
+@contextmanager
+def trigger_config(ctx: run_eval.Context, name: str) -> Iterator[Path]:
+    """A private config with an empty CLAUDE.md and one copy of every repo skill."""
+    cfg = run_eval.make_config_dir(ctx, name, "")
+    try:
+        for skill in repo_skills(ctx):
+            shutil.copytree(skill, cfg / "skills" / skill.name)
+        yield cfg
+    finally:
+        run_eval.remove_config_dir(cfg)
+
+
+def hit_turn_limit(evs: list[Event]) -> bool:
+    return any(e.get("type") == "result" and e.get("subtype") == "error_max_turns" for e in evs)
 
 
 @contextmanager
@@ -200,7 +224,7 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     skill, skill_dir, cases = _cases(ctx, suite)
     args = ["--max-turns", TRIGGER_MAX_TURNS, "--tools", TRIGGER_TOOLS,
             "--allowedTools", TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
-    with sandbox(ctx) as box, config_dir(ctx, "trigger", skill_dir) as cfg:
+    with sandbox(ctx) as box, trigger_config(ctx, "trigger") as cfg:
 
         def one(job: tuple[int, int]) -> tuple[int, str]:
             index, attempt = job
@@ -211,7 +235,9 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             calls = skill_calls(evs, skill)
             if case.get("delegated"):
                 calls = [c for c in calls if c is not None]
-            return index, "triggered" if calls else "quiet"
+            if calls:
+                return index, "triggered"
+            return index, "limited" if hit_turn_limit(evs) else "quiet"
 
         jobs = [(i, a) for i in range(len(cases)) for a in range(TRIGGER_RUNS)]
         outcomes = sorted(run_all(ctx, one, jobs))
@@ -246,6 +272,7 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         "recall": recall,
         "falseTriggers": false_triggers,
         "accuracy": round(right / len(results), 3) if results else 0.0,
+        "turnLimitRuns": sum(o == "limited" for _, o in outcomes),
         "cases": results,
     }
 

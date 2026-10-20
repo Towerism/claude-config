@@ -21,6 +21,8 @@ from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
 SKILL, COMPANION = "writing-docs", "plain-prose"
+# Another repo skill: trigger runs list it beside both, behaviour runs don't.
+OTHER = "other-skill"
 
 
 @pytest.fixture(autouse=True)
@@ -44,6 +46,8 @@ def make_head(root: Path, trigger=None, behaviour=None) -> Path:
     (skills / SKILL / "evals").mkdir()
     (skills / SKILL / "evals" / "trigger-evals.json").write_text(json.dumps(trigger or []))
     (skills / SKILL / "evals" / "behaviour-evals.json").write_text(json.dumps(behaviour or []))
+    (skills / OTHER).mkdir()
+    (skills / OTHER / "SKILL.md").write_text(f"---\nname: {OTHER}\ndescription: d\n---\nBody\n")
     return root
 
 
@@ -107,7 +111,8 @@ class Recorder:
 class TriggerFake(Recorder):
     """Per query, run outcomes in order: 'top', 'sub', 'none', 'companion', 'limit' or 'error'.
 
-    'limit' is a run that hit the turn limit before loading anything.
+    'limit' is a run that hit the turn limit before loading anything, and 'companion-limit'
+    one that hit it after loading only the companion.
     """
 
     def __init__(self, plan, listed=None):
@@ -121,10 +126,11 @@ class TriggerFake(Recorder):
         if outcome == "error":
             return 1, "not json at all"
         uses = {"top": [(COMPANION, None), (SKILL, None)], "sub": [(SKILL, "toolu_1")],
-                "none": [], "limit": [], "companion": [(COMPANION, None)]}[outcome]  # fmt: skip
+                "none": [], "limit": [], "companion": [(COMPANION, None)],
+                "companion-limit": [(COMPANION, None)]}[outcome]  # fmt: skip
         skills = self.listed if self.listed is not None else installed(env)
         out = stream(skills, uses)
-        if outcome == "limit":
+        if outcome.endswith("limit"):
             out = out.replace('"type": "result"', '"type": "result", "subtype": "error_max_turns"')
         return 0, out
 
@@ -143,22 +149,22 @@ def runs_for(fake, query):
     return [c for c in fake.calls if c["stdin"] == query]
 
 
-def test_trigger_runs_install_the_skill_and_its_companions_and_no_github(make_ctx):
+def test_trigger_runs_install_every_repo_skill_once_and_no_github(make_ctx):
     result, fake, ctx = run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 2})
     assert result["pass"] is True
     for call in fake.calls:
         cmd = call["cmd"]
-        assert call["skills"] == [COMPANION, SKILL]
+        assert call["skills"] == sorted([COMPANION, OTHER, SKILL])
         assert cmd[cmd.index("--tools") + 1] == "Skill,Read,Agent"
         assert call["stub_gh"] and call["gh_config_empty"]
     assert leftovers(ctx.root) == []
 
 
-def test_ordinary_queries_get_two_turns_and_delegated_ones_four(make_ctx):
+def test_ordinary_queries_get_three_turns_and_delegated_ones_four(make_ctx):
     cases = [trig("own", True), trig("sub", True, delegated=True)]
     _, fake, _ = run_trigger(make_ctx, cases, {"own": ["top"] * 2, "sub": ["sub"] * 2})
     turns = {c["stdin"]: c["cmd"][c["cmd"].index("--max-turns") + 1] for c in fake.calls}
-    assert turns == {"own": "2", "sub": "4"}
+    assert turns == {"own": "3", "sub": "4"}
 
 
 @pytest.mark.parametrize(
@@ -240,6 +246,12 @@ def test_an_errored_run_counts_against_its_class(make_ctx):
     by_id = {c["id"]: c for c in result["cases"]}
     assert by_id["p"]["result"] == "fail" and by_id["p"]["errors"] == 1
     assert by_id["n"]["result"] == "fail" and by_id["n"]["errors"] == 1
+
+
+def test_a_run_that_hits_the_turn_limit_after_loading_only_the_companion_counts(make_ctx):
+    plan = {"q": ["companion-limit", "top", "top"]}
+    result, _, _ = run_trigger(make_ctx, [trig("q", True)], plan)
+    assert result["turnLimitRuns"] == 1
 
 
 def test_runs_that_hit_the_turn_limit_before_loading_are_counted(make_ctx):

@@ -460,8 +460,12 @@ def prose_repo(tmp_path):
         ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("clear", "plain")},
          ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{PROSE}/evals/trigger-evals.json": "[1]\n"}, ["plain-prose-trigger"]),
+        # Since #62 both trigger suites list every repo skill, so any SKILL.md change
+        # can move their results, a body included.
         ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("# Body", "# New")},
-         ["plain-prose-behaviour"]),
+         ["plain-prose-behaviour", "plain-prose-trigger", "writing-docs-trigger"]),
+        ({"config/skills/other-skill/SKILL.md": "---\nname: other-skill\n---\n"},
+         ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, ["plain-prose-behaviour"]),
     ],
 )  # fmt: skip
@@ -507,10 +511,11 @@ def docs_repo(tmp_path):
 @pytest.mark.parametrize(
     "change, suites",
     [
-        ({f"{DOCS}/SKILL.md": DOCS_SKILL_MD.replace("Guides", "Helps")}, ["writing-docs-trigger"]),
+        ({f"{DOCS}/SKILL.md": DOCS_SKILL_MD.replace("Guides", "Helps")},
+         ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{DOCS}/evals/trigger-evals.json": "[1]\n"}, ["writing-docs-trigger"]),
         ({f"{DOCS}/SKILL.md": DOCS_SKILL_MD.replace("# Body", "# New")},
-         ["writing-docs-behaviour"]),
+         ["plain-prose-trigger", "writing-docs-behaviour", "writing-docs-trigger"]),
         ({f"{DOCS}/scripts/doc_lint.py": "print(2)\n"}, ["writing-docs-behaviour"]),
         ({f"{DOCS}/references/templates/readme.md": "# TODO: x\n"}, ["writing-docs-behaviour"]),
         ({"eval/doc_evals.py": "print(2)\n"}, ["writing-docs-behaviour", "writing-docs-trigger"]),

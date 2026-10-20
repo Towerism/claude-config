@@ -2,7 +2,7 @@
 
 This reference lists every `jira`, `gh` and REST call behind each `ticket_lifecycle.py` subcommand, so you can tell what a failed step tried to do. You never run the `jira` writes yourself; the script does, with argument lists and no shell.
 
-The `jira` flags below are the ones `ticket_lifecycle.py` passes to `ankitpokhrel/jira-cli`. They were written from the CLI's documentation and haven't yet been checked against `jira --help` on a machine with the CLI installed. That check runs on the work machine in #17; if a flag differs there, the script, its fake CLI and this page change together.
+The `jira` flags below are the ones `ticket_lifecycle.py` passes to `ankitpokhrel/jira-cli`. On 2026-10-20 (#17), each row was compared with `jira <subcommand> --help` from jira 1.7.0 on the work machine, and every flag and argument exists. `issue edit`'s flag list doesn't describe removing a label with `--label -<name>`, but the command's own examples show it. If a later CLI version drops a flag, the script, its fake CLI and this page change together.
 
 ## Jira CLI
 

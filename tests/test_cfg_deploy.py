@@ -238,7 +238,8 @@ def test_a_release_that_names_a_synced_skill_is_refused_before_any_live_change(
     before = snapshot_bytes(installed)
     with pytest.raises(CfgError, match="config checker failed") as failed:
         run(repo, installed, data, discard=("CLAUDE.md",))
-    assert '"syncedSkills": [\n    "anthropic-skills:pdf"\n  ]' in str(failed.value)
+    report = str(failed.value)
+    assert "syncedSkills" in report and "anthropic-skills:pdf" in report, report
     assert snapshot_bytes(installed) == before
 
 

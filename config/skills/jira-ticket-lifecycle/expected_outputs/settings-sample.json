@@ -1,0 +1,34 @@
+{
+ "project": "PAY",
+ "site": "https://example.atlassian.net",
+ "states": {
+  "inProgress": "In Progress",
+  "review": "In Review",
+  "done": "Done"
+ },
+ "stateOrder": [
+  "To Do",
+  "In Progress",
+  "In Review",
+  "Done"
+ ],
+ "issueTypes": [
+  "Task",
+  "Bug",
+  "Story"
+ ],
+ "defaultIssueType": "Task",
+ "addToActiveSprint": true,
+ "summaryFormat": "{title}",
+ "relatedLinkType": "Relates",
+ "requireApprovedPr": false,
+ "labels": {
+  "draft": "spec-draft",
+  "approved": "spec-approved",
+  "hotfix": "hotfix",
+  "manual": "approval-manual",
+  "adversarial": "approval-adversarial",
+  "noReview": "approval-no-review"
+ },
+ "specDir": "~/.local/state/claude-config/jira-specs"
+}

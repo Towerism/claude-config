@@ -1,0 +1,103 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "config/skills/jira-ticket-lifecycle/evals/fake_cli.py": "1d33e8c7a3cd4fd9f5c156e2c3de028b8e4c5d800b6867a00a99efdfac5c50eb",
+    "config/skills/jira-ticket-lifecycle/evals/run_behaviour_evals.py": "34537ccf8e56c45c073ca93b5d39b46209a28c7fa1afec041d17370cc1326906"
+  },
+  "inputs": {
+    "config/skills/jira-ticket-lifecycle/SKILL.md#body": "263471f0b377e28d551b5e7a0c99d1666f1f77334d1106171e3ede2c5d3909a5",
+    "config/skills/jira-ticket-lifecycle/assets/pr-body-template.md": "f37a74f668601827925a9d74c196c2859589b5324847a021a16695e36fd98e57",
+    "config/skills/jira-ticket-lifecycle/evals/evals.json": "0045823db886c3d1f9c296cfff5811db32bf4b59678fd7f7c42a15af14174f17",
+    "config/skills/jira-ticket-lifecycle/references/jira-commands.md": "f65f1819853c1d9ac413cd4a747a2b4d9debfa33987c528748eba77a0d2a189d",
+    "config/skills/jira-ticket-lifecycle/references/settings.md": "03d1f3e19762f7376893bf4b5089073be946d998cff93e388ad4eccc794db2ba",
+    "config/skills/jira-ticket-lifecycle/scripts/ticket_lifecycle.py": "9aa88f4fb7ea759271465c2ee11443cf3f6d5c013baa22d451c93c497ac33be5"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-20T14:46:56Z",
+  "result": {
+    "cases": [
+      {
+        "id": "1",
+        "result": "pass"
+      },
+      {
+        "id": "2",
+        "result": "pass"
+      },
+      {
+        "id": "3",
+        "result": "pass"
+      },
+      {
+        "id": "4",
+        "result": "pass"
+      },
+      {
+        "id": "5",
+        "result": "pass"
+      },
+      {
+        "id": "6",
+        "result": "pass"
+      },
+      {
+        "id": "7",
+        "result": "pass"
+      },
+      {
+        "id": "8",
+        "result": "pass"
+      },
+      {
+        "id": "9",
+        "result": "pass"
+      },
+      {
+        "id": "10",
+        "result": "pass"
+      },
+      {
+        "id": "11",
+        "result": "pass"
+      },
+      {
+        "id": "12",
+        "result": "pass"
+      },
+      {
+        "id": "13",
+        "result": "pass"
+      },
+      {
+        "id": "14",
+        "result": "pass"
+      },
+      {
+        "id": "15",
+        "result": "pass"
+      },
+      {
+        "id": "16",
+        "result": "pass"
+      },
+      {
+        "id": "17",
+        "result": "pass"
+      },
+      {
+        "id": "18",
+        "result": "pass"
+      },
+      {
+        "id": "19",
+        "result": "pass"
+      }
+    ],
+    "exitCode": 0,
+    "pass": true
+  },
+  "suite": "jira-ticket-lifecycle-behaviour"
+}

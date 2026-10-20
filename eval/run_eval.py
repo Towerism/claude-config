@@ -113,8 +113,9 @@ def make_config_dir(ctx: Context, name: str, claude_md: str) -> Path:
         # The repo replaced these plugins' skills with its own copies (#62). Until every
         # machine has uninstalled them, a run would still load their 72 skills, so they are
         # switched off; a missing key may not count as off. #63 removes this once they're gone.
+        enabled = settings.get("enabledPlugins")
         settings["enabledPlugins"] = {
-            **settings.get("enabledPlugins", {}),
+            **(enabled if isinstance(enabled, dict) else {}),
             **dict.fromkeys(REMOVED_PLUGINS, False),
         }
         (d / "settings.json").write_text(json.dumps(settings, indent=2))

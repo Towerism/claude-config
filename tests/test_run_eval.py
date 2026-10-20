@@ -464,6 +464,17 @@ def test_a_config_directory_that_fails_halfway_is_removed(env):
     assert leftovers(env["root"]) == []
 
 
+@pytest.mark.parametrize("value", [None, ["x@y"], "x@y"])
+def test_enabled_plugins_that_are_not_an_object_are_replaced(env, value):
+    (env["live"] / "settings.json").write_text(json.dumps({"enabledPlugins": value}))
+    cfg = re_.make_config_dir(context(env, FakeClaude(), []), "x", "# x\n")
+    try:
+        copied = json.loads((cfg / "settings.json").read_text())
+        assert copied["enabledPlugins"] == dict.fromkeys(REMOVED_PLUGINS, False)
+    finally:
+        re_.remove_config_dir(cfg)
+
+
 def test_live_settings_are_optional(env):
     (env["live"] / "settings.json").unlink()
     ctx = context(env, FakeClaude(), [])

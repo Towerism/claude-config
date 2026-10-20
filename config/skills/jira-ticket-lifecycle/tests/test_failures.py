@@ -15,8 +15,16 @@ def fail(match, stderr="Error: something broke", rc=1, **extra):
     return {"match": match, "rc": rc, "stderr": stderr, **extra}
 
 
-PR = {"number": 1, "url": "https://github.com/o/r/pull/1", "state": "OPEN", "isDraft": True,
-      "reviewDecision": "", "body": "b\n", "title": "t", "mergedAt": None}  # fmt: skip
+PR = {
+    "number": 1,
+    "url": "https://github.com/o/r/pull/1",
+    "state": "OPEN",
+    "isDraft": True,
+    "reviewDecision": "",
+    "body": "b\n",
+    "title": "t",
+    "mergedAt": None,
+}
 
 
 def setup(env, ticket=None, pr=None, sprints=None, **settings):
@@ -249,12 +257,42 @@ def test_sync_needs_a_working_copy_and_a_branch_for_a_pointer(env):
 
 def test_view_reads_lists_line_breaks_and_odd_nodes(env):
     env.add_ticket("PAY-142")
-    raw = {"key": "PAY-142", "fields": {"summary": "S", "status": {"name": "To Do"}, "labels": [],
-           "description": {"type": "doc", "content": [
-               {"type": "paragraph", "content": [{"type": "text", "text": "one"}, {"type": "hardBreak"},
-                                                 {"type": "text", "text": "two"}, "stray"]},
-               {"type": "bulletList", "content": [{"type": "listItem", "content": [
-                   {"type": "paragraph", "content": [{"type": "text", "text": "item"}]}]}]}]}}}  # fmt: skip
+    raw = {
+        "key": "PAY-142",
+        "fields": {
+            "summary": "S",
+            "status": {"name": "To Do"},
+            "labels": [],
+            "description": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {"type": "text", "text": "one"},
+                            {"type": "hardBreak"},
+                            {"type": "text", "text": "two"},
+                            "stray",
+                        ],
+                    },
+                    {
+                        "type": "bulletList",
+                        "content": [
+                            {
+                                "type": "listItem",
+                                "content": [
+                                    {
+                                        "type": "paragraph",
+                                        "content": [{"type": "text", "text": "item"}],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            },
+        },
+    }
     env.update(canned=[{"match": "jira issue view", "stdout": json.dumps(raw)}])
     _, out = env.json("view", "--key", "PAY-142")
     assert out["ticket"]["description"] == "one\ntwo\n\n- item"
@@ -333,8 +371,14 @@ def test_a_commit_message_on_stdin(env):
 
     from conftest import script_command
 
-    r = subprocess.run([*script_command(), "commit-check", "--message", "-"], input="feat: x (PAY-1)\n",
-                       capture_output=True, text=True, env=env.environ(), cwd=env.repo)  # fmt: skip
+    r = subprocess.run(
+        [*script_command(), "commit-check", "--message", "-"],
+        input="feat: x (PAY-1)\n",
+        capture_output=True,
+        text=True,
+        env=env.environ(),
+        cwd=env.repo,
+    )
     assert r.stdout.startswith("OK")
 
 

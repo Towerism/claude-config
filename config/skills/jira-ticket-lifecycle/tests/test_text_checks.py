@@ -351,10 +351,40 @@ def test_a_broken_prose_checker_is_reported_not_raised(tmp_path, env):
     assert "RuntimeError" in out["tellsNote"]
 
 
-def test_no_bytecode_cache_lands_beside_the_scripts(env):
-    commit(env, TELLING)
-    assert not (SCRIPT.parent / "__pycache__").exists()
-    assert not (SCRIPT.parents[2] / "plain-prose" / "scripts" / "__pycache__").exists()
+def test_no_bytecode_cache_lands_beside_the_scripts(tmp_path, env):
+    # Copies, so a cache that other suites left in the repo can't decide the result.
+    root = tmp_path / "skills"
+    shutil.copytree(
+        SCRIPT.parent,
+        root / "jira-ticket-lifecycle" / "scripts",
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    prose = SCRIPT.parents[2] / "plain-prose"
+    shutil.copytree(
+        prose / "scripts",
+        root / "plain-prose" / "scripts",
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    shutil.copytree(prose / "references", root / "plain-prose" / "references")
+    import subprocess
+
+    script = root / "jira-ticket-lifecycle" / "scripts" / SCRIPT.name
+    r = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            str(script),
+            "commit-check",
+            "--message",
+            str(env.file("m.txt", TELLING)),
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+        env=env.environ(),
+    )
+    assert json.loads(r.stdout)["tells"]
+    assert not list(root.rglob("__pycache__"))
 
 
 # ── usage ────────────────────────────────────────────────────────────────────

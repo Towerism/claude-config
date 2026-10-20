@@ -1,6 +1,6 @@
 # ADR-0010: Prose a cold reader understands (a `plain-prose` skill for all human-facing text, and a `writing-docs` skill for documentation)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Amended 2026-10-16 by #12, after its first live trigger run: the scope is text a person will read later, not chat replies (see "The scope, as the owner set it after the first eval run"). Amended 2026-10-17 by #13: `writing-docs` covers the same texts as `plain-prose`, not only documentation (see "Skill 2"), and its evals run with `plain-prose` beside it.
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Amended 2026-10-16 by #12, after its first live trigger run: the scope is text a person will read later, not chat replies (see "The scope, as the owner set it after the first eval run"). Amended 2026-10-17 by #13: `writing-docs` covers the same texts as `plain-prose`, not only documentation (see "Skill 2"), and its evals run with `plain-prose` beside it. Amended 2026-10-20 by #62: the vendoring policy covers whole skills (see "Amendment for #62").
 
 Everything Claude writes for people should be easy to follow for a reader with no context, and free of the patterns that mark text as AI-written. A small `plain-prose` skill holds those rules for any text a person will read later, from code comments and error messages to commit messages and docs. A second skill, `writing-docs`, covers the same texts and adds reader-first steps on top, with templates and a lint for documents. One line in the global CLAUDE.md says when to load `plain-prose`, and the lifecycle skill and `writing-docs` call it at the points where they produce prose.
 
@@ -186,3 +186,7 @@ This architecture was first drafted before either skill existed. The drafts were
 - The evals show a rule hurting understanding without reducing AI-sounding flags; for example, a list turned into prose that is harder to follow. Narrow that rule. When readability and detectability pull in different directions, the cold reader's content questions decide.
 - The readability findings misfire on technical prose, such as passive voice in specs or long sentences listing exact values. Tune the thresholds, or drop the finding.
 - An upstream skill appears that covers reader-first technical writing. Prefer it, plus an overlay, over `writing-docs`.
+
+## Amendment for #62 (2026-10-20)
+
+This ADR first vendored files from the `claude-code-skills` marketplace, `plain-prose`'s four files, and set the policy that an upstream change is reported, never applied on its own. #62 applies the same policy to whole skills: 17 skills from that marketplace are copied into `config/skills/`, each with a `VENDORED.json` in the same form, and `lock.py --check` reports their upstream changes as it does for `plain-prose`'s files ([ADR-0005's amendment](0005-verification-and-ci.md#amendment-for-62-2026-10-20)).

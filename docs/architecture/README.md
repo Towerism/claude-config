@@ -84,7 +84,7 @@ flowchart LR
 
   MP1[(claude-code-skills marketplace<br/>alirezarezvani/claude-skills)]
   MP2[(claude-plugins-official)]
-  MP1 -->|harness installs and updates plugins| H1
+  MP1 -->|harness keeps its clone up to date; no plugin from it is enabled (#62)| H1
   MP2 -->|harness installs and updates plugins| H1
   MP1 --> H2
 
@@ -127,6 +127,7 @@ claude-config/
 │   ├── settings.fragment.json   settings keys the repo owns; hook commands use {claude_home}
 │   └── skills/<name>/           → ~/.claude/skills/<name>/  (SKILL.md, SPEC.md, REVIEW-NOTE.md, scripts, tests, evals)
 │       ├── plain-prose/         planned: readability rules for all prose, plus prose_check.py (ADR-0010)
+│       ├── senior-qa/ and 16 more  copied whole from claude-code-skills, each with VENDORED.json (#62, ADR-0002)
 │       └── writing-docs/        planned: documentation steps, plus doc_lint.py (ADR-0010)
 │
 ├── hosts/
@@ -320,7 +321,7 @@ The table lists the risks this design guards against, with a rough likelihood an
 |---|---|---|---|
 | T1 | A secret, the owner's email, or an excluded term gets committed (credentials, tokens in an eval transcript, a pasted settings value) | Med × High | Only `config/` deploys. Raw eval output stays in the gitignored `eval/out/`. Eval runs create their temporary config directories under `/tmp` and assert they're outside the repo, because those directories hold a copied `.credentials.json`. gitleaks, the email and token patterns, and the filename deny-list run in pre-commit and again in CI over the PR's commits. Pre-commit also checks a local, untracked list of excluded terms ([ADR-0007](../adr/0007-visibility-and-security.md)). `capture` copies only managed paths. |
 | T2 | A hook change breaks or subverts every tool call. Hooks run with the owner's privileges on every Skill and Bash call, and they see full Bash commands. | Low × High | The hook review bar in [ADR-0007](../adr/0007-visibility-and-security.md): a CI check that hooks use only the standard library and no network, 100% branch coverage, a real-harness eval record, 95th-percentile time under 500 ms, always exit 0, never print tool input. Deploy smoke-tests hooks before and after switching. `cfg rollback` and the standalone `restore.sh` are the undo. |
-| T3 | Plugin supply chain: a marketplace update changes skill text, or the scripts that overlays tell Claude to run | Med × High | The plugin lock records versions and git SHAs, and `cfg status` and `cfg check --live` flag any change. Each lock update is its own PR with dependency and security audits. The owner keeps marketplace auto-update on (decided 2026-10-16), so the repo detects updates rather than preventing them. |
+| T3 | Plugin supply chain: a marketplace update changes skill text, or the scripts that overlays tell Claude to run | Med × High | The plugin lock records versions and git SHAs, and `cfg status` and `cfg check --live` flag any change. Each lock update is its own PR with dependency and security audits. The owner keeps marketplace auto-update on (decided 2026-10-16), so the repo detects updates rather than preventing them. The 17 skills copied from `claude-code-skills` (#62) don't change when the marketplace does: an upstream change reaches them only through a reviewed PR, and `lock.py --check` reports it by comparing each file's recorded hash with the marketplace clone. |
 | T4 | A deploy overwrites settings the harness wrote, or deletes a live file | Med × Med | Only owned keys are merged. The file's hash is re-read just before `os.replace`, and the write aborts if it changed. Nothing is written when the result is semantically unchanged, so the first deploy doesn't rewrite `settings.json` when its owned keys already match. Files are never deleted: after a warning, they are moved into a backup with a manifest. |
 | T5 | Unreviewed draft config goes live, from a branch checkout or a dirty working tree | Med × Med | Links point at release worktrees pinned to a deployed commit, never at the working clone. `deploy` installs the commit `origin/main` names, or an explicit `--ref`, and never reads the working tree. Skills live under `config/skills/`, not `.claude/skills/`, so drafts never register as project skills. |
 | T6 | Personal content and the owner's email become public | Certain × Low–Med (the owner accepted a public repo) | Everything committed is world-readable, and so is the author email in every commit. The email stays obfuscated: the repo commits with the owner's GitHub noreply address, and CI fails any commit whose author or committer email isn't a noreply address. Secret and email scans run before commit and in CI. Anything that later shouldn't be public moves to a private companion repo. |

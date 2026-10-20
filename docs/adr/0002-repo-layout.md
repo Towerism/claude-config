@@ -1,6 +1,6 @@
 # ADR-0002: Repo layout and boundaries
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Amended 2026-10-20 by #62 (spec approved by the owner): skills copied whole from upstream (see "Amendment for #62").
 
 Everything that gets deployed lives under `config/`, and nothing outside it reaches the live config (`~/.claude`). The global CLAUDE.md is stored as `config/CLAUDE.global.md`, so it never loads as memory while someone works on the repo. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -56,3 +56,13 @@ Because of the rename, GNU stow can't be used without reversing this ADR, which 
 
 - Claude Code gains a way to exclude paths from memory loading or skill discovery. The repo root could then mirror `~/.claude` directly.
 - Deployed skills are slimmed so their tests and evals aren't deployed. Those tests would then move to `tests/skills/<name>/`.
+
+## Amendment for #62 (2026-10-20)
+
+**Vendored skills.** The owner removed the two `claude-code-skills` plugins and kept 17 of their skills as repo skills (#62). Each is a whole copy under `config/skills/<name>/`, taken from upstream as it was. A skill whose `VENDORED.json` lists its `SKILL.md` is a vendored skill:
+
+- Its `VENDORED.json` lists every file in its directory, with the file's upstream path and sha256. A file changed here, for example to pass the repo's email and token checks, is marked `adapted`, with a note saying what changed and the hash of the repo copy (`localSha256`). `tests/test_vendored_skills.py` checks all of this.
+- ruff skips its directory, as it skips `tools/vendor/`, because lint findings in upstream code aren't fixed here.
+- The rule that a skill gets a `SPEC.md` with its first change in this repo applies to the first change that isn't a copy from upstream. Copying the skill in, copying a newer upstream version over it, or adapting a file only to pass the repo's checks doesn't count. The first change to how the skill works adds its `SPEC.md` and `REVIEW-NOTE.md`, and from then on the skill follows the rule above like any other.
+
+`plain-prose` also has a `VENDORED.json`, but it lists only the four files under its `vendored/` directories, not its `SKILL.md`, so it isn't a vendored skill. [ADR-0005's amendment](0005-verification-and-ci.md#amendment-for-62-2026-10-20) says how the copies are checked against upstream.

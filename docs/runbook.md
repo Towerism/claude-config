@@ -2,7 +2,7 @@
 
 This runbook is for the owner, or anyone setting up a machine for them. It covers running claude-config day to day: setting up a clone, deploying, handling drift, rolling back and undoing, and adding a second machine. Most of it changes your live Claude Code config in `~/.claude`; each section says when it does. To learn the commands without touching anything live, start with [Practice on a trial directory](#practice-on-a-trial-directory).
 
-**Last verified:** 2026-10-19, against commit `80285b7` and Claude Code 2.1.299. Every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
+**Last verified:** 2026-10-20, against commit `a7e70be` and Claude Code 2.1.304, when [Setting up the work machine](#setting-up-the-work-machine) ran on the work machine's live config. The rest was last verified on 2026-10-19, against commit `80285b7` and Claude Code 2.1.299, where every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
 
 Why things work this way is in the [architecture overview](architecture/README.md) and the ADRs it links. This page only says what to type and what to expect.
 
@@ -397,7 +397,7 @@ For the work machine, follow [Setting up the work machine](#setting-up-the-work-
 5. Run a trial deploy first. Follow [Practice on a trial directory](#practice-on-a-trial-directory) with your profile.
 6. Run the real first deploy: [on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config), or [on an empty machine](#the-first-deploy-on-an-empty-machine).
 
-These steps haven't been run on a real second machine yet.
+These steps were first run on a real second machine, the work machine, on 2026-10-20 (#17). What differed there is at the end of [Setting up the work machine](#setting-up-the-work-machine).
 
 ## Setting up the work machine
 
@@ -482,6 +482,16 @@ Steps 1 to 5 change files only you control. Step 6 changes the live `~/.claude`,
 
 12. Record the results in a last PR that closes #17: this runbook's "Last verified" line and the note below "Setting up a second machine", the CLI version and result in the jira-commands reference, and the items #16 left for this machine in that skill's `REVIEW-NOTE.md`. Commit it on this machine, so the git hooks check it against this machine's excluded-terms list. Pushing needs `gh` and git logged in as the repo owner's GitHub account, as [Before you start](#before-you-start) says; if this machine's `gh` uses a work account, stop and ask before switching it.
 
+### Results on 2026-10-20
+
+Steps 1 to 11 passed on the work machine (#17). These things differed from the steps above:
+
+- Step 2: the token check passed in a terminal but not, at first, inside Claude Code. A `zsh -c` started from the session saw no `JIRA_API_TOKEN` until the export was in `~/.zshenv` and the session restarted. Run the check from inside Claude Code, as `! zsh -c '…'`.
+- Step 8: every flag and argument the script passes exists in jira 1.7.0. The live `jira sprint list --state active` output has the tab-separated ID and name the script reads.
+- Step 9: `jira-ticket-lifecycle` loaded, named in the prompt. Its `auth` step failed at first: `gh auth status` exits 1 when a stale saved token sits beside a working `GITHUB_TOKEN`. Removing the stale entry with `env -u GITHUB_TOKEN gh auth logout -h github.com -u <login>` fixed it. `claim` skipped assigning, because the ticket was already the owner's, then added the ticket to the active sprint and moved it to in progress. After `sync-spec`, the read-back held `spec:start` and `spec:end` as paragraphs of their own, with the whole spec between them.
+- Step 10: the owner removed the old skill before steps 8 and 9 ran, so its `diff -r` wasn't shown. Its kept copy is in `~/.old-claude/skills/`, not `~/.old-claude/work-skills/`. `status` said `clean`, and the next session named `jira-ticket-lifecycle` as its default.
+- Step 11: `~/.config/claude-config/deny-terms` didn't exist until this step, so until then the hooks on this machine checked no terms. Once the owner wrote it, the scan printed no `deny-term` line and ended with `check-range: terms checked: 5`.
+
 ## Changing this machine's default lifecycle
 
 Each session and subagent starts with one line saying which lifecycle skill to use when the repo's own CLAUDE.md names no tracker. The `lifecycle_default.py` hook prints it, from a deploy that includes #15 onward. To see the line this machine gets:
@@ -522,6 +532,8 @@ Compare the moved files with the repo's versions before throwing them away.
 ## What was removed after the first deploy
 
 After the personal machine's first deploy passed on 2026-10-19, the owner approved deleting two leftovers of the v1 config: the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` and the v2 install backup in `~/.claude/backups/claude-md-v2-20261015T230435/` (recorded in the plan's [open question on deleting them, Q-2](architecture/plan.md#open-questions)). `~/.old-claude/work-skills/` is kept.
+
+On the work machine, the owner removed the existing work skill from `~/.claude/skills/` on 2026-10-20 (#17). Its copy is kept in `~/.old-claude/skills/`.
 
 Don't delete the first deploy's own backup, `~/.claude/backups/claude-config/20261019T160515Z/`. It's the only way back to the files from before the first deploy.
 

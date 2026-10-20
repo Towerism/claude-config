@@ -129,7 +129,7 @@ Do this once on each machine, with the first deploy that includes #62's PR 1. Th
    for s in adversarial-reviewer api-test-suite-builder ci-cd-pipeline-builder runbook-generator senior-architect senior-qa ship-gate spec-driven-workflow tdd-guide; do printf '{"hook_event_name":"PostToolUse","tool_name":"Skill","tool_input":{"skill":"%s"}}' "$s" | env -u CLAUDE_HOME python3 -I ~/.claude/hooks/skill_overlay.py; echo; done
    ```
 
-   Expect 9 JSON lines. Each `additionalContext` starts `Skill overlay for <name>:` and names paths under `~/.claude/skills/<name>/`. If a line says `could not be loaded`, or a line inside it starts `missing:`, stop: a link points at the wrong place. Run `python3 -I tools/cfg/cli.py rollback` and report it on #62.
+   Expect 9 JSON lines. Each `additionalContext` starts `Skill overlay for <name>:`. Four overlays name files (api-test-suite-builder, ci-cd-pipeline-builder, senior-qa and spec-driven-workflow), and each path they name is under `~/.claude/skills/<name>/`. The other five print only their policy text, with no paths. If a line says `could not be loaded`, or a line inside it starts `missing:`, stop: a link points at the wrong place. Run `python3 -I tools/cfg/cli.py rollback` and report it on #62.
 
 3. Uninstall the two plugins:
 

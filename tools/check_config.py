@@ -8,9 +8,15 @@ python3 -I tools/check_config.py --host hosts/<name>.json [--claude-home <dir>]
     [--path-rule report|fail] [--json]
 exit 0 = pass, 1 = findings, 2 = usage error
 
-With --plugin-index, plugin and synced skills resolve from the plugin lock
-instead of the plugin cache, so the check runs where no plugins are installed,
-such as CI. tools/cfg/lock.py writes the lock.
+With --plugin-index, plugin skills resolve from the plugin lock instead of
+the plugin cache, so the check runs where no plugins are installed, such as
+CI. tools/cfg/lock.py writes the lock.
+
+Skills that claude.ai syncs into ~/.claude/skills/synced/ (named
+anthropic-skills:<name>) depend on the account, and each machine may use a
+different one. So in every mode, a CLAUDE.md or overlay that names one is a
+finding (syncedSkills), even when the skill is synced on this machine; use
+a plugin or repo skill instead.
 
 With --host, the CLAUDE.md, overlays, repo skills and lifecycle skill come
 from a host profile, and only the skills and plugins the profile lists
@@ -38,7 +44,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK_FILE = REPO_ROOT / "config" / "hooks" / "skill_overlay.py"
-LOCK_VERSION = 1
+LOCK_VERSION = 2
 SYNCED_PREFIX = "anthropic-skills:"
 PATH_RULE_DIRS = ("tools", "config", "eval")
 PATH_RULE_SKIP = {".venv", "__pycache__", ".pytest_cache"}
@@ -112,9 +118,6 @@ def is_skill_token(tok: str) -> bool:
 
 def resolve(name: str, home: Path, roots: list[Path]) -> Path | None:
     """Return the skill directory, or None if it isn't installed/staged."""
-    if name.startswith(SYNCED_PREFIX):
-        hits = list((home / "skills" / "synced").glob(f"*/{name.split(':', 1)[1]}/SKILL.md"))
-        return hits[0].parent if hits else None
     try:
         found: Path = skill_dir(home, name)
         return found
@@ -166,7 +169,10 @@ def load_lock(path: Path) -> Lock:
     if not isinstance(lock, dict):
         raise UsageError(f"plugin lock {path} is not a JSON object")
     if lock.get("lockVersion") != LOCK_VERSION:
-        raise UsageError(f"plugin lock {path} has lockVersion {lock.get('lockVersion')!r}")
+        raise UsageError(
+            f"plugin lock {path} has lockVersion {lock.get('lockVersion')!r}; "
+            f"this checker reads version {LOCK_VERSION}, so regenerate it with tools/cfg/lock.py"
+        )
     plugins = lock.get("plugins")
     if not isinstance(plugins, dict):
         raise UsageError(f"plugin lock {path} has no plugins object")
@@ -175,8 +181,6 @@ def load_lock(path: Path) -> Lock:
             raise UsageError(f"plugin lock {path}: {pid} has no skills list")
         if not isinstance(entry.get("files", {}), dict):
             raise UsageError(f"plugin lock {path}: {pid} has a files entry that isn't an object")
-    if not _str_list(lock.get("synced")):
-        raise UsageError(f"plugin lock {path} has no synced list")
     return lock
 
 
@@ -187,8 +191,6 @@ def _str_list(value: object) -> bool:
 def resolve_offline(name: str, lock: Lock, home: Path, roots: list[Path]) -> Skill | None:
     """Resolve a skill name the way resolve() does, but plugin skills come from the lock."""
     plugins: dict[str, Any] = lock["plugins"]
-    if name.startswith(SYNCED_PREFIX):
-        return Skill() if name.split(":", 1)[1] in lock["synced"] else None
     if ":" in name:
         bundle, short = name.split(":", 1)
         for pid, entry in plugins.items():
@@ -292,11 +294,6 @@ class Scope:
         return Skill(path=found) if found is not None else None
 
     def _find_for_host(self, name: str, profile: Profile) -> Skill | None:
-        if name.startswith(SYNCED_PREFIX):
-            if self.lock is not None:
-                return resolve_offline(name, self.lock, self.home, [])
-            found = resolve(name, self.home, [])
-            return Skill(path=found) if found is not None else None
         if ":" in name:
             bundle, short = name.split(":", 1)
             for pid in profile.plugins:
@@ -399,6 +396,7 @@ def check(
     rep: Report = {
         "ok": True,
         "unresolvedSkills": [],
+        "syncedSkills": [],
         "missingPaths": [],
         "clauseProblems": [],
         "forbiddenContent": [],
@@ -410,7 +408,9 @@ def check(
         rep["pathProblems"] = scan_paths(profile.root if profile is not None else REPO_ROOT)
     find = scope.find
 
-    names = sorted({t for t in SKILL_TOKEN.findall(md) if is_skill_token(t)} | set(overlays))
+    named = sorted({t for t in SKILL_TOKEN.findall(md) if is_skill_token(t)} | set(overlays))
+    rep["syncedSkills"] = [n for n in named if n.startswith(SYNCED_PREFIX)]
+    names = [n for n in named if not n.startswith(SYNCED_PREFIX)]
     skills = {n: find(n) for n in names}
     rep["unresolvedSkills"] = [n for n in names if skills[n] is None]
 
@@ -478,6 +478,7 @@ def check(
     over = [t for t in rep["tokenCounts"] if t["tokens"] > t["limit"]]
     rep["ok"] = not (
         rep["unresolvedSkills"]
+        or rep["syncedSkills"]
         or rep["missingPaths"]
         or rep["clauseProblems"]
         or rep["forbiddenContent"]

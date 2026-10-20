@@ -10,9 +10,11 @@ The lock lets tools/check_config.py --plugin-index resolve plugin skills
 where no plugins are installed, such as CI (ADR-0005). For each plugin
 installed at user scope it records the id, marketplace, version, git commit
 and skill names. For each plugin skill that a host profile's CLAUDE.md or
-overlays refer to, it also records the skill's files. It records the names
-of the synced skills. It holds no install paths, timestamps or other
-machine-specific values, so the same plugins always give the same bytes.
+overlays refer to, it also records the skill's files. It holds no install
+paths, timestamps or other machine-specific values, so the same plugins
+always give the same bytes. It never records the skills claude.ai syncs
+into skills/synced/: each account syncs its own, so two machines on
+different accounts write the same lock.
 
 --check builds the lock in memory and lists how the committed one differs.
 It also compares each vendored file, as listed in tools/vendor/*/VENDORED.json
@@ -150,7 +152,6 @@ def build_lock(home: Path, repo_root: Path) -> Lock:
             "files": {},
         }
     lock: Lock = {"lockVersion": check_config.LOCK_VERSION, "plugins": plugins}
-    lock["synced"] = synced_names(home)
 
     for pid, name in sorted(referenced_skills(repo_root, home, lock)):
         plugins[pid]["files"][name] = skill_files(installs[pid] / "skills" / name)
@@ -172,9 +173,10 @@ def lock_differences(committed: Lock, current: Lock) -> list[str]:
                 for key in sorted(set(old[pid]) | set(new[pid]))
                 if old[pid].get(key) != new[pid].get(key)
             ]
-    for key in ("lockVersion", "synced"):
-        if committed.get(key) != current[key]:
-            diffs.append(f"{key}: was {committed.get(key)!r}, now {current[key]!r}")
+    if committed.get("lockVersion") != current["lockVersion"]:
+        diffs.append(
+            f"lockVersion: was {committed.get('lockVersion')!r}, now {current['lockVersion']!r}"
+        )
     return diffs
 
 

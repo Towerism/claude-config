@@ -112,8 +112,7 @@ def make_overlay(home: Path, skill: str, body: str) -> Path:
 def make_lock(
     path: Path,
     plugins: dict[str, dict[str, Any]] | None = None,
-    synced: Iterable[str] = (),
-    version: int = 1,
+    version: int = 2,
 ) -> Path:
     """Write a plugin lock. Each plugin needs only "skills" and, optionally, "files"."""
     entries = {}
@@ -128,7 +127,7 @@ def make_lock(
             "skills": sorted(p.get("skills", [])),
             "files": p.get("files", {}),
         }
-    lock = {"lockVersion": version, "plugins": entries, "synced": sorted(synced)}
+    lock = {"lockVersion": version, "plugins": entries}
     path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
     return path
 

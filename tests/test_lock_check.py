@@ -67,12 +67,9 @@ def test_a_changed_plugin_version_is_reported(machine):
     assert rep["lock"] == ["engineering-skills@mkt: version was '2.9.0', now '3.0.0'"]
 
 
-def test_added_and_removed_plugins_and_synced_skills_are_reported(machine):
+def test_added_and_removed_plugins_are_reported(machine):
     home, repo = machine
     make_skill(home, "new-bundle", "1.0.0", "fresh", [])
-    synced = home / "skills" / "synced" / "uuid-1" / "pdf"
-    synced.mkdir(parents=True)
-    (synced / "SKILL.md").write_text("x")
     lock = json.loads((repo / "plugins.lock.json").read_text())
     lock["plugins"]["gone@mkt"] = lock["plugins"]["engineering-skills@mkt"]
     (repo / "plugins.lock.json").write_text(json.dumps(lock))
@@ -81,8 +78,17 @@ def test_added_and_removed_plugins_and_synced_skills_are_reported(machine):
     assert rep["lock"] == [
         "gone@mkt: in the lock but not installed",
         "new-bundle@mkt: installed but not in the lock",
-        "synced: was [], now ['pdf']",
     ]
+
+
+def test_the_skills_this_account_syncs_are_not_compared_with_the_lock(machine):
+    home, repo = machine
+    synced = home / "skills" / "synced" / "uuid-1" / "pdf"
+    synced.mkdir(parents=True)
+    (synced / "SKILL.md").write_text("x")
+    r, rep = run_check(home, repo)
+    assert r.returncode == 0, r.stdout
+    assert rep["lock"] == []
 
 
 def test_a_missing_or_unreadable_lock_is_reported(machine):
@@ -127,9 +133,7 @@ def test_a_repo_without_vendored_files_checks_only_the_lock(machine):
     assert r.returncode == 0 and rep["vendored"] == []
 
 
-@pytest.mark.parametrize(
-    "content", ["[]", '{"lockVersion": 1, "plugins": {"a@m": 3}, "synced": []}']
-)
+@pytest.mark.parametrize("content", ["[]", '{"lockVersion": 2, "plugins": {"a@m": 3}}'])
 def test_a_committed_lock_of_the_wrong_shape_is_reported_not_a_crash(machine, content):
     home, repo = machine
     (repo / "plugins.lock.json").write_text(content)

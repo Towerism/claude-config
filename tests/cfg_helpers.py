@@ -50,7 +50,7 @@ PROFILE: dict[str, Any] = {
     "defaultLifecycle": "alpha",
 }
 
-EMPTY_LOCK: dict[str, Any] = {"lockVersion": 1, "plugins": {}, "synced": []}
+EMPTY_LOCK: dict[str, Any] = {"lockVersion": 2, "plugins": {}}
 
 GIT_ENV = {
     "GIT_CONFIG_GLOBAL": os.devnull,

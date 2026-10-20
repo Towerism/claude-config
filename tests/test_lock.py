@@ -89,7 +89,7 @@ def run_lock(home, repo, *extra):
 
 
 EXPECTED = {
-    "lockVersion": 1,
+    "lockVersion": 2,
     "plugins": {
         "engineering-skills@mkt": {
             "marketplace": "mkt",
@@ -113,11 +113,10 @@ EXPECTED = {
             "files": {},
         },
     },
-    "synced": ["skill-creator"],
 }
 
 
-def test_the_lock_records_user_installs_skills_synced_names_and_referenced_files(installed):
+def test_the_lock_records_user_installs_skills_and_referenced_files(installed):
     home, repo = installed
     r = run_lock(home, repo)
     assert r.returncode == 0, r.stdout + r.stderr
@@ -194,13 +193,18 @@ def test_unreadable_installed_plugins_is_refused(installed, content):
     assert not (repo / "plugins.lock.json").exists()
 
 
-def test_no_synced_directory_gives_an_empty_synced_list(installed):
+def test_the_lock_is_the_same_whatever_skills_the_account_syncs(installed):
+    # Each account syncs its own skills, so two machines on different
+    # accounts must still write the same lock.
     home, repo = installed
+    assert run_lock(home, repo).returncode == 0
+    with_synced = (repo / "plugins.lock.json").read_bytes()
     for p in sorted((home / "skills" / "synced").rglob("*"), reverse=True):
         p.rmdir() if p.is_dir() else p.unlink()
     (home / "skills" / "synced").rmdir()
     assert run_lock(home, repo).returncode == 0
-    assert json.loads((repo / "plugins.lock.json").read_text())["synced"] == []
+    assert (repo / "plugins.lock.json").read_bytes() == with_synced
+    assert "synced" not in json.loads(with_synced)
 
 
 def test_a_broken_host_profile_is_refused(installed):

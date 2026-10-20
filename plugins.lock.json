@@ -1,5 +1,5 @@
 {
-  "lockVersion": 1,
+  "lockVersion": 2,
   "plugins": {
     "claude-md-management@claude-plugins-official": {
       "files": {},
@@ -308,21 +308,5 @@
       ],
       "version": "e68e375d2286"
     }
-  },
-  "synced": [
-    "built-in-browser",
-    "chrome-browser",
-    "computer-use",
-    "deep-research",
-    "docs",
-    "docx",
-    "google-workspace",
-    "import-memory",
-    "morning",
-    "pdf",
-    "pptx",
-    "setup-writing-style",
-    "skill-creator",
-    "xlsx"
-  ]
+  }
 }

@@ -17,7 +17,7 @@ import pytest
 from eval import run_eval as re_
 from eval import symlink_check as sc
 from tests.checker_helpers import REPO_ROOT
-from tests.eval_fakes import leftovers, make_live_home, make_tree
+from tests.eval_fakes import REMOVED_PLUGINS, leftovers, make_live_home, make_tree
 
 
 @pytest.fixture(autouse=True)
@@ -254,7 +254,7 @@ def test_the_layout_links_every_managed_path_through_current_as_adr_0001_says(ct
 def test_the_settings_add_the_overlay_and_session_hooks_and_keep_the_live_keys(ctx):
     cfg, _ = built(ctx)
     settings = json.loads((cfg / "settings.json").read_text())
-    assert settings["enabledPlugins"] == {"x@y": True}
+    assert settings["enabledPlugins"] == {"x@y": True, **dict.fromkeys(REMOVED_PLUGINS, False)}
     post = settings["hooks"]["PostToolUse"][0]
     assert post["matcher"] == "Skill"
     assert post["hooks"][0]["command"] == f"python3 -I {cfg}/hooks/skill_overlay.py"

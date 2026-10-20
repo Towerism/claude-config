@@ -12,7 +12,12 @@ from pathlib import Path
 
 from tests.checker_helpers import REPO_ROOT
 
-SKILL = "engineering-skills:senior-qa"
+SKILL = "senior-qa"
+PLUGIN_SKILL = "engineering-skills:senior-qa"
+REMOVED_PLUGINS = (
+    "engineering-skills@claude-code-skills",
+    "engineering-advanced-skills@claude-code-skills",
+)
 
 
 def make_live_home(tmp_path: Path) -> Path:
@@ -49,11 +54,18 @@ def make_live_home(tmp_path: Path) -> Path:
 
 def make_tree(root: Path, md: str = "# Global\n", overlay: str | None = "Read `references/a.md`.\n",
               hook: bool = True, scenarios: list[dict] | None = None) -> Path:  # fmt: skip
-    """A snapshot like the one eval.py extracts from a commit: config/ and eval/."""
+    """A snapshot like the one eval.py extracts from a commit: config/ and eval/.
+
+    It holds one repo skill, SKILL, with the file its overlay names.
+    """
     (root / "config" / "skill-overlays").mkdir(parents=True)
     (root / "config" / "CLAUDE.global.md").write_text(md)
     if overlay is not None:
         (root / "config" / "skill-overlays" / f"{SKILL}.md").write_text(overlay)
+    skill = root / "config" / "skills" / SKILL
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_text(f"---\nname: {SKILL}\n---\n")
+    (skill / "references" / "a.md").write_text("a\n")
     if hook:
         (root / "config" / "hooks").mkdir()
         shutil.copy(REPO_ROOT / "config" / "hooks" / "skill_overlay.py", root / "config" / "hooks")

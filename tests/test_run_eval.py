@@ -12,7 +12,16 @@ import pytest
 
 from eval import run_eval as re_
 from tests.checker_helpers import REPO_ROOT
-from tests.eval_fakes import SKILL, FakeClaude, leftovers, make_live_home, make_tree, scenario
+from tests.eval_fakes import (
+    PLUGIN_SKILL,
+    REMOVED_PLUGINS,
+    SKILL,
+    FakeClaude,
+    leftovers,
+    make_live_home,
+    make_tree,
+    scenario,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -80,7 +89,20 @@ def test_arm_settings_drop_the_live_hooks_and_keep_the_rest(env):
     fake = FakeClaude()
     re_.run_scenario(context(env, fake, [scenario("S-01")]))
     assert all("hooks" not in c["settings"] for c in fake.calls)
-    assert all(c["settings"]["enabledPlugins"] == {"x@y": True} for c in fake.calls)
+    disabled = dict.fromkeys(REMOVED_PLUGINS, False)
+    assert all(c["settings"]["enabledPlugins"] == {"x@y": True, **disabled} for c in fake.calls)
+
+
+def test_arm_settings_disable_the_removed_plugins_even_when_live_enables_them(env):
+    settings = env["live"] / "settings.json"
+    settings.write_text(json.dumps({"enabledPlugins": dict.fromkeys(REMOVED_PLUGINS, True)}))
+    cfg = re_.make_config_dir(context(env, FakeClaude(), []), "x", "# x\n")
+    try:
+        copied = json.loads((cfg / "settings.json").read_text())
+        assert copied["enabledPlugins"] == dict.fromkeys(REMOVED_PLUGINS, False)
+        assert not (cfg / "skills").exists(), "suites install their own skills here"
+    finally:
+        re_.remove_config_dir(cfg)
 
 
 def test_credentials_are_private_while_claude_runs_and_gone_afterwards(env):
@@ -187,6 +209,43 @@ def test_each_arm_gets_the_overlay_its_own_tree_produces(env):
     assert len(old) == 1 and len(new) == 1
     assert f"Skill overlay for {SKILL}:" in new[0]
     assert "references/a.md`" in new[0] and "/skills/senior-qa/references/a.md" in new[0]
+
+
+def test_an_overlay_for_a_repo_skill_resolves_from_the_tree_not_the_live_home(env):
+    ctx = context(env, FakeClaude(), [])
+    assert not (env["live"] / "skills").exists()
+    text = re_.overlay_text(ctx, ctx.head_tree, SKILL)
+    assert text is not None
+    assert text.startswith(f"Skill overlay for {SKILL}:")
+    assert f"/skills/{SKILL}/references/a.md" in text
+    assert "could not be loaded" not in text
+    assert "missing:" not in text
+
+
+def test_a_tree_skill_the_live_home_also_has_is_still_taken_from_the_tree(env):
+    live_skill = env["live"] / "skills" / SKILL
+    live_skill.mkdir(parents=True)
+    (live_skill / "SKILL.md").write_text("live copy\n")
+    ctx = context(env, FakeClaude(), [])
+    (ctx.head_tree / "config" / "skill-overlays" / f"{SKILL}.md").write_text(
+        "Read `references/only-in-tree.md`.\n"
+    )
+    (ctx.head_tree / "config" / "skills" / SKILL / "references" / "only-in-tree.md").write_text("")
+    text = re_.overlay_text(ctx, ctx.head_tree, SKILL)
+    assert text is not None and text.startswith(f"Skill overlay for {SKILL}:")
+    assert "missing:" not in text
+
+
+def test_a_namespaced_overlay_in_an_older_tree_still_resolves_through_the_plugins(env):
+    ctx = context(env, FakeClaude(), [])
+    old = make_tree(env["tmp"] / "older", overlay=None)
+    (old / "config" / "skill-overlays" / f"{PLUGIN_SKILL}.md").write_text(
+        "Read `references/a.md`.\n"
+    )
+    text = re_.overlay_text(ctx, old, SKILL)
+    assert text is not None
+    assert text.startswith(f"Skill overlay for {PLUGIN_SKILL}:")
+    assert "plugin-cache/engineering-skills/skills/senior-qa/references/a.md" in text
 
 
 def test_an_arm_whose_tree_has_no_hook_only_hears_that_the_skill_loaded(env):
@@ -410,7 +469,8 @@ def test_live_settings_are_optional(env):
     ctx = context(env, FakeClaude(), [])
     cfg = re_.make_config_dir(ctx, "x", "# x\n")
     try:
-        assert json.loads((cfg / "settings.json").read_text()) == {}
+        copied = json.loads((cfg / "settings.json").read_text())
+        assert copied == {"enabledPlugins": dict.fromkeys(REMOVED_PLUGINS, False)}
     finally:
         re_.remove_config_dir(cfg)
 

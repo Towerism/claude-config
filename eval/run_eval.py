@@ -45,6 +45,10 @@ RUBRIC_FILE = Path("skills/claude-md-improver/references/quality-criteria.md")
 RUBRIC_PASS = 80
 REASON_LIMIT = 200
 CLAUDE_TIMEOUT = 400
+REMOVED_PLUGINS = (
+    "engineering-skills@claude-code-skills",
+    "engineering-advanced-skills@claude-code-skills",
+)
 
 
 class Refusal(Exception):
@@ -106,6 +110,13 @@ def make_config_dir(ctx: Context, name: str, claude_md: str) -> Path:
         settings_file = ctx.live / "settings.json"
         settings = json.loads(settings_file.read_text()) if settings_file.is_file() else {}
         settings.pop("hooks", None)
+        # The repo replaced these plugins' skills with its own copies (#62). Until every
+        # machine has uninstalled them, a run would still load their 72 skills, so they are
+        # switched off; a missing key may not count as off. #63 removes this once they're gone.
+        settings["enabledPlugins"] = {
+            **settings.get("enabledPlugins", {}),
+            **dict.fromkeys(REMOVED_PLUGINS, False),
+        }
         (d / "settings.json").write_text(json.dumps(settings, indent=2))
         (d / "plugins").symlink_to(ctx.live / "plugins")
         fd = os.open(d / ".credentials.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -167,6 +178,11 @@ def overlay_text(ctx: Context, tree: Path, skill: str) -> str | None:
         overlays = tree / "config" / "skill-overlays"
         if overlays.is_dir():
             shutil.copytree(overlays, home / "skill-overlays")
+        # Repo skills come from the tree, so a branch's overlays resolve before it is
+        # deployed. The plugins stay linked for older trees whose overlays are namespaced.
+        (home / "skills").mkdir()
+        for skill_md in sorted((tree / "config" / "skills").glob("*/SKILL.md")):
+            (home / "skills" / skill_md.parent.name).symlink_to(skill_md.parent)
         (home / "plugins").symlink_to(ctx.live / "plugins")
         payload = {"hook_event_name": "PostToolUse", "tool_name": "Skill",
                    "tool_input": {"skill": skill}}  # fmt: skip

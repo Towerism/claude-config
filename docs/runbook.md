@@ -484,9 +484,9 @@ Steps 1 to 5 change files only you control. Step 6 changes the live `~/.claude`,
 
 ### Results on 2026-10-20
 
-Steps 1 to 11 passed on the work machine (#17). These things differed from the steps above:
+Steps 1 to 11 ran on the work machine (#17). These things didn't go as the steps above describe:
 
-- Step 2: the token check passed in a terminal but not, at first, inside Claude Code. A `zsh -c` started from the session saw no `JIRA_API_TOKEN` until the export was in `~/.zshenv` and the session restarted. Run the check from inside Claude Code, as `! zsh -c '…'`.
+- Step 2: the token check passed in a terminal but not, at first, inside Claude Code. A `zsh -c` started from the session saw no `JIRA_API_TOKEN` until the export was in `~/.zshenv` and the session restarted. Run the check from inside Claude Code: `! zsh -c 'test -n "$JIRA_API_TOKEN" && echo token set'`.
 - Step 8: every flag and argument the script passes exists in jira 1.7.0. The live `jira sprint list --state active` output has the tab-separated ID and name the script reads.
 - Step 9: `jira-ticket-lifecycle` loaded, named in the prompt. Its `auth` step failed at first: `gh auth status` exits 1 when a stale saved token sits beside a working `GITHUB_TOKEN`. Removing the stale entry with `env -u GITHUB_TOKEN gh auth logout -h github.com -u <login>` fixed it. `claim` skipped assigning, because the ticket was already the owner's, then added the ticket to the active sprint and moved it to in progress. After `sync-spec`, the read-back held `spec:start` and `spec:end` as paragraphs of their own, with the whole spec between them.
 - Step 10: the owner removed the old skill before steps 8 and 9 ran, so its `diff -r` wasn't shown. Its kept copy is in `~/.old-claude/skills/`, not `~/.old-claude/work-skills/`. `status` said `clean`, and the next session named `jira-ticket-lifecycle` as its default.

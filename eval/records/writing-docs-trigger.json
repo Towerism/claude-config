@@ -1,7 +1,7 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/doc_evals.py": "c2a4e8295b52bd2947be2c87b6cfbaa55d926ecd95f0fefa2e39615412822ec8",
+    "eval/doc_evals.py": "231e36252017f3fdb0ec2bfbceabfc44c4dc18a39e17e10cdec284c8dee4fe49",
     "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
     "eval/skill_evals.py": "50e1f97105af1e30b5cc92457bb6b0937f5a1f4116e7fceb2c1f4a347d10fd86"
   },
@@ -36,9 +36,9 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T22:27:57Z",
+  "ranAt": "2026-10-20T22:58:36Z",
   "result": {
-    "accuracy": 0.88,
+    "accuracy": 0.84,
     "cases": [
       {
         "delegated": false,
@@ -59,18 +59,18 @@
       {
         "delegated": false,
         "id": "write up how to restore the nightly database backup so whoev",
-        "result": "pass",
+        "result": "fail",
         "runs": 3,
         "shouldTrigger": true,
-        "triggered": 2
+        "triggered": 1
       },
       {
         "delegated": false,
         "id": "draft a how-to guide for adding a new tenant to the billing ",
         "result": "fail",
-        "runs": 3,
+        "runs": 2,
         "shouldTrigger": true,
-        "triggered": 1
+        "triggered": 0
       },
       {
         "delegated": false,
@@ -244,9 +244,9 @@
     "delegatedRate": 0.5,
     "falseTriggers": 0,
     "pass": true,
-    "recall": 0.8,
-    "runs": 52,
-    "turnLimitRuns": 1
+    "recall": 0.733,
+    "runs": 51,
+    "turnLimitRuns": 3
   },
   "suite": "writing-docs-trigger"
 }

@@ -7,7 +7,8 @@
   "plugins": [
     "engineering-skills@claude-code-skills",
     "engineering-advanced-skills@claude-code-skills",
-    "claude-md-management@claude-plugins-official"
+    "claude-md-management@claude-plugins-official",
+    "skill-creator@claude-plugins-official"
   ],
   "defaultLifecycle": "jira-ticket-lifecycle"
 }

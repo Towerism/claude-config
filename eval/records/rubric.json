@@ -1,22 +1,22 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269"
+    "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740"
   },
   "inputs": {
-    "config/CLAUDE.global.md": "55d2f993fc628360866f23d8773ac77161522647a39ecdf6d082ffaf10dbf8ba"
+    "config/CLAUDE.global.md": "5a67fe52dcb4c77df57040a4983e74754e080f4c1983cb005b4a8e1f79a81b2a"
   },
   "models": {
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T18:37:51Z",
+  "ranAt": "2026-10-20T20:55:18Z",
   "result": {
     "cases": [],
     "pass": true,
     "rerunsUsed": 0,
     "scores": [
-      80
+      82
     ]
   },
   "suite": "rubric"

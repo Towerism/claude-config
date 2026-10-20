@@ -1,7 +1,7 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
     "eval/skill_evals.py": "92a1066105bdc462e5471ce751e033d526075190585ef0615850b331606e0fe4"
   },
   "inputs": {
@@ -17,7 +17,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-16T23:43:14Z",
+  "ranAt": "2026-10-20T20:55:18Z",
   "result": {
     "cases": [
       {
@@ -89,7 +89,7 @@
       {
         "baseline": {
           "aiSounding": true,
-          "correct": 3,
+          "correct": 1,
           "diagnostics": {
             "detectability": 4.0,
             "per_1000_words": {
@@ -100,8 +100,7 @@
           },
           "lost": [
             "The cache key ignores the user, so users can see each other's cached data.",
-            "The export endpoint needs a rate limit.",
-            "A test for two users and the same report is missing."
+            "The export endpoint needs a rate limit."
           ],
           "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved: ... These are just suggestions \u2014 feel "
         },
@@ -112,11 +111,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 29.1,
+            "detectability": 13.9,
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 6.3
+              "readability": 11.7
             }
           },
           "lost": [],
@@ -131,7 +130,7 @@
             "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 33.3,
+              "cold_reader": 37.7,
               "readability": 0.0
             }
           },
@@ -145,10 +144,10 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 23.7,
+            "detectability": 22.6,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 29.9,
+              "cold_reader": 31.2,
               "readability": 0.0
             }
           },
@@ -161,11 +160,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 41.5,
+            "detectability": 22.6,
             "per_1000_words": {
-              "ai_tells": 18.2,
-              "cold_reader": 18.2,
-              "readability": 54.5
+              "ai_tells": 0.0,
+              "cold_reader": 16.9,
+              "readability": 50.8
             }
           },
           "lost": [],
@@ -178,11 +177,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 12.8,
+            "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 16.1,
-              "readability": 32.3
+              "cold_reader": 18.5,
+              "readability": 55.6
             }
           },
           "lost": [],
@@ -194,11 +193,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 23.1,
+            "detectability": 27.9,
             "per_1000_words": {
-              "ai_tells": 8.6,
-              "cold_reader": 8.6,
-              "readability": 8.6
+              "ai_tells": 9.3,
+              "cold_reader": 9.3,
+              "readability": 9.3
             }
           },
           "lost": [],
@@ -211,11 +210,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 24.2,
+            "detectability": 34.9,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 10.3,
-              "readability": 20.6
+              "cold_reader": 8.5,
+              "readability": 8.5
             }
           },
           "lost": [],
@@ -224,7 +223,7 @@
       }
     ],
     "pass": true,
-    "rerunsUsed": 1
+    "rerunsUsed": 0
   },
   "suite": "plain-prose-behaviour"
 }

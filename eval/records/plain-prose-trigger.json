@@ -1,7 +1,7 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
     "eval/skill_evals.py": "92a1066105bdc462e5471ce751e033d526075190585ef0615850b331606e0fe4"
   },
   "inputs": {
@@ -12,9 +12,9 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-18T00:13:16Z",
+  "ranAt": "2026-10-20T20:55:18Z",
   "result": {
-    "accuracy": 0.96,
+    "accuracy": 0.92,
     "cases": [
       {
         "delegated": false,
@@ -75,9 +75,9 @@
       {
         "delegated": false,
         "id": "fix the failing test in test_export.py, it expects the heade",
-        "result": "pass",
+        "result": "fail",
         "shouldTrigger": true,
-        "triggered": 2
+        "triggered": 0
       },
       {
         "delegated": false,
@@ -194,7 +194,7 @@
     ],
     "falseTriggers": 0,
     "pass": true,
-    "recall": 0.933
+    "recall": 0.867
   },
   "suite": "plain-prose-trigger"
 }

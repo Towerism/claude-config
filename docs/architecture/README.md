@@ -130,7 +130,8 @@ claude-config/
 │       └── writing-docs/        planned: documentation steps, plus doc_lint.py (ADR-0010)
 │
 ├── hosts/
-│   └── personal.json            host profiles: personal.json and work.json; they differ only in defaultLifecycle
+│   ├── personal.json            host profiles: the same skills, hooks and plugins on both machines;
+│   └── work.json                they differ only in name and defaultLifecycle (#17)
 ├── plugins.lock.json            plugin lock: versions, git SHAs, skill names, files the overlays refer to
 │
 ├── tools/                       repo tooling; never deployed
@@ -325,5 +326,5 @@ The table lists the risks this design guards against, with a rough likelihood an
 | T6 | Personal content and the owner's email become public | Certain × Low–Med (the owner accepted a public repo) | Everything committed is world-readable, and so is the author email in every commit. The email stays obfuscated: the repo commits with the owner's GitHub noreply address, and CI fails any commit whose author or committer email isn't a noreply address. Secret and email scans run before commit and in CI. Anything that later shouldn't be public moves to a private companion repo. |
 | T7 | CI has more access than it needs | Low × Med | `permissions: contents: read`. No secrets. The trigger is `pull_request` only, never `pull_request_target`. Actions are pinned to full commit SHAs, and the gitleaks binary is checksum-verified. |
 | T8 | Instructions planted in issue or PR text steer the agent | Low × Med | The lifecycle skill treats issue text as data, not instructions (lifecycle spec FR-23). CI never feeds PR text to a model. |
-| T9 | Skills land on a machine where they don't belong | Med × Med | Host profiles list exactly which skills each machine receives. Which skills go to the work machine is still an open question in [plan.md](plan.md). |
+| T9 | Skills land on a machine where they don't belong | Med × Med | Host profiles list exactly which skills each machine receives. The work machine gets the same skills as the personal one (plan Q-4, ADR-0011), and a test fails when `hosts/work.json` and `hosts/personal.json` differ in anything but `name` and `defaultLifecycle` (#17). |
 | T10 | A merge happens without the owner's click | Low × High | The merge-confirmation hook is unchanged, and the repo's own merges go through it. A pre-push hook refuses pushes to `main`. |

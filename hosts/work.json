@@ -1,0 +1,13 @@
+{
+  "name": "work",
+  "claudeMd": "config/CLAUDE.global.md",
+  "overlays": "all",
+  "hooks": ["skill_overlay.py", "merge_confirm.py", "lifecycle_default.py"],
+  "skills": ["github-issue-lifecycle", "jira-ticket-lifecycle", "linux-troubleshooting", "plain-prose", "writing-docs"],
+  "plugins": [
+    "engineering-skills@claude-code-skills",
+    "engineering-advanced-skills@claude-code-skills",
+    "claude-md-management@claude-plugins-official"
+  ],
+  "defaultLifecycle": "jira-ticket-lifecycle"
+}

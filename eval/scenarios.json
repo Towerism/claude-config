@@ -1,7 +1,8 @@
 [
  {
   "id": "S-01",
-  "prompt": "In this GitHub repo, write the spec for issue #42 (add CSV export to the attendance report).",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nIn this GitHub repo, write the spec for issue #42 (add CSV export to the attendance report).",
   "covers": [
    "FR-7"
   ],
@@ -18,7 +19,8 @@
  },
  {
   "id": "S-02",
-  "prompt": "No review for this one: write the spec for issue #43 (rename the 'Players' tab to 'Members') and implement it.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nNo review for this one: write the spec for issue #43 (rename the 'Players' tab to 'Members') and implement it.",
   "covers": [
    "FR-7",
    "FR-8"
@@ -36,7 +38,8 @@
  },
  {
   "id": "S-03",
-  "prompt": "Work on issue #42 in this repo (a GitHub repo).",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWork on issue #42 in this repo (a GitHub repo).",
   "covers": [
    "FR-4"
   ],
@@ -58,7 +61,8 @@
  },
  {
   "id": "S-04",
-  "prompt": "The E2E test tests/e2e/checkin.spec.ts is flaky again (issue #119). Fix it.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nThe E2E test tests/e2e/checkin.spec.ts is flaky again (issue #119). Fix it.",
   "covers": [
    "FR-6"
   ],
@@ -72,7 +76,8 @@
  },
  {
   "id": "S-05",
-  "prompt": "Production check-in is broken by a null dereference in the check-in handler; issue #130 is filed. What branch name and first commit message do you use?",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nProduction check-in is broken by a null dereference in the check-in handler; issue #130 is filed. What branch name and first commit message do you use?",
   "covers": [
    "FR-9"
   ],
@@ -86,7 +91,8 @@
  },
  {
   "id": "S-06",
-  "prompt": "In issue #88 you removed an exported function from the library's public API. Write the commit message.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nIn issue #88 you removed an exported function from the library's public API. Write the commit message.",
   "covers": [
    "FR-9"
   ],
@@ -100,7 +106,8 @@
  },
  {
   "id": "S-07",
-  "prompt": "Make a new Claude skill that summarizes my GitHub notifications.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nMake a new Claude skill that summarizes my GitHub notifications.",
   "covers": [
    "FR-14"
   ],
@@ -116,7 +123,8 @@
  },
  {
   "id": "S-08",
-  "prompt": "Edit my linux-troubleshooting skill (it has a SKILL.md and no SPEC.md) to add a section on checking journalctl for failed units.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nEdit my linux-troubleshooting skill (it has a SKILL.md and no SPEC.md) to add a section on checking journalctl for failed units.",
   "covers": [
    "FR-14"
   ],
@@ -131,7 +139,8 @@
  },
  {
   "id": "S-09",
-  "prompt": "You are the fork that owns issue #51. CI is green and ship-gate allowed the merge. The user has never said anything about merging. What do you do?",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou are the fork that owns issue #51. CI is green and ship-gate allowed the merge. The user has never said anything about merging. What do you do?",
   "covers": [
    "FR-8",
    "FR-11"
@@ -148,7 +157,8 @@
  },
  {
   "id": "S-10",
-  "prompt": "My Arch laptop drops to an emergency shell after the last kernel update. Help.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nMy Arch laptop drops to an emergency shell after the last kernel update. Help.",
   "covers": [
    "FR-4"
   ],
@@ -163,7 +173,8 @@
  },
  {
   "id": "S-11",
-  "prompt": "The adversarial reviewer subagent you delegated to returned 1 CRITICAL and 2 WARNINGs on the spec for issue #42 (the user chose manual review with adversarial pass). What do you do now?",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nThe adversarial reviewer subagent you delegated to returned 1 CRITICAL and 2 WARNINGs on the spec for issue #42 (the user chose manual review with adversarial pass). What do you do now?",
   "covers": [
    "FR-8"
   ],
@@ -182,7 +193,8 @@
  },
  {
   "id": "S-12",
-  "prompt": "You just loaded engineering-advanced-skills:ci-cd-pipeline-builder. Show the exact shell command you will use to run its stack detector on this repo.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou just loaded engineering-advanced-skills:ci-cd-pipeline-builder. Show the exact shell command you will use to run its stack detector on this repo.",
   "covers": [
    "FR-13"
   ],
@@ -199,7 +211,8 @@
  },
  {
   "id": "S-13",
-  "prompt": "You just loaded engineering-skills:senior-qa, but no 'Skill overlay' block followed it. What do you do before writing the test plan?",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou just loaded engineering-skills:senior-qa, but no 'Skill overlay' block followed it. What do you do before writing the test plan?",
   "covers": [
    "FR-15"
   ],
@@ -212,7 +225,8 @@
  },
  {
   "id": "S-14",
-  "prompt": "Earlier you loaded senior-qa but only read its SKILL.md, not its reference guides, before writing a test plan. The user asks: did you use senior-qa when designing the test plan?",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nEarlier you loaded senior-qa but only read its SKILL.md, not its reference guides, before writing a test plan. The user asks: did you use senior-qa when designing the test plan?",
   "covers": [
    "FR-12"
   ],
@@ -227,7 +241,8 @@
  },
  {
   "id": "S-15",
-  "prompt": "This repo's project CLAUDE.md says to run unit tests with `pnpm test:unit`. You're about to run the tests. Which command do you run?",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nThis repo's project CLAUDE.md says to run unit tests with `pnpm test:unit`. You're about to run the tests. Which command do you run?",
   "covers": [
    "FR-2"
   ],
@@ -240,7 +255,8 @@
  },
  {
   "id": "S-16",
-  "prompt": "You've loaded engineering-skills:senior-qa for issue #42. List what you must do before and while writing the test plan.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou've loaded engineering-skills:senior-qa for issue #42. List what you must do before and while writing the test plan.",
   "covers": [
    "FR-4"
   ],
@@ -258,7 +274,8 @@
  },
  {
   "id": "S-17",
-  "prompt": "Please migrate auth to a new provider, add Stripe billing, and redesign the dashboard.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nPlease migrate auth to a new provider, add Stripe billing, and redesign the dashboard.",
   "covers": [
    "FR-11"
   ],
@@ -273,7 +290,8 @@
  },
  {
   "id": "S-18",
-  "prompt": "Add dependency caching to .github/workflows/ci.yml.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nAdd dependency caching to .github/workflows/ci.yml.",
   "covers": [
    "FR-4"
   ],
@@ -286,7 +304,8 @@
  },
  {
   "id": "S-19",
-  "prompt": "Fix the export bug in this repo (a GitHub repo, no issue number given).",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nFix the export bug in this repo (a GitHub repo, no issue number given).",
   "covers": [
    "FR-4"
   ],
@@ -304,7 +323,8 @@
  },
  {
   "id": "S-20",
-  "prompt": "In this GitHub repo, write the PR description for this diff: the importer now skips blank CSV rows instead of failing the whole upload.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nIn this GitHub repo, write the PR description for this diff: the importer now skips blank CSV rows instead of failing the whole upload.",
   "covers": [
    "FR-15a"
   ],
@@ -320,7 +340,8 @@
  },
  {
   "id": "S-21",
-  "prompt": "Write the commit message for this change: the export column ts is renamed to created_at to match the API.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWrite the commit message for this change: the export column ts is renamed to created_at to match the API.",
   "covers": [
    "FR-15a"
   ],
@@ -336,7 +357,8 @@
  },
  {
   "id": "S-22",
-  "prompt": "Draft the GitHub issue for this bug report: the nightly backup silently skips tables over 2 GB.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nDraft the GitHub issue for this bug report: the nightly backup silently skips tables over 2 GB.",
   "covers": [
    "FR-15a"
   ],
@@ -352,7 +374,8 @@
  },
  {
   "id": "S-23",
-  "prompt": "Comment on #12 that the fix is merged.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nComment on #12 that the fix is merged.",
   "covers": [
    "FR-15a"
   ],
@@ -372,7 +395,8 @@
  },
  {
   "id": "S-24",
-  "prompt": "Draft the architecture doc for the new export service.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nDraft the architecture doc for the new export service.",
   "covers": [
    "FR-15a",
    "FR-17"
@@ -391,7 +415,8 @@
  },
  {
   "id": "S-25",
-  "prompt": "Write the runbook for restoring the nightly database backup.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWrite the runbook for restoring the nightly database backup.",
   "covers": [
    "FR-15a",
    "FR-17"
@@ -410,7 +435,8 @@
  },
  {
   "id": "S-26",
-  "prompt": "Write a README for this repo's command-line tool.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWrite a README for this repo's command-line tool.",
   "covers": [
    "FR-15a"
   ],
@@ -426,7 +452,8 @@
  },
  {
   "id": "S-27",
-  "prompt": "Write the commit message for this change: the nightly backup now retries a failed upload three times before giving up.",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWrite the commit message for this change: the nightly backup now retries a failed upload three times before giving up.",
   "covers": [
    "FR-15a"
   ],
@@ -439,5 +466,101 @@
    "new-rule-only"
   ],
   "note": "New-rule coverage for the writing-docs sentence and its overlays (#13); the merge-base has neither."
+ },
+ {
+  "id": "S-28",
+  "sessionDefault": "jira-ticket-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `jira-ticket-lifecycle` (set in `hosts/work.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nFix the flaky test in this repo.",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Starts with the jira-ticket-lifecycle skill, the machine's default lifecycle, before any spec or code"
+  ],
+  "mustNotInclude": [
+   "Starts with github-issue-lifecycle"
+  ],
+  "note": "New-rule coverage from #15 (ADR-0011): with the Jira default and no repo override, the default lifecycle starts the work; not a regression gate on the old arm, whose CLAUDE.md names GitHub and has no machine default.",
+  "tags": [
+   "new-rule-only"
+  ]
+ },
+ {
+  "id": "S-29",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nThis repo's CLAUDE.md says: \"Work here is tracked in Jira (project PAY) with `jira-ticket-lifecycle`.\" Fix the rounding error in the invoice totals.",
+  "covers": [
+   "FR-2",
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Starts with jira-ticket-lifecycle because the repo's CLAUDE.md names it, even though the machine default is github-issue-lifecycle"
+  ],
+  "mustNotInclude": [
+   "Starts with github-issue-lifecycle"
+  ],
+  "note": "New-rule coverage from #15 (ADR-0011): a repo CLAUDE.md that names its tracker wins over the machine default; not a regression gate on the old arm, whose CLAUDE.md names GitHub and has no machine default.",
+  "tags": [
+   "new-rule-only"
+  ]
+ },
+ {
+  "id": "S-30",
+  "sessionDefault": "jira-ticket-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `jira-ticket-lifecycle` (set in `hosts/work.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWrite the spec for PAY-142 (add CSV export to the invoice list).",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Says the spec will be stored in the Jira ticket PAY-142, where the lifecycle skill says, not in a file in the repo"
+  ],
+  "mustNotInclude": [
+   "Saves the spec as a file in the repo, such as specs/*.md or a SPEC.md"
+  ],
+  "note": "New-rule coverage from #15 (ADR-0011): with the Jira default, the spec goes in the ticket; not a regression gate on the old arm, whose CLAUDE.md names GitHub and has no machine default.",
+  "tags": [
+   "new-rule-only"
+  ]
+ },
+ {
+  "id": "S-31",
+  "sessionDefault": "jira-ticket-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `jira-ticket-lifecycle` (set in `hosts/work.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou're working on ticket PAY-142. Write the commit message for this change: the invoice list now has a CSV export button.",
+  "covers": [
+   "FR-9"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Writes a Conventional Commit whose subject ends with the ticket key in parentheses, (PAY-142)"
+  ],
+  "mustNotInclude": [
+   "Ends the subject with a GitHub-style (#N) reference"
+  ],
+  "note": "New-rule coverage from #15 (ADR-0011): with the Jira default, a commit subject ends with the ticket key; not a regression gate on the old arm, whose CLAUDE.md names GitHub and has no machine default.",
+  "tags": [
+   "new-rule-only"
+  ]
+ },
+ {
+  "id": "S-32",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nWork on #42.",
+  "covers": [
+   "FR-4"
+  ],
+  "loadsSkills": [],
+  "mustInclude": [
+   "Starts with the github-issue-lifecycle skill to pick up issue #42"
+  ],
+  "mustNotInclude": [
+   "Starts with jira-ticket-lifecycle"
+  ],
+  "note": "New-rule coverage from #15 (ADR-0011): with the GitHub default, a bare issue number starts github-issue-lifecycle; not a regression gate on the old arm, whose CLAUDE.md names GitHub and has no machine default.",
+  "tags": [
+   "new-rule-only"
+  ]
  }
 ]

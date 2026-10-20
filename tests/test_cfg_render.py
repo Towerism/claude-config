@@ -78,6 +78,8 @@ def test_rendered_hook_commands_use_the_claude_home() -> None:
         "python3 -I /home/u/.claude/hooks/skill_overlay.py",
         "python3 -I /home/u/.claude/hooks/skill_overlay.py",
         "python3 -I /home/u/.claude/hooks/merge_confirm.py",
+        "python3 -I /home/u/.claude/hooks/lifecycle_default.py",
+        "python3 -I /home/u/.claude/hooks/lifecycle_default.py",
     ]
     assert "{claude_home}" not in json.dumps(ds.fragment)
 

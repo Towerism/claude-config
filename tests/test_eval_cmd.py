@@ -427,3 +427,10 @@ def test_the_summary_skips_the_case_table_when_cases_have_no_result():
     })  # fmt: skip
     assert "- rightShare: 1.0" in text
     assert "| Case |" not in text
+
+
+def test_the_session_runner_is_registered(monkeypatch):
+    from eval import session_harness
+
+    monkeypatch.setattr(session_harness, "run_session", lambda ctx: {"ctx": ctx})
+    assert eval_cmd.RUNNERS["hook-session-start"]("c", None) == {"ctx": "c"}

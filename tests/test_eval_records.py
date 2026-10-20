@@ -584,3 +584,52 @@ def test_each_lifecycle_change_requires_the_suites_it_affects(tmp_path, change, 
     })  # fmt: skip
     commit(repo, change)
     assert required(repo, base) == suites
+
+
+# The hook-session-start suite, as eval/gates.json defines it (#15)
+
+LIFECYCLE_HOOK = "config/hooks/lifecycle_default.py"
+
+
+def session_repo(tmp_path):
+    repo, _ = make_repo(tmp_path)
+    fragment = json.loads((REPO_ROOT / "config" / "settings.fragment.json").read_text())
+    base = commit(repo, {
+        "eval/gates.json": (REPO_ROOT / "eval" / "gates.json").read_text(),
+        "config/settings.fragment.json": json.dumps(fragment, indent=2),
+        LIFECYCLE_HOOK: "print(1)\n",
+        "eval/session_harness.py": "print(1)\n",
+        "eval/hook_harness.py": "print(1)\n",
+    })  # fmt: skip
+    git(repo, "update-ref", "refs/remotes/origin/main", base)
+    return repo, base, fragment
+
+
+@pytest.mark.parametrize(
+    ("files", "expected"),
+    [
+        # The scenarios embed the hook's line, so they run again when it changes.
+        ({LIFECYCLE_HOOK: "print(2)\n"}, ["hook-session-start", "scenario"]),
+        ({"eval/session_harness.py": "print(2)\n"}, ["hook-session-start"]),
+        ({"eval/hook_harness.py": "print(2)\n"},
+         ["hook-merge", "hook-overlay", "hook-session-start"]),
+    ],
+)  # fmt: skip
+def test_each_lifecycle_hook_change_requires_the_session_suite(tmp_path, files, expected):
+    repo, base, _ = session_repo(tmp_path)
+    commit(repo, files)
+    assert required(repo, base) == expected
+
+
+@pytest.mark.parametrize("event", ["SessionStart", "SubagentStart"])
+def test_a_change_to_either_start_hook_entry_requires_only_the_session_suite(tmp_path, event):
+    repo, base, fragment = session_repo(tmp_path)
+    fragment["hooks"][event] = []
+    commit(repo, {"config/settings.fragment.json": json.dumps(fragment, indent=2)})
+    assert required(repo, base) == ["hook-session-start"]
+
+
+def test_the_session_suite_parses_with_its_runner():
+    suites = er.parse_gates((REPO_ROOT / "eval" / "gates.json").read_text())
+    assert suites["hook-session-start"].runner == "hook-session-start"
+    assert LIFECYCLE_HOOK in suites["scenario"].paths

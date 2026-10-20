@@ -297,13 +297,37 @@ def _expect_context(out: dict[str, Any] | None) -> str | None:
     return None
 
 
+LIFECYCLE_START = "Default lifecycle skill on this machine:"
+
+
+def _states_default(out: dict[str, Any] | None) -> bool:
+    context = ((out or {}).get("hookSpecificOutput") or {}).get("additionalContext")
+    return isinstance(context, str) and context.startswith(LIFECYCLE_START)
+
+
+def _expect_default(out: dict[str, Any] | None) -> str | None:
+    return None if _states_default(out) else "stated no default lifecycle"
+
+
+def _expect_default_or_nothing(out: dict[str, Any] | None) -> str | None:
+    """Before the switch a first deploy has no state file, so the hook may stay quiet."""
+    return None if out is None else _expect_default(out)
+
+
 Check = Callable[[dict[str, Any] | None], str | None]
 
 
 def smoke_cases(
-    event: str, matcher: str, script: str, overlay: str | None
+    event: str, matcher: str, script: str, overlay: str | None, after: bool = False
 ) -> list[tuple[Any, Check | None]]:
-    """The sample events for one handler, each with what it must print."""
+    """The sample events for one handler, each with what it must print.
+
+    `after` is true once current points at the new release and its state file
+    is written, so the lifecycle hook can find its host profile.
+    """
+    if script == "lifecycle_default.py" and event in ("SessionStart", "SubagentStart"):
+        check = _expect_default if after else _expect_default_or_nothing
+        return [({"hook_event_name": event}, check)]
     if script == "merge_confirm.py" and event == "PreToolUse":
         tool = {"hook_event_name": "PreToolUse", "tool_name": "Bash"}
         return [
@@ -387,7 +411,7 @@ def smoke_test(
                     for a in argv
                 ]
             script = Path(argv[-1]).name if argv else ""
-            for payload, check in smoke_cases(event, matcher, script, overlay):
+            for payload, check in smoke_cases(event, matcher, script, overlay, after=rel is None):
                 why = _one_case(argv, payload, check, env, timeout)
                 if why:
                     problems.append(f"{event}/{matcher or '-'} {script}: {why}")

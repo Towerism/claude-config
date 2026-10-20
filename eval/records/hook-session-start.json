@@ -1,0 +1,42 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "eval/hook_harness.py": "b15d42124c4d4ea3fedce98dbec6790a86145d2c0b9703b573890b2640c5958f",
+    "eval/run_eval.py": "865e046ba73a6630e4ada8731c488af13aa2966e5ce8fbf8d0a2f0699e1ae269",
+    "eval/session_harness.py": "a658efefcf5f0c82f4c1b287aa4558834dadcf07dd4dcaaec976aeb9539c2ff1"
+  },
+  "inputs": {
+    "config/hooks/lifecycle_default.py": "1b9f9305ad562cd7796a6665d6f50f846f8035a207aef2638f44d8d3a8562e69",
+    "config/settings.fragment.json#/hooks/SessionStart": "2032b532bd565af93610fa2e6a29ba4f10dc29b77167c06098c01c42fa07142a",
+    "config/settings.fragment.json#/hooks/SubagentStart": "2032b532bd565af93610fa2e6a29ba4f10dc29b77167c06098c01c42fa07142a"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-19T22:17:46Z",
+  "result": {
+    "cases": [
+      {
+        "id": "main",
+        "result": "pass"
+      },
+      {
+        "id": "subagent",
+        "result": "pass"
+      },
+      {
+        "id": "control",
+        "result": "pass"
+      },
+      {
+        "id": "p95",
+        "result": "pass"
+      }
+    ],
+    "p95Ms": 29.1,
+    "pass": true,
+    "rerunsUsed": 0
+  },
+  "suite": "hook-session-start"
+}

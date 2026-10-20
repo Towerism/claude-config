@@ -62,18 +62,17 @@
  {
   "id": "S-04",
   "sessionDefault": "github-issue-lifecycle",
-  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nThe users table's name column has to become first_name and last_name without downtime (issue #119). Plan the migration.",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nIssue #119 is big: the API, the importer and the dashboard each need changes. Plan how parallel forks will split it and hand their results back.",
   "covers": [
    "FR-6"
   ],
   "loadsSkills": [],
   "mustInclude": [
-   "Uses migration-architect or database-schema-designer (or names one of them) for the migration plan",
-   "Plans a rollback path for the migration"
+   "Uses agent-workflow-designer (or names it) to design the fork orchestration"
   ],
   "mustNotInclude": [],
   "tags": [],
-  "note": "Rewritten for #62: it checked the routing entry for focused-fix, which was dropped; it now checks the migrations entry of the same routing list."
+  "note": "Rewritten for #62: it checked the routing entry for focused-fix, which was dropped. It now checks the fork-orchestration entry of the same routing list, a trigger that agent-workflow-designer's own description doesn't name."
  },
  {
   "id": "S-05",

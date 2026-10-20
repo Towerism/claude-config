@@ -83,7 +83,7 @@ Ask in the same reply when you reach option 4. With no possible user turn (a sch
 - Exit 4: the markers are broken. Show the user; don't guess.
 - Never shorten a spec to fit, and never copy it into a commit, a PR body or a PR comment.
 
-**Skill specs.** When the change is to a skill that keeps its spec in a `SPEC.md` beside its `SKILL.md` (one that has one, or any new skill), the spec lives in that file, with the review note in `REVIEW-NOTE.md` beside it, and its `**Status:**` line says Draft or Approved. The ticket gets only a pointer: `sync-spec --key <key> --pointer <repo-relative SPEC.md path> --branch <branch>`. Read the Status line with `spec-status --spec <file>`.
+**Skill specs.** When the change is to a skill that keeps its spec in a `SPEC.md` beside its `SKILL.md` (one that has one, or any new skill), the spec lives in that file, with the review note in `REVIEW-NOTE.md` beside it, and its `**Status:**` line says Draft or Approved. The ticket gets only a pointer: `sync-spec --key <key> --pointer <repo-relative SPEC.md path> --branch <branch>`. Skip `pull-spec` for a skill spec; the file in the repo is the working copy. Read the Status line with `spec-status --spec <file>`.
 
 ### 5. Approval and labels
 

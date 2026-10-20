@@ -407,3 +407,16 @@ def test_claim_when_jira_me_fails(env):
     r = env.run("claim", "--key", "PAY-142")
     assert r.returncode == 5
     assert "jira me" in r.stderr
+
+
+def test_pull_spec_treats_the_attachment_note_as_no_spec_even_if_the_file_is_gone(rest_env):
+    env = rest_env
+    env.add_ticket("PAY-142")
+    env.run("sync-spec", "--key", "PAY-142", "--spec", env.file("s.md", "x\n" * 20000))
+    s = env.state()
+    s["tickets"]["PAY-142"]["attachments"] = []
+    env.write_state(s)
+    r, out = env.json("pull-spec", "--key", "PAY-142")
+    assert r.returncode == 1
+    assert "PAY-142-spec.md" in out["steps"][-1]["detail"]
+    assert not list(env.state_home.rglob("PAY-142.md"))

@@ -1398,16 +1398,18 @@ def cmd_pull_spec(res, jira, cfg, key, repo_dir):
     if not span:
         return res.step("working-copy", "none", path)
     inner = blocks[span[0] + 1 : span[1]]
-    if (
-        spec_attachments(fields, key)
-        and len(inner) == 1
-        and f"attached as {key}-spec.md" in inner[0]
-    ):
+    if len(inner) == 1 and f"attached as {key}-spec.md" in inner[0]:
+        # The description holds only the note, never the spec, whether or not the file is there.
+        where = (
+            ""
+            if spec_attachments(fields, key)
+            else "; the attachment is missing from the ticket too"
+        )
         return res.step(
             "working-copy",
             "failed",
-            f"the spec is in the attachment {key}-spec.md, which this skill "
-            f"can't download; ask the user to save it as {path}",
+            f"the spec is in the attachment {key}-spec.md, which this skill can't download; "
+            f"ask the user to save it as {path}{where}",
         )
     write_atomic(path, "\n\n".join(inner).rstrip() + "\n")
     write_atomic(

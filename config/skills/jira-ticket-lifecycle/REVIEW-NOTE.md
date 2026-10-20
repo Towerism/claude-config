@@ -31,3 +31,17 @@ Approval mode: manual review with an adversarial pass, set by the owner on 2026-
 ## Decisions for the owner
 
 The spec lists four decisions in its last section, each with a recommendation: D-1 (plain-text `spec:start`/`spec:end` markers), D-2 (a local working copy under `~/.local/state/claude-config/jira-specs/`), D-3 (two read-only REST calls beyond ADR-0011, with an ADR amendment), and D-4 (deploy the skill on the personal machine too).
+
+---
+
+# Adversarial review note: the amendment found during implementation (one pass, 2026-10-20)
+
+This pass covers only the spec change that building `pull-spec` forced: decision D-5 (no attachment download), the amended FR-12, AC-11 and EC-10, and three CLI contract clarifications (`ticket` and `candidates` in results, `--repo-dir`, and a `--quote-file` that only manual approval needs). It ran once, inline in the implementing fork, with the same three personas; like the first pass, it is a same-context self-review.
+
+**Verdict: CONCERNS** (0 CRITICAL, 1 WARNING, 2 NOTE). The spec text didn't change after the pass; the WARNING was a code bug, fixed test-first. The amended spec waits for the owner's approval.
+
+| ID | Severity | Persona | Finding | Handling |
+|---|---|---|---|---|
+| W1 | WARNING | Saboteur | `pull-spec` treated the description as holding only the attachment note only while the attachment was still on the ticket. If someone deleted the attachment, it saved the note itself as the working copy, and the next sync would have published the note as the spec. | **Fixed** in the script: the note alone means no spec in the description, and the message also says when the attachment is missing. A new test covers the deleted attachment. |
+| N1 | NOTE | New Hire | SKILL.md had Claude run `pull-spec` first for every spec, so for a skill spec it would copy the ticket's pointer sentence into a working copy nobody uses. | **Fixed:** SKILL.md says to skip `pull-spec` for a skill spec, whose `SPEC.md` in the repo is the working copy. |
+| N2 | NOTE | Security Auditor | Under D-5 the user saves the attachment by hand, and the skill then trusts that file as the spec; a wrong or edited file would be published on the next sync. | Accepted: the user chose the file, `sync-spec` publishes it as a draft, and the spec goes back through its approval mode before anything is built from it. |

@@ -1,0 +1,103 @@
+{
+  "claudeVersion": "2.1.299 (Claude Code)",
+  "harness": {
+    "config/skills/jira-ticket-lifecycle/evals/run_behaviour_evals.py": "34537ccf8e56c45c073ca93b5d39b46209a28c7fa1afec041d17370cc1326906",
+    "config/skills/jira-ticket-lifecycle/evals/run_trigger_evals.py": "bf57812d120adb964a884d6aa9195ce33e14a78492d39f119fdc5543e5106d39"
+  },
+  "inputs": {
+    "config/skills/jira-ticket-lifecycle/SKILL.md#description": "82bf34a572c2fa90b518c0fe16b63de543e82fdac2903efd9c83cd8be7e244e5",
+    "config/skills/jira-ticket-lifecycle/evals/trigger-evals.json": "c9f21a2ced253d9df52652c227691fd4d9b35c00b29dd6c0a0e8200541ab336c"
+  },
+  "models": {
+    "arm": "default",
+    "grader": "default"
+  },
+  "ranAt": "2026-10-20T14:37:53Z",
+  "result": {
+    "cases": [
+      {
+        "id": "work on PAY-142",
+        "result": "pass"
+      },
+      {
+        "id": "pick up the Jira ticket about the roster export timing out, I think someone file",
+        "result": "pass"
+      },
+      {
+        "id": "file a Jira ticket for the BOM bug we just hit in the CSV export, don't start on",
+        "result": "pass"
+      },
+      {
+        "id": "I'm done with the roster change locally, open the PR for PAY-77 and link it on t",
+        "result": "pass"
+      },
+      {
+        "id": "PAY-90's PR is merged now, close it out and move the ticket to done",
+        "result": "pass"
+      },
+      {
+        "id": "hotfix the login 500 on prod, we track it in Jira, users can't sign in since the",
+        "result": "pass"
+      },
+      {
+        "id": "https://example.atlassian.net/browse/PAY-311 can you take this one",
+        "result": "pass"
+      },
+      {
+        "id": "the spec for PAY-88 is approved now, go ahead and create the branch and worktree",
+        "result": "pass"
+      },
+      {
+        "id": "grab ticket 204 from our board and get started on it",
+        "result": "fail"
+      },
+      {
+        "id": "add CSV export to the roster page, there's probably no Jira ticket for it yet so",
+        "result": "pass"
+      },
+      {
+        "id": "work on #42",
+        "result": "pass"
+      },
+      {
+        "id": "file a GitHub issue for the BOM bug in the CSV export",
+        "result": "pass"
+      },
+      {
+        "id": "write a spec for a CSV export feature, just a markdown doc I can share, no repo ",
+        "result": "pass"
+      },
+      {
+        "id": "explain how Jira workflows and transitions work, I'm new to Jira",
+        "result": "pass"
+      },
+      {
+        "id": "review PR #12 and tell me if the caching change is safe",
+        "result": "pass"
+      },
+      {
+        "id": "what does JQL stand for, and how do I search for tickets updated this week?",
+        "result": "pass"
+      },
+      {
+        "id": "explain conventional commits to me, and how semantic-release picks the version f",
+        "result": "pass"
+      },
+      {
+        "id": "rebase my branch onto main and fix the conflicts in server/api/roster.get.ts",
+        "result": "pass"
+      },
+      {
+        "id": "write a commit message for these staged changes to the drizzle schema",
+        "result": "pass"
+      },
+      {
+        "id": "set up a github actions workflow that runs pytest on every PR",
+        "result": "pass"
+      }
+    ],
+    "exitCode": 0,
+    "pass": true
+  },
+  "suite": "jira-ticket-lifecycle-trigger"
+}

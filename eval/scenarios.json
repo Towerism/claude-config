@@ -62,17 +62,17 @@
  {
   "id": "S-04",
   "sessionDefault": "github-issue-lifecycle",
-  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nThe E2E test tests/e2e/checkin.spec.ts is flaky again (issue #119). Fix it.",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nIssue #119 is big: the API, the importer and the dashboard each need changes. Plan how parallel forks will split it and hand their results back.",
   "covers": [
    "FR-6"
   ],
   "loadsSkills": [],
   "mustInclude": [
-   "Uses engineering-advanced-skills:focused-fix (or names focused-fix) for the diagnosis",
-   "Treats the flake as a determinism problem to remove, not something to retry or skip"
+   "Uses agent-workflow-designer (or names it) to design the fork orchestration"
   ],
   "mustNotInclude": [],
-  "tags": []
+  "tags": [],
+  "note": "Rewritten for #62: it checked the routing entry for focused-fix, which was dropped. It now checks the fork-orchestration entry of the same routing list, a trigger that agent-workflow-designer's own description doesn't name."
  },
  {
   "id": "S-05",
@@ -194,12 +194,12 @@
  {
   "id": "S-12",
   "sessionDefault": "github-issue-lifecycle",
-  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou just loaded engineering-advanced-skills:ci-cd-pipeline-builder. Show the exact shell command you will use to run its stack detector on this repo.",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou just loaded ci-cd-pipeline-builder. Show the exact shell command you will use to run its stack detector on this repo.",
   "covers": [
    "FR-13"
   ],
   "loadsSkills": [
-   "engineering-advanced-skills:ci-cd-pipeline-builder"
+   "ci-cd-pipeline-builder"
   ],
   "mustInclude": [
    "Runs python3 on a literal absolute path ending in scripts/stack_detector.py"
@@ -212,13 +212,13 @@
  {
   "id": "S-13",
   "sessionDefault": "github-issue-lifecycle",
-  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou just loaded engineering-skills:senior-qa, but no 'Skill overlay' block followed it. What do you do before writing the test plan?",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou just loaded senior-qa, but no 'Skill overlay' block followed it. What do you do before writing the test plan?",
   "covers": [
    "FR-15"
   ],
   "loadsSkills": [],
   "mustInclude": [
-   "Reads ~/.claude/skill-overlays/engineering-skills:senior-qa.md (the overlay file) itself"
+   "Reads ~/.claude/skill-overlays/senior-qa.md (the overlay file) itself"
   ],
   "mustNotInclude": [],
   "tags": []
@@ -256,12 +256,12 @@
  {
   "id": "S-16",
   "sessionDefault": "github-issue-lifecycle",
-  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou've loaded engineering-skills:senior-qa for issue #42. List what you must do before and while writing the test plan.",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou've loaded senior-qa for issue #42. List what you must do before and while writing the test plan.",
   "covers": [
    "FR-4"
   ],
   "loadsSkills": [
-   "engineering-skills:senior-qa"
+   "senior-qa"
   ],
   "mustInclude": [
    "Reads the three reference guides (testing_strategies, qa_best_practices, test_automation_patterns)",
@@ -297,7 +297,7 @@
   ],
   "loadsSkills": [],
   "mustInclude": [
-   "Applies engineering-advanced-skills:ci-cd-pipeline-builder (or names ci-cd-pipeline-builder) before planning the pipeline change"
+   "Applies ci-cd-pipeline-builder (or names ci-cd-pipeline-builder) before planning the pipeline change"
   ],
   "mustNotInclude": [],
   "tags": []
@@ -402,7 +402,7 @@
    "FR-17"
   ],
   "loadsSkills": [
-   "engineering-skills:senior-architect"
+   "senior-architect"
   ],
   "mustInclude": [
    "Says it loads (or would load) the writing-docs skill before writing the document"
@@ -422,7 +422,7 @@
    "FR-17"
   ],
   "loadsSkills": [
-   "engineering-advanced-skills:runbook-generator"
+   "runbook-generator"
   ],
   "mustInclude": [
    "Says it loads (or would load) the writing-docs skill before writing the runbook"

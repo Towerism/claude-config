@@ -6,7 +6,7 @@ Run alone, it checks HEAD and prints the result without writing a record;
 tools/cfg/eval.py runs the same checks as the hook-overlay and hook-merge
 suites and records them (ADR-0005).
 
-overlay (v2 spec AC-7): a canary overlay for engineering-skills:senior-qa must
+overlay (v2 spec AC-7): a canary overlay for senior-qa must
 reach the model when the skill loads in the main session and in a subagent,
 the stream must show no tool call touching skill-overlays/ (so the hook, not a
 file read, delivered it), and a control run without the hook must not see it.
@@ -18,7 +18,9 @@ the control run must deny neither. A stub gh comes first on PATH and
 GH_CONFIG_DIR is empty, so no run can reach GitHub with the owner's login.
 
 Every run uses a private config directory (see run_eval.make_config_dir)
-whose settings.json has no hooks, so the live hooks never interfere.
+whose settings.json has no hooks, so the live hooks never interfere. senior-qa
+is a repo skill (#62), so the overlay check takes it from the tree under test:
+the session gets a copy, and the hook's home links to it.
 """
 
 from __future__ import annotations
@@ -45,7 +47,7 @@ if __package__ in (None, ""):  # pragma: no cover
 
 from eval import run_eval  # noqa: E402
 
-SKILL = "engineering-skills:senior-qa"
+SKILL = "senior-qa"
 CANARY = "AC7-CANARY-90210"
 OVERLAY_ENTRIES = ["PostToolUse", "UserPromptExpansion"]
 MERGE_ENTRIES = ["PreToolUse"]
@@ -103,8 +105,16 @@ def _fragment(ctx: run_eval.Context) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def _tree_skill(ctx: run_eval.Context) -> Path:
+    skill = ctx.head_tree / "config" / "skills" / SKILL
+    if not (skill / "SKILL.md").is_file():
+        raise run_eval.Refusal(f"the tree under test has no {SKILL} skill at {skill}")
+    return skill
+
+
 def build_overlay_home(ctx: run_eval.Context) -> Path:
-    """A Claude home with HEAD's overlay hook and a single canary overlay."""
+    """A Claude home with HEAD's overlay hook, a single canary overlay and HEAD's SKILL."""
+    skill = _tree_skill(ctx)
     home = Path(tempfile.mkdtemp(prefix="hook-home.", dir=ctx.root))
     (home / "hooks").mkdir()
     shutil.copy(ctx.head_tree / "config" / "hooks" / "skill_overlay.py", home / "hooks")
@@ -113,6 +123,8 @@ def build_overlay_home(ctx: run_eval.Context) -> Path:
         f"Overlay check: quote this line exactly: {CANARY}\n"
     )
     (home / "plugins").symlink_to(ctx.live / "plugins")
+    (home / "skills").mkdir()
+    (home / "skills" / SKILL).symlink_to(skill)
     return home
 
 
@@ -172,9 +184,13 @@ def _removed_after(home: Path) -> Iterator[Path]:
 
 
 @contextmanager
-def _private_config(ctx: run_eval.Context, name: str) -> Iterator[Path]:
+def _private_config(
+    ctx: run_eval.Context, name: str, skills: tuple[Path, ...] = ()
+) -> Iterator[Path]:
     cfg = run_eval.make_config_dir(ctx, name, "")
     try:
+        for skill in skills:
+            shutil.copytree(skill, cfg / "skills" / skill.name)
         yield cfg
     finally:
         run_eval.remove_config_dir(cfg)
@@ -198,7 +214,10 @@ def _overlay_check(
 
 def run_overlay(ctx: run_eval.Context, timer: Timer = time_hook) -> dict[str, Any]:
     ctx.out.mkdir(parents=True, exist_ok=True)
-    with _removed_after(build_overlay_home(ctx)) as home, _private_config(ctx, "hooks") as cfg:
+    with (
+        _removed_after(build_overlay_home(ctx)) as home,
+        _private_config(ctx, "hooks", (_tree_skill(ctx),)) as cfg,
+    ):
         settings = home / "hook-settings.json"
         settings.write_text(json.dumps(render_entries(_fragment(ctx), OVERLAY_ENTRIES, home)))
         cases, reruns = [], 0

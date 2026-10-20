@@ -1,0 +1,44 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/agent-workflow-designer/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/agent-workflow-designer/SKILL.md",
+    "sha256": "f1133218f4bc98e1aed526f2e2a60b30c02b6dac18c717a04eac45551242a9dd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/workflow-patterns.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/agent-workflow-designer/references/workflow-patterns.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/agent-workflow-designer/references/workflow-patterns.md",
+    "sha256": "22a047a3dd5385b0409278c75427a3e7c01c577201c3b37d52289804343bfa78",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/workflow_scaffolder.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/agent-workflow-designer/scripts/workflow_scaffolder.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/agent-workflow-designer/scripts/workflow_scaffolder.py",
+    "sha256": "081985aef78ba0eebe3f03b7e70ee50dfbbd57e2113a4d90736f887593816bbf",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

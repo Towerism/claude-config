@@ -123,6 +123,49 @@ def test_the_overlay_settings_render_the_fragment_entries_against_the_canary_hom
     assert seen["hook"] is True
 
 
+def test_the_canary_skill_is_the_repo_copy_of_senior_qa():
+    assert hh.SKILL == "senior-qa"
+
+
+def test_the_canary_home_links_the_trees_skill_and_not_the_live_one(ctx):
+    live_skill = ctx.live / "skills" / hh.SKILL
+    live_skill.mkdir(parents=True)
+    (live_skill / "SKILL.md").write_text("live copy\n")
+    home = hh.build_overlay_home(ctx)
+    try:
+        linked = home / "skills" / hh.SKILL
+        assert linked.is_symlink()
+        assert linked.resolve() == (ctx.head_tree / "config" / "skills" / hh.SKILL).resolve()
+    finally:
+        import shutil
+
+        shutil.rmtree(home)
+
+
+def test_every_overlay_run_has_a_copy_of_the_trees_canary_skill(ctx):
+    copies = []
+
+    def runner(cmd, stdin, env, cwd, timeout):
+        skill = Path(env["CLAUDE_CONFIG_DIR"]) / "skills" / hh.SKILL
+        copies.append((skill.is_symlink(), (skill / "SKILL.md").read_text()))
+        return OverlayFake()(cmd, stdin, env, cwd, timeout)
+
+    ctx.runner = runner
+    hh.run_overlay(ctx, timer=fixed_timer(30.0))
+    tree_md = (ctx.head_tree / "config" / "skills" / hh.SKILL / "SKILL.md").read_text()
+    assert copies and set(copies) == {(False, tree_md)}
+
+
+def test_a_tree_without_the_canary_skill_stops_the_overlay_check(ctx):
+    import shutil
+
+    shutil.rmtree(ctx.head_tree / "config" / "skills" / hh.SKILL)
+    ctx.runner = OverlayFake()
+    with pytest.raises(re_.Refusal, match="senior-qa"):
+        hh.run_overlay(ctx, timer=fixed_timer(30.0))
+    assert leftovers(ctx.root) == []
+
+
 def test_the_control_run_gets_no_hook_settings_and_every_run_streams_json(ctx):
     fake = OverlayFake()
     ctx.runner = fake

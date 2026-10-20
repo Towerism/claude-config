@@ -1,0 +1,226 @@
+[
+  {
+    "path": "README.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/README.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/README.md",
+    "sha256": "023b2506b44dd23c791664e91f1836f9795450333565762cf86267adee8cddbb",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/SKILL.md",
+    "sha256": "4bde5bd43d14b39a9c282f1ab74b202d102b070b99a5083724e84526bc5e2f0a",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_go.mod",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/assets/sample_go.mod"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/assets/sample_go.mod",
+    "sha256": "3da5b13abe39db65446c64bfef8aa7e5216b317f0853e17a3c575382044fc676",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_package.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/assets/sample_package.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/assets/sample_package.json",
+    "sha256": "0ba6fc01364589a5e6030a05e1283038bf3a944135b46a9a5eaaaf1dbdf6a032",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_requirements.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/assets/sample_requirements.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/assets/sample_requirements.txt",
+    "sha256": "85ee24f99830b71a59419a181efa52e4f6f5ace9ad92e30d2fb6489d21bb0198",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/sample_license_report.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/expected_outputs/sample_license_report.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/expected_outputs/sample_license_report.txt",
+    "sha256": "96d4d67bd77d9f0941f9334a563c94cc25557001aa96d390103878c2903b126a",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/sample_upgrade_plan.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/expected_outputs/sample_upgrade_plan.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/expected_outputs/sample_upgrade_plan.txt",
+    "sha256": "13cab41ede802c9fe49eb894e86c6ad6a9ced164a64f16a2fff62c2884fd545c",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/sample_vulnerability_report.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/expected_outputs/sample_vulnerability_report.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/expected_outputs/sample_vulnerability_report.json",
+    "sha256": "795d7e23d4c5b56c30051371a1ca8f0ab72496f65c0e554e21d3211ca4dca8a4",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/dependency_management_best_practices.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/references/dependency_management_best_practices.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/references/dependency_management_best_practices.md",
+    "sha256": "2eafa69105d7c31bf50b693af656d4181250e241ea110eeba7227ecb29e24f90",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/license_compatibility_matrix.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/references/license_compatibility_matrix.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/references/license_compatibility_matrix.md",
+    "sha256": "9432a2776985d38f5668e5acfa95754e8695d96bfbea01159e1b7d60da6b6035",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/vulnerability_assessment_guide.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/references/vulnerability_assessment_guide.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/references/vulnerability_assessment_guide.md",
+    "sha256": "5e4743618d544cc5903f67572c71aff31180c8f9222c8cfbd4782d7305d482bb",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/dep_scanner.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/scripts/dep_scanner.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/scripts/dep_scanner.py",
+    "sha256": "309abbb1fb20df6dfcea77ac0e963bd61953cb4b46de8c1a6d10cae6d88546cd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/license_checker.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/scripts/license_checker.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/scripts/license_checker.py",
+    "sha256": "7fa7b6d19cc8de7d38850c24d1c8970fafac9df6bd4f44f883056745bd410dc8",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/upgrade_planner.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/scripts/upgrade_planner.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/scripts/upgrade_planner.py",
+    "sha256": "fcaf65475a3376c53c345ad27137a06a99c67184a7b328129021d69f48cc870b",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "test-inventory.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/test-inventory.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/test-inventory.json",
+    "sha256": "9eb7db72e3c66d324efe411b11f702ebedd42ac8fa89ffe7ead338b902450fd3",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "test-project/package.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/dependency-auditor/test-project/package.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/dependency-auditor/test-project/package.json",
+    "sha256": "0ba6fc01364589a5e6030a05e1283038bf3a944135b46a9a5eaaaf1dbdf6a032",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

@@ -59,6 +59,22 @@ def test_a_skill_call_gets_its_overlay_with_paths_made_absolute(hook, home, monk
     assert err == ""
 
 
+def test_a_deployed_repo_skill_needs_no_plugin_index(hook, tmp_path, monkeypatch, capsys):
+    # cfg deploy links each repo skill into skills/ from the release; with the plugins
+    # gone there may be no plugins/ directory at all.
+    release = make_home(tmp_path / "release", skills={"senior-qa": ["references/a.md"]})
+    home = make_home(tmp_path, overlays={"senior-qa": "Read `references/a.md`.\n"})
+    (home / "skills" / "senior-qa").symlink_to(release / "skills" / "senior-qa")
+    monkeypatch.setenv("CLAUDE_HOME", str(home))
+    out, err = run_main(hook, skill_call("senior-qa"), monkeypatch, capsys)
+    context = context_of(out)
+    assert context.startswith("Skill overlay for senior-qa:\n")
+    assert f"`{home}/skills/senior-qa/references/a.md`" in context
+    assert "missing:" not in context and "could not be loaded" not in context
+    assert not (home / "plugins").exists()
+    assert err == ""
+
+
 def test_a_typed_slash_command_gets_the_same_overlay(hook, home, monkeypatch, capsys):
     stdin = payload(hook_event_name="UserPromptExpansion", command_name="foo")
     out, _ = run_main(hook, stdin, monkeypatch, capsys)

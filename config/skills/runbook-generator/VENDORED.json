@@ -1,0 +1,44 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/runbook-generator/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/runbook-generator/SKILL.md",
+    "sha256": "ef426a9b8a04cb766ac002efeaf4907083aff817887c7652c3fbd4258661fa53",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/runbook-templates.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/runbook-generator/references/runbook-templates.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/runbook-generator/references/runbook-templates.md",
+    "sha256": "5abb8bc37c72236dd7858300faa3b58f1fd3ea6404603b1eac21924e86f69edd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/runbook_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/runbook-generator/scripts/runbook_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/runbook-generator/scripts/runbook_generator.py",
+    "sha256": "b7a0105878e5d58a45870d580545606a8d8817b5b514e6c874bf81d73fd3a104",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

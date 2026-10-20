@@ -16,7 +16,7 @@ Use these in order. Each injects a "Skill overlay"; if none appears, read `~/.cl
 
 Prose, alongside every step: load `plain-prose` once per session before the first text a person will read later: code comments, docstrings, assertion and error messages, CLI and UI text, commits, issue and PR text, docs and review notes (not the chat reply itself, and not text written for Claude). Load `writing-docs` once before the first such text too; it loads `plain-prose` itself and adds the reader-first steps, with templates and a lint for document files. Their rules then cover every later such text. Never re-invoke one while its `Base directory for this skill:` block is still in context; only reload after compaction drops it.
 
-Rarely self-trigger; load: flaky tests, bugs: `focused-fix`; migrations: `migration-architect`, `database-schema-designer`; API changes: `api-design-reviewer`; dependency/bot PRs: `dependency-auditor`; ops docs: `senior-devops`, `runbook-generator`; fork orchestration: `agent-workflow-designer`.
+Rarely self-trigger; load: migrations: `migration-architect`, `database-schema-designer`; API changes: `api-design-reviewer`; dependency/bot PRs: `dependency-auditor`; ops docs: `runbook-generator`; fork orchestration: `agent-workflow-designer`.
 
 ## Approval modes
 

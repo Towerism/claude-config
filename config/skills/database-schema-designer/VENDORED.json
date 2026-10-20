@@ -1,0 +1,32 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/database-schema-designer/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/database-schema-designer/SKILL.md",
+    "sha256": "0a964937e39dc65462ad5b3e36e30ebd08f17eea6503e0f7d0b2dbe86fbe35fc",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "localSha256": "a0ffeb5bfc3afadc5606057bae85c07551a9d86b647d8c25101b4108c46fba0d"
+  },
+  {
+    "path": "references/full-schema-examples.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/database-schema-designer/references/full-schema-examples.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/database-schema-designer/references/full-schema-examples.md",
+    "sha256": "8eecb394b1b2509bc013a1aaca962b4f491cdf961c541cfb9bf3719ddb3aa4aa",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

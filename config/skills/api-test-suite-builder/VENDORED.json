@@ -1,0 +1,30 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-test-suite-builder/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-test-suite-builder/SKILL.md",
+    "sha256": "a0db3fd9004317097c1c9c7ef7da6276a98d205a1c2af79fbbddd72fab976d42",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/example-test-files.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/api-test-suite-builder/references/example-test-files.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/api-test-suite-builder/references/example-test-files.md",
+    "sha256": "9e13f16c847178787cf4e0b18e8af3e3f88599dbdcc34fac32023accd7dae306",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

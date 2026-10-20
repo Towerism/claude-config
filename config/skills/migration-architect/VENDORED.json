@@ -1,0 +1,288 @@
+[
+  {
+    "path": "README.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/README.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/README.md",
+    "sha256": "828020e15870be2982f07049eeb96f4c6530394a5f8376aeddbcbc116c5fba0c",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/SKILL.md",
+    "sha256": "b262c3b4eea8389b4fb65016734a092a99e096a226662c37efc89bc93c69a77a",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/database_schema_after.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/assets/database_schema_after.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/assets/database_schema_after.json",
+    "sha256": "4084b584c3fe328c4f0d70a1c1bcfdee08d392bc3b264b3cfbb06769ca1d3362",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/database_schema_before.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/assets/database_schema_before.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/assets/database_schema_before.json",
+    "sha256": "77c0979da2c460aedd9c5b9e094ecdfa9d4a9826503af9113e82b8b8e23ed59c",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_database_migration.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/assets/sample_database_migration.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/assets/sample_database_migration.json",
+    "sha256": "4061dfddb70dc6713e53c38603199d2c02c5c21204a4b9fa27dab2e060bd5892",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "assets/sample_service_migration.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/assets/sample_service_migration.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/assets/sample_service_migration.json",
+    "sha256": "09a7084eb3d15cfa00a158c26c5778a5f4798c40cd1ba6fe340455512022f9bd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/rollback_runbook.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/rollback_runbook.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/rollback_runbook.json",
+    "sha256": "e61cc1fb18e4ca284a42d745179112ac31659fa590d3175b2cd2d5b679fc77d0",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "localSha256": "4d93a5da0a4b5961795a2fb74e1863bdc5a6996b931924562cdc1e874d8e0b46"
+  },
+  {
+    "path": "expected_outputs/rollback_runbook.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/rollback_runbook.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/rollback_runbook.txt",
+    "sha256": "d0488ad1fe59db672edd5488548d36fc0719c05eb872d0ef8f7f91f106ec70b6",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "localSha256": "6b620cfd1b394fdb067e868b355fb7b089205665f45d8c722826da0d869041fc"
+  },
+  {
+    "path": "expected_outputs/sample_database_migration_plan.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/sample_database_migration_plan.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/sample_database_migration_plan.json",
+    "sha256": "d1b5fb0dc4e0140ca14e29fcc4416058349573b742b6016868e70382c6a4cffd",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/sample_database_migration_plan.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/sample_database_migration_plan.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/sample_database_migration_plan.txt",
+    "sha256": "9cb6b5a5f34bcb6849d81b41c372295196101ec50664e7921ed20fac6df63a22",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/sample_service_migration_plan.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/sample_service_migration_plan.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/sample_service_migration_plan.json",
+    "sha256": "e114f0f9f935070b6f067db42c9948e4a503f00cd67befaa33fe356365d84a4f",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/sample_service_migration_plan.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/sample_service_migration_plan.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/sample_service_migration_plan.txt",
+    "sha256": "89602c26d84f6e46131e13b81d61f8b6f8304f051bb4ce93967855bc14587658",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/schema_compatibility_report.json",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/schema_compatibility_report.json"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/schema_compatibility_report.json",
+    "sha256": "5659901ea0d085cf54dd6c8072983fc3a749a8f80cbea2d3bf2aeac3b516f708",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "expected_outputs/schema_compatibility_report.txt",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/expected_outputs/schema_compatibility_report.txt"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/expected_outputs/schema_compatibility_report.txt",
+    "sha256": "576e3edb5f9ef7c97d3de16ef8e1da0065f6446013987dd7f136dcbcaa267e62",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/data_reconciliation_strategies.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/references/data_reconciliation_strategies.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/references/data_reconciliation_strategies.md",
+    "sha256": "aede8a22789a7f21e881f56a996b7bdbd6588d67e73e09b5dc04c40b1b6c25d1",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/migration_patterns_catalog.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/references/migration_patterns_catalog.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/references/migration_patterns_catalog.md",
+    "sha256": "b7844ddde251f778e718de966047d3b769fe635b9c6e1f2fe99f77956946c338",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "references/zero_downtime_techniques.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/references/zero_downtime_techniques.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/references/zero_downtime_techniques.md",
+    "sha256": "182d357f6756d1b3053af63627f0e0717b89bfb77e2f8e0d08b657fa55bf6c56",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/compatibility_checker.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/scripts/compatibility_checker.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/scripts/compatibility_checker.py",
+    "sha256": "b78ed4ba2d954f38f5fb5f52ebb1cd9819ca7824f60021ef8d2dfeb89687d565",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/migration_planner.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/scripts/migration_planner.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/scripts/migration_planner.py",
+    "sha256": "cc8a1b1042b9e87fb0ad1ab42fb5fead90175b69d34bfa5d14ad025e539d7aaf",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  },
+  {
+    "path": "scripts/rollback_generator.py",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering/skills/migration-architect/scripts/rollback_generator.py"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/migration-architect/scripts/rollback_generator.py",
+    "sha256": "5ee0ce71dbd4cd8a134ece4e5c282f7ceb860164431ca5138bfa4996eba372eb",
+    "adapted": true,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md",
+    "note": "Email addresses moved to example.com, which RFC 2606 reserves for documentation, so the repo's email check accepts them; the local parts are unchanged.",
+    "localSha256": "e98d0592a47441a335eae8e8b47595d579cd589a5cafb21a9ae334860efd3a9e"
+  }
+]

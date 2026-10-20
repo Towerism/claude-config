@@ -6,9 +6,8 @@
       "commit": "19392f7a08264ed00486a251f5b2098321771f94",
       "path": "engineering/skills/spec-driven-workflow/scripts/spec_validator.py"
     },
-    "plugin": "engineering-advanced-skills@claude-code-skills",
-    "pluginVersion": "2.9.0",
-    "installedPath": "skills/spec-driven-workflow/scripts/spec_validator.py",
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering/skills/spec-driven-workflow/scripts/spec_validator.py",
     "sha256": "b468c0417a4f3285a12e4cd502daf5eaa4430c64796255f31de4c621f8c576a4",
     "licence": "MIT",
     "licenceFile": "LICENSE"

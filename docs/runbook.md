@@ -104,6 +104,62 @@ If the change adds a plugin to your host profile, install it before deploying. #
 
    Expect `status: clean (release <sha>)` and exit 0. Anything else is described in [Drift](#drift).
 
+### Moving off the claude-code-skills plugins (#62)
+
+Do this once on each machine, with the first deploy that includes #62's PR 1. That deploy stops enabling `engineering-skills@claude-code-skills` and `engineering-advanced-skills@claude-code-skills` and links the 17 skills copied into `config/skills/` in their place. The plugins stay installed until you uninstall them, and until then a session may list both copies.
+
+1. Deploy as in [An ordinary deploy](#an-ordinary-deploy-after-a-change-merges): run it without `--yes`, read the change list, then run it with `--yes`. The list adds 17 `skills/<name>` links and changes `settings.json`, whose `enabledPlugins` loses the two plugins.
+
+   ```sh
+   python3 -I tools/cfg/cli.py deploy --host hosts/personal.json
+   python3 -I tools/cfg/cli.py deploy --host hosts/personal.json --yes
+   ```
+
+   On the work machine, use `hosts/work.json`.
+
+2. Before uninstalling anything, check the links and the overlays. Each skill must have a `SKILL.md` behind its link:
+
+   ```sh
+   for s in adversarial-reviewer agent-workflow-designer api-design-reviewer api-test-suite-builder ci-cd-pipeline-builder database-schema-designer dependency-auditor migration-architect runbook-generator senior-architect senior-prompt-engineer senior-qa ship-gate skill-security-auditor skill-tester spec-driven-workflow tdd-guide; do test -f ~/.claude/skills/$s/SKILL.md || echo "missing $s"; done
+   ```
+
+   Expect no output. Then run the live overlay hook once for each overlay:
+
+   ```sh
+   for s in adversarial-reviewer api-test-suite-builder ci-cd-pipeline-builder runbook-generator senior-architect senior-qa ship-gate spec-driven-workflow tdd-guide; do printf '{"hook_event_name":"PostToolUse","tool_name":"Skill","tool_input":{"skill":"%s"}}' "$s" | env -u CLAUDE_HOME python3 -I ~/.claude/hooks/skill_overlay.py; echo; done
+   ```
+
+   Expect 9 JSON lines. Each `additionalContext` starts `Skill overlay for <name>:`. Four overlays name files (api-test-suite-builder, ci-cd-pipeline-builder, senior-qa and spec-driven-workflow), and each path they name is under `~/.claude/skills/<name>/`. The other five print only their policy text, with no paths. If a line says `could not be loaded`, or a line inside it starts `missing:`, stop: a link points at the wrong place. Run `python3 -I tools/cfg/cli.py rollback` and report it on #62.
+
+3. Uninstall the two plugins:
+
+   ```sh
+   claude plugin uninstall engineering-skills@claude-code-skills
+   claude plugin uninstall engineering-advanced-skills@claude-code-skills
+   ```
+
+   If `claude plugin uninstall` isn't available, open an interactive `claude` session, type `/plugin`, and uninstall both from the menu.
+
+4. Check the result:
+
+   ```sh
+   claude plugin list
+   python3 -I tools/cfg/cli.py status
+   python3 -I tools/cfg/lock.py --check
+   ```
+
+   `claude plugin list` must not show either plugin. Until #62's PR 2 updates `plugins.lock.json`, `status` prints `warning plugin-lock`, and `lock.py --check` exits 1 and names the two plugins as in the lock but not installed. After PR 2 merges and you deploy it, both come back clean. Neither reports an `upstream` line for the vendored skills while the marketplace clone is at the recorded commit.
+
+5. To undo after step 3, reinstall the plugins first, then roll back. A rollback alone restores the old overlays, which need the plugins:
+
+   ```sh
+   claude plugin install engineering-skills@claude-code-skills
+   claude plugin install engineering-advanced-skills@claude-code-skills
+   python3 -I tools/cfg/cli.py rollback
+   ```
+
+   `rollback` leaves `settings.json` alone, so also re-enable the two plugins: run `/plugin` in an interactive session, or add them back to `enabledPlugins` in `~/.claude/settings.json`.
+
 ### The first deploy on a machine that already has a config
 
 The first deploy compares every managed path and owned setting with the repo, and stops on each difference until you decide about it. Nothing on disk changes until no conflicts remain. This is how the owner's personal machine was deployed on 2026-10-19 (PR #49).
@@ -324,13 +380,11 @@ For the work machine, follow [Setting up the work machine](#setting-up-the-work-
 
    ```sh
    claude plugin marketplace add alirezarezvani/claude-skills
-   claude plugin install engineering-skills@claude-code-skills
-   claude plugin install engineering-advanced-skills@claude-code-skills
    claude plugin install claude-md-management@claude-plugins-official
    claude plugin install skill-creator@claude-plugins-official
    ```
 
-   `claude-plugins-official` is usually configured already; `claude plugin marketplace list` shows it. If it's missing, add `anthropics/claude-plugins-official` the same way.
+   `claude-plugins-official` is usually configured already; `claude plugin marketplace list` shows it. If it's missing, add `anthropics/claude-plugins-official` the same way. The `claude-code-skills` marketplace (`alirezarezvani/claude-skills`) is added for its clone only, which `lock.py --check` compares the vendored skills with; install no plugin from it (#62).
 
 4. `claude plugin install` takes the marketplace's current version, not the one in `plugins.lock.json`. Compare them, and review any difference before deploying:
 

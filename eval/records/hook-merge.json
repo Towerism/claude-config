@@ -1,7 +1,7 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/hook_harness.py": "b15d42124c4d4ea3fedce98dbec6790a86145d2c0b9703b573890b2640c5958f"
+    "eval/hook_harness.py": "62a5307e56d4be18e4b7cf9aa8826f667f1887613a9530714c82f96f0b795258"
   },
   "inputs": {
     "config/hooks/merge_confirm.py": "c944a089d826c57699a7b6ed95dd94093063b96ebb9e9df4a71154a804c4f5be",
@@ -11,7 +11,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-19T19:43:52Z",
+  "ranAt": "2026-10-20T22:27:57Z",
   "result": {
     "cases": [
       {

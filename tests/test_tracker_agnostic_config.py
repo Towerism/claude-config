@@ -52,8 +52,8 @@ def test_the_pipeline_and_git_rule_use_the_tracker_agnostic_wording():
 
 
 def test_the_overlays_point_at_the_repos_lifecycle_skill():
-    spec = (OVERLAYS / "engineering-advanced-skills:spec-driven-workflow.md").read_text()
-    tdd = (OVERLAYS / "engineering-skills:tdd-guide.md").read_text()
+    spec = (OVERLAYS / "spec-driven-workflow.md").read_text()
+    tdd = (OVERLAYS / "tdd-guide.md").read_text()
     assert f"- {SPEC_OVERLAY_LINE}" in spec.splitlines()
     assert f"- {TDD_OVERLAY_START}{TDD_OVERLAY_REST}" in tdd.splitlines()
 

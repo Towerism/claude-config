@@ -4,22 +4,27 @@ tools/cfg/eval.py runs these for the suites in eval/gates.json whose runner is
 `doc-trigger` or `doc-reader`. A suite names the skill, its case file and its
 `companions`, the skills it runs beside once deployed (ADR-0005, ADR-0010).
 
-They reuse eval/skill_evals.py's isolation helpers and keep that module unchanged,
-so the records of the suites that use it stay valid. Each config directory holds
-the skill and its companions together, or the companions alone for the baseline,
-and each run's init event must list exactly the skills installed for it, each
-once; otherwise the suite stops with an IsolationError and no record is written.
+They reuse eval/skill_evals.py's isolation helpers. A doc-trigger config holds a
+copy of every skill in the HEAD commit's config/skills/, as a deployed session
+does (#62). A doc-reader config holds the skill and its companions together, or
+the companions alone for the baseline. Each run's init event must list each
+skill under test and each companion exactly once, and a doc-reader run none of
+the skill and companions its config lacks; otherwise the suite stops with an
+IsolationError and no record is written.
 
 Both runners keep chance out of the verdict without sampling much, because each
 model run costs the owner's subscription.
 
 doc-trigger: each query runs twice, with a third run only when the first two
 disagree, and triggers when two of its runs load the skill under test. Ordinary
-queries stop after two turns, since the load decision comes first; delegated
-ones get four, for the Agent call and the subagent's Skill call, and only a load
-inside a subagent counts. A run that loads only a companion is a miss, and an
-errored run counts against its class. The suite passes when at least 85% of the
-should-trigger queries trigger, delegated ones included, and no near miss does.
+queries stop after three turns, since the load decision comes first and a run
+may load another repo skill before it; delegated ones get four, for the Agent
+call and the subagent's Skill call, and only a load inside a subagent counts. A
+run that loads only a companion is a miss, and an errored run counts against its
+class. A run that hits the turn limit without loading the skill under test is
+counted in turnLimitRuns, whatever else it loaded. The suite passes when at least
+70% of the should-trigger queries trigger (85% before #62; #67 restores it),
+delegated ones included, and no near miss does.
 
 doc-reader: both arms write, or rewrite the same draft; the skill arm has the
 skill and its companions, the baseline only the companions. A reply wrapped
@@ -53,10 +58,11 @@ LINT = "scripts/doc_lint.py"
 CHECKER = "scripts/prose_check.py"
 OUTER_FENCE = re.compile(r"^(`{3,}|~{3,})\s*(markdown|md)?\s*$")
 FENCE_LINE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
-# The load decision comes in the first turn or two; later turns only write text the
-# trigger suite doesn't grade. A delegated query needs the Agent call, the
-# subagent's turn and its Skill call.
-ORDINARY_TURNS = "2"
+# The load decision comes in the first turns; later turns only write text the
+# trigger suite doesn't grade. Ordinary queries get three, because with the other
+# repo skills listed (#62) a run may load a competitor such as senior-architect
+# first. A delegated query needs the Agent call, the subagent's turn and its Skill call.
+ORDINARY_TURNS = "3"
 DELEGATED_TURNS = "4"
 FIRST_RUNS = 2
 RIGHT_SHARE = 0.9
@@ -111,7 +117,11 @@ def trigger_run(
     ctx: run_eval.Context, cfg: Path, box: se.Sandbox, case: Case, skill: str,
     everyone: list[str],
 ) -> tuple[bool, bool, bool]:  # fmt: skip
-    """(counts as a load, errored, hit the turn limit before loading anything) for one run."""
+    """(counts as a load, errored, hit the turn limit without loading the skill) for one run.
+
+    For a delegated case only a subagent's load counts, so a run that loads the skill at
+    top level and then hits the limit is turn-limited too.
+    """
     turns = DELEGATED_TURNS if case.get("delegated") else ORDINARY_TURNS
     args = ["--max-turns", turns, "--tools", se.TRIGGER_TOOLS,
             "--allowedTools", se.TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
@@ -122,9 +132,7 @@ def trigger_run(
     calls = se.skill_calls(evs, skill)
     if case.get("delegated"):
         calls = [c for c in calls if c is not None]
-    limited = any(e.get("type") == "result" and e.get("subtype") == "error_max_turns"
-                  for e in evs) and not any(se.skill_calls(evs, s) for s in everyone)  # fmt: skip
-    return bool(calls), False, limited
+    return bool(calls), False, se.hit_turn_limit(evs) and not calls
 
 
 def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
@@ -133,7 +141,7 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     runs: dict[int, list[tuple[bool, bool, bool]]] = {i: [] for i in range(len(cases))}
     with (
         se.sandbox(ctx) as box,
-        config_with(ctx, "trigger", [skills_dir / n for n in everyone]) as cfg,
+        se.trigger_config(ctx, "trigger") as cfg,
     ):
 
         def one(index: int) -> tuple[int, tuple[bool, bool, bool]]:

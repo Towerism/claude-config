@@ -20,6 +20,8 @@ from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
 SKILL = "plain-prose"
+# Another repo skill: trigger runs list it beside SKILL, behaviour runs don't.
+OTHER = "other-skill"
 
 
 @pytest.fixture(autouse=True)
@@ -39,6 +41,9 @@ def make_head(root: Path, trigger=None, behaviour=None) -> Path:
         (skill / "scripts" / rel).write_text((src / rel).read_text())
     (skill / "evals" / "trigger-evals.json").write_text(json.dumps(trigger or []))
     (skill / "evals" / "behaviour-evals.json").write_text(json.dumps(behaviour or []))
+    other = root / "config" / "skills" / OTHER
+    other.mkdir()
+    (other / "SKILL.md").write_text(f"---\nname: {OTHER}\ndescription: d\n---\nBody\n")
     return root
 
 
@@ -102,7 +107,10 @@ class Recorder:
 
 
 class TriggerFake(Recorder):
-    """Per query, a list of run outcomes: 'top', 'sub', 'none' or 'error'."""
+    """Per query, a list of run outcomes: 'top', 'sub', 'none', 'limit', 'other-limit' or 'error'.
+
+    'limit' hits the turn limit having loaded nothing; 'other-limit' hits it after loading OTHER.
+    """
 
     def __init__(self, plan, dup=False):
         super().__init__()
@@ -115,8 +123,12 @@ class TriggerFake(Recorder):
         if outcome == "error":
             return 1, "not json at all"
         skills = installed(env) * (2 if self.dup else 1)
-        uses = {"top": [(SKILL, None)], "sub": [(SKILL, "toolu_1")], "none": []}[outcome]
-        return 0, stream(skills, uses)
+        uses = {"top": [(SKILL, None)], "sub": [(SKILL, "toolu_1")], "none": [], "limit": [],
+                "other-limit": [(OTHER, None)]}[outcome]  # fmt: skip
+        out = stream(skills, uses)
+        if outcome.endswith("limit"):
+            out = out.replace('"type": "result"', '"type": "result", "subtype": "error_max_turns"')
+        return 0, out
 
 
 def trig(query, should, delegated=False):
@@ -174,12 +186,20 @@ def test_thirteen_of_fifteen_should_trigger_queries_pass(make_ctx):
     assert result["pass"] is True
 
 
-def test_twelve_of_fifteen_fails_however_clean_the_near_misses(make_ctx):
-    cases, plan = positives(15, misses=3)
+def test_eleven_of_fifteen_passes_the_interim_seventy_percent_gate(make_ctx):
+    cases, plan = positives(15, misses=4)
     near = [trig(f"n{i}", False) for i in range(10)]
     result, _, _ = run_trigger(make_ctx, cases + near,
                                plan | {f"n{i}": ["none"] * 3 for i in range(10)})  # fmt: skip
-    assert result["recall"] == 0.8 and result["falseTriggers"] == 0
+    assert result["recall"] == round(11 / 15, 3) and result["pass"] is True
+
+
+def test_ten_of_fifteen_fails_however_clean_the_near_misses(make_ctx):
+    cases, plan = positives(15, misses=5)
+    near = [trig(f"n{i}", False) for i in range(10)]
+    result, _, _ = run_trigger(make_ctx, cases + near,
+                               plan | {f"n{i}": ["none"] * 3 for i in range(10)})  # fmt: skip
+    assert result["recall"] == round(10 / 15, 3) and result["falseTriggers"] == 0
     assert result["pass"] is False
 
 
@@ -206,16 +226,22 @@ def test_a_run_error_fails_the_query_even_when_it_should_not_trigger(make_ctx):
     assert case["result"] == "fail" and case["errors"] == 1
 
 
-def test_trigger_runs_have_the_skill_only_tools_and_no_github(make_ctx):
+def test_trigger_runs_list_every_repo_skill_once_with_only_their_tools_and_no_github(make_ctx):
     _, fake, ctx = run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 3})
     assert len(fake.calls) == 3
     for call in fake.calls:
         cmd = call["cmd"]
         assert cmd[cmd.index("--tools") + 1] == "Skill,Read,Agent"
         assert cmd[cmd.index("--max-turns") + 1] == "4"
-        assert call["skills"] == [SKILL]
+        assert call["skills"] == sorted([OTHER, SKILL])
         assert call["stub_gh"] and call["gh_config_empty"]
     assert leftovers(ctx.root) == []
+
+
+def test_a_run_that_hits_the_turn_limit_without_loading_the_skill_is_turn_limited(make_ctx):
+    plan = {"q": ["limit", "other-limit", "top"]}
+    result, _, _ = run_trigger(make_ctx, [trig("q", True)], plan)
+    assert result["turnLimitRuns"] == 2
 
 
 def test_isolation_failure_leaves_no_temp_directory(make_ctx, tmp_path):

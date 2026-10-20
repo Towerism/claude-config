@@ -1,0 +1,16 @@
+[
+  {
+    "path": "SKILL.md",
+    "upstream": {
+      "repo": "alirezarezvani/claude-skills",
+      "commit": "19392f7a08264ed00486a251f5b2098321771f94",
+      "path": "engineering-team/skills/adversarial-reviewer/SKILL.md"
+    },
+    "marketplace": "claude-code-skills",
+    "marketplacePath": "engineering-team/skills/adversarial-reviewer/SKILL.md",
+    "sha256": "d69e917a7c84405a18b40bd6e41d5fae9aba966db903171028f86bb5c25f6f94",
+    "adapted": false,
+    "licence": "MIT",
+    "licenceFile": "LICENSE-vendored.md"
+  }
+]

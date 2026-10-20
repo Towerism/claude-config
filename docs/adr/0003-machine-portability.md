@@ -1,6 +1,6 @@
 # ADR-0003: Machine portability (runtime resolution first, one substitution variable, per-host component profiles)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Amended 2026-10-20 by #17 (spec approved by the owner): synced skills are per machine; see [Amendment for #17](#amendment-for-17-2026-10-20).
 
 Code works out its paths when it runs. The only deploy-time substitution is a single placeholder, `{claude_home}`, used in the hook commands of the settings fragment. Each machine has a host profile, a small JSON file that selects which whole files and skills it gets. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -63,3 +63,7 @@ Two CLAUDE.md variants have no way to include shared rules from a common file. T
 
 - The work CLAUDE.md shares most of its lines with the personal one, and making every edit twice starts to cost real effort. Consider generating both from a common source, with a check that the generated files are committed.
 - Claude Code documents support for expanding `${CLAUDE_CONFIG_DIR}` in user hook commands. The substitution could then go, as long as every machine deploys again.
+
+## Amendment for #17 (2026-10-20)
+
+The skills claude.ai syncs into `~/.claude/skills/synced/` belong to the account a machine signs in with, and the work machine uses a different account from the personal one. So synced skills are a fact of each machine, like its plugin cache: host profiles never list them, and nothing the machines share (the CLAUDE.md, the overlays, the settings fragment, the plugin lock) may name or depend on one. A skill both machines need is installed as a plugin listed in both profiles, or kept as a repo skill. [ADR-0005's amendment](0005-verification-and-ci.md#amendment-for-17-2026-10-20) says how the lock and the checker enforce this.

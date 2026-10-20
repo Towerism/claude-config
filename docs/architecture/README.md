@@ -102,7 +102,7 @@ Every part of `~/.claude` has one owner, and the repo touches only what it owns:
 | `CLAUDE.md`, `skill-overlays/`, `hooks/*.py`, `skills/<custom>/` | The repo | Deployed as symlinks into the current release worktree ([ADR-0001](../adr/0001-deployment-model.md)). An edit made through a link counts as drift. |
 | `settings.json` | Shared | The repo owns only the keys listed in `config/settings.fragment.json` and merges them atomically ([ADR-0001](../adr/0001-deployment-model.md), settings section). Every other key belongs to the harness or the owner. |
 | Plugin code (`plugins/cache`, `plugins/marketplaces`) | Harness and marketplaces | Never versioned. The plugin lock records installed versions so changes can be detected, but the repo can't pin what the harness installs. |
-| `skills/synced/`, `skills/.trash/` | claude.ai sync | Never read, written or versioned. `cfg status` reports only a name collision with a repo skill. |
+| `skills/synced/`, `skills/.trash/` | claude.ai sync | Never read, written or versioned. `cfg status` reports only a name collision with a repo skill. Each account syncs its own set, so the lock, the CLAUDE.md and the overlays never name a synced skill (#17). |
 | Credentials, history, transcripts, caches, sessions, jobs, backups and similar | Harness | Never versioned. `.gitignore`, the pre-commit hook and CI enforce a deny-list. |
 
 ## Repo layout

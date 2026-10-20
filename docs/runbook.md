@@ -65,6 +65,8 @@ To check: `git config core.hooksPath` prints `.githooks`, and `.venv/bin/python 
 
 Run this after any PR merges to `main`. Until you do, `status` reports `behind`, which is expected.
 
+If the change adds a plugin to your host profile, install it before deploying. #17 added `skill-creator@claude-plugins-official`, so before the first deploy that includes it, run `claude plugin install skill-creator@claude-plugins-official` (on the personal machine the owner did this on 2026-10-20). Without it, `status` warns `skill-creator@claude-plugins-official: in the lock but not installed`.
+
 1. Update your clone. If `git pull` refuses, see [Updating your checkout](#updating-your-checkout).
 
    ```sh
@@ -174,7 +176,7 @@ python3 -I tools/cfg/cli.py diff <path>
 | `broken <path>: ...` | A link is missing or points somewhere else | `deploy` relinks it |
 | a settings difference | An owned key in `settings.json` changed | Capture `settings.json`, or deploy with `--discard-live settings.json` |
 
-`status` may also print `warning` lines, for example `warning plugin-lock` when the installed plugins or synced skills differ from `plugins.lock.json`. Warnings don't stop a deploy.
+`status` may also print `warning` lines, for example `warning plugin-lock` when the installed plugins differ from `plugins.lock.json`. The skills claude.ai syncs into `skills/synced/` aren't compared: each account syncs its own. Warnings don't stop a deploy.
 
 Claude's Edit and Write tools refuse to write through a linked file such as `~/.claude/CLAUDE.md` ("Write target is a symbolic link"). Claude then edits the file in the release worktree instead, which shows up here as drift. That's expected: capture the edit if you want to keep it.
 
@@ -325,6 +327,7 @@ For the work machine, follow [Setting up the work machine](#setting-up-the-work-
    claude plugin install engineering-skills@claude-code-skills
    claude plugin install engineering-advanced-skills@claude-code-skills
    claude plugin install claude-md-management@claude-plugins-official
+   claude plugin install skill-creator@claude-plugins-official
    ```
 
    `claude-plugins-official` is usually configured already; `claude plugin marketplace list` shows it. If it's missing, add `anthropics/claude-plugins-official` the same way.
@@ -473,7 +476,6 @@ Don't delete the first deploy's own backup, `~/.claude/backups/claude-config/202
 - `plan` exits 1 even when no path differs (#48). Read its output.
 - A full `eval/symlink_check.py` run exits 2 every time today (#44). Read its table.
 - Claude can't edit a linked file such as `~/.claude/CLAUDE.md` in place; its edits land in the release and show as drift ([ADR-0001](adr/0001-deployment-model.md)).
-- In a trial directory, `status` warns `plugin-lock` because the trial has no synced skills. Ignore it there.
 
 ## Practice on a trial directory
 

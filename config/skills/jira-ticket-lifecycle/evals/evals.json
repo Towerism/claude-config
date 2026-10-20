@@ -12,7 +12,7 @@
         "ticket-state: PAY-142 In Progress",
         "ticket-has-label: PAY-142 approval-manual",
         "ticket-lacks-label: PAY-142 approval-adversarial",
-        "cmd-run: ticket_lifecycle\\.py auth"
+        "gh-called: ^auth status"
       ]
     },
     {
@@ -36,7 +36,7 @@
       },
       "expectations": [
         "jira-called: ^issue list",
-        "cmd-run: ticket_lifecycle\\.py search --text-file",
+        "cmd-run: \\bsearch --text-file",
         "answer-matches: PAY-150",
         "answer-matches: (?i)create a new ticket",
         "answer-matches: (?i)link",
@@ -54,8 +54,8 @@
       "expectations": [
         "jira-called: ^issue create -p PAY",
         "ticket-created: (?i)csv",
-        "loaded-before: writing-docs ||| ticket_lifecycle\\.py create",
-        "cmd-run: ticket_lifecycle\\.py create --input"
+        "loaded-before: writing-docs ||| \\bcreate --input",
+        "cmd-run: \\bcreate --input"
       ]
     },
     {
@@ -107,7 +107,7 @@
                        "items": [{"field": "labels", "fromString": "", "toString": "approval-no-review spec-approved"}]}]
       }},
       "expectations": [
-        "cmd-run: ticket_lifecycle\\.py label-actor",
+        "rest-called: ^GET /rest/api/3/issue/PAY-142/changelog",
         "answer-matches: (?i)manual review with (an )?adversarial pass",
         "answer-matches: (?i)(ignor|not trust|didn't trust|don't trust)",
         "git-not-called: ^commit"
@@ -214,7 +214,7 @@
         "gh-called: ^pr create.*--draft",
         "gh-not-called: ^pr merge",
         "jira-called: ^issue comment add PAY-142 https://github\\.com/o/r/pull/1",
-        "cmd-run: ticket_lifecycle\\.py pr-body-check"
+        "cmd-run: \\bpr-body-check\\b"
       ]
     },
     {
@@ -281,7 +281,7 @@
     {
       "id": 19,
       "name": "hotfix-gets-a-labelled-ticket-and-the-mode-question",
-      "turns": ["hotfix: production login 500s since the last deploy, we track it in Jira"],
+      "turns": ["hotfix: production login 500s since the last deploy, we track it in Jira", "Create a new ticket"],
       "tickets": {},
       "expectations": [
         "jira-called: ^issue create .*-l hotfix",

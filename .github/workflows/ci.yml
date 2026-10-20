@@ -160,6 +160,7 @@ jobs:
       - name: Hold 100% branch coverage
         run: python -I -m coverage report --include="$HELD_AT_100" --omit="$NOT_YET_100" --fail-under=100
       - run: python -I -m pytest config/skills/github-issue-lifecycle/tests
+      - run: python -I -m pytest config/skills/jira-ticket-lifecycle/tests
 
   config:
     needs: [changes, test]

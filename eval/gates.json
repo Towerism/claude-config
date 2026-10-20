@@ -116,6 +116,43 @@
         "config/skills/github-issue-lifecycle/evals/fake_gh.py"
       ]
     },
+    "jira-ticket-lifecycle-trigger": {
+      "runner": "script",
+      "script": "config/skills/jira-ticket-lifecycle/evals/run_trigger_evals.py",
+      "paths": [
+        "config/skills/jira-ticket-lifecycle/evals/trigger-evals.json"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/jira-ticket-lifecycle/SKILL.md",
+          "part": "description"
+        }
+      ],
+      "harness": [
+        "config/skills/jira-ticket-lifecycle/evals/run_trigger_evals.py",
+        "config/skills/jira-ticket-lifecycle/evals/run_behaviour_evals.py"
+      ]
+    },
+    "jira-ticket-lifecycle-behaviour": {
+      "runner": "script",
+      "script": "config/skills/jira-ticket-lifecycle/evals/run_behaviour_evals.py",
+      "paths": [
+        "config/skills/jira-ticket-lifecycle/evals/evals.json",
+        "config/skills/jira-ticket-lifecycle/scripts/**",
+        "config/skills/jira-ticket-lifecycle/references/**",
+        "config/skills/jira-ticket-lifecycle/assets/**"
+      ],
+      "selectors": [
+        {
+          "file": "config/skills/jira-ticket-lifecycle/SKILL.md",
+          "part": "body"
+        }
+      ],
+      "harness": [
+        "config/skills/jira-ticket-lifecycle/evals/run_behaviour_evals.py",
+        "config/skills/jira-ticket-lifecycle/evals/fake_cli.py"
+      ]
+    },
     "plain-prose-trigger": {
       "runner": "trigger",
       "skill": "plain-prose",

@@ -1,0 +1,22 @@
+[
+  {"query": "work on PAY-142", "should_trigger": true},
+  {"query": "pick up the Jira ticket about the roster export timing out, I think someone filed it last sprint", "should_trigger": true},
+  {"query": "file a Jira ticket for the BOM bug we just hit in the CSV export, don't start on it, just log it", "should_trigger": true},
+  {"query": "I'm done with the roster change locally, open the PR for PAY-77 and link it on the ticket", "should_trigger": true},
+  {"query": "PAY-90's PR is merged now, close it out and move the ticket to done", "should_trigger": true},
+  {"query": "hotfix the login 500 on prod, we track it in Jira, users can't sign in since the last deploy", "should_trigger": true},
+  {"query": "https://example.atlassian.net/browse/PAY-311 can you take this one", "should_trigger": true},
+  {"query": "the spec for PAY-88 is approved now, go ahead and create the branch and worktree", "should_trigger": true},
+  {"query": "grab ticket 204 from our board and get started on it", "should_trigger": true},
+  {"query": "add CSV export to the roster page, there's probably no Jira ticket for it yet so make one and work it", "should_trigger": true},
+  {"query": "work on #42", "should_trigger": false},
+  {"query": "file a GitHub issue for the BOM bug in the CSV export", "should_trigger": false},
+  {"query": "write a spec for a CSV export feature, just a markdown doc I can share, no repo or ticket involved", "should_trigger": false},
+  {"query": "explain how Jira workflows and transitions work, I'm new to Jira", "should_trigger": false},
+  {"query": "review PR #12 and tell me if the caching change is safe", "should_trigger": false},
+  {"query": "what does JQL stand for, and how do I search for tickets updated this week?", "should_trigger": false},
+  {"query": "explain conventional commits to me, and how semantic-release picks the version from them", "should_trigger": false},
+  {"query": "rebase my branch onto main and fix the conflicts in server/api/roster.get.ts", "should_trigger": false},
+  {"query": "write a commit message for these staged changes to the drizzle schema", "should_trigger": false},
+  {"query": "set up a github actions workflow that runs pytest on every PR", "should_trigger": false}
+]

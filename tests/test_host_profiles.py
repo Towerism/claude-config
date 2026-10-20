@@ -117,3 +117,28 @@ def test_the_checker_accepts_the_work_profile_offline(tmp_path):
     ]  # fmt: skip
     r = run_script(CHECKER, "", home, args)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+SKILL_CREATOR = "skill-creator@claude-plugins-official"
+
+
+def test_skill_creator_comes_from_its_plugin_on_both_machines():
+    fragment = json.loads((REPO_ROOT / "config" / "settings.fragment.json").read_text())
+    assert fragment["enabledPlugins"][SKILL_CREATOR] is True
+    for name in ("personal", "work"):
+        assert SKILL_CREATOR in load(name)["plugins"], name
+    claude_md = (REPO_ROOT / "config" / "CLAUDE.global.md").read_text()
+    assert "`skill-creator:skill-creator`" in claude_md
+
+
+def test_no_shared_config_names_a_synced_skill():
+    # Each account syncs its own skills, so a name from one account's set
+    # can't be relied on by both machines.
+    shared = [
+        REPO_ROOT / "config" / "CLAUDE.global.md",
+        REPO_ROOT / "config" / "settings.fragment.json",
+    ]
+    shared += sorted((REPO_ROOT / "config" / "skill-overlays").glob("*.md"))
+    shared += sorted(HOSTS.glob("*.json"))
+    named = [p.relative_to(REPO_ROOT) for p in shared if "anthropic-skills:" in p.read_text()]
+    assert named == []

@@ -227,6 +227,22 @@ def test_a_failing_checker_stops_before_any_live_change(
     assert snapshot_bytes(installed) == before
 
 
+def test_a_release_that_names_a_synced_skill_is_refused_before_any_live_change(
+    repo: Path, installed: Path, data: Path
+) -> None:
+    # Synced skills differ per claude.ai account, so a release must not rely on one.
+    for real in ("tools/check_config.py", "config/hooks/skill_overlay.py"):
+        commit_change(repo, real, (REPO_ROOT / real).read_text())
+    commit_change(repo, "config/CLAUDE.global.md", "# global\n- Use `anthropic-skills:pdf`.\n")
+    push(repo)
+    before = snapshot_bytes(installed)
+    with pytest.raises(CfgError, match="config checker failed") as failed:
+        run(repo, installed, data, discard=("CLAUDE.md",))
+    report = str(failed.value)
+    assert "syncedSkills" in report and "anthropic-skills:pdf" in report, report
+    assert snapshot_bytes(installed) == before
+
+
 @pytest.mark.parametrize(
     "hook",
     [

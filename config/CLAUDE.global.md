@@ -51,6 +51,6 @@ Conflicts: manual review beats "no review"; else the more specific statement win
 
 ## Skills
 
-- New skills always use `spec-driven-workflow`, with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already there: update the spec first, re-review it under its mode, keep status in its `**Status:**` line and the note in `REVIEW-NOTE.md` beside it. Edit other skills directly. Use `anthropic-skills:skill-creator`, `skill-tester`, and `skill-security-auditor` (third-party skills, before install).
+- New skills always use `spec-driven-workflow`, with `SPEC.md` beside `SKILL.md`; an existing skill uses it only if a `SPEC.md` is already there: update the spec first, re-review it under its mode, keep status in its `**Status:**` line and the note in `REVIEW-NOTE.md` beside it. Edit other skills directly. Use `skill-creator:skill-creator`, `skill-tester`, and `skill-security-auditor` (third-party skills, before install).
 - Run skill scripts only as `python3 -I <literal absolute path>` (overlay path or base dir + relative); never via shell variables or `$(...)`.
 - Asked whether a skill was used? Say how deeply: loaded, references read, outputs used.

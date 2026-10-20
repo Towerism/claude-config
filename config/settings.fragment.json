@@ -2,7 +2,8 @@
   "enabledPlugins": {
     "engineering-skills@claude-code-skills": true,
     "engineering-advanced-skills@claude-code-skills": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "claude-code-skills": {

@@ -200,7 +200,7 @@ def test_without_host_there_are_no_profile_problems(claude_home, tmp_path):
     assert r.returncode == 0 and json.loads(r.stdout)["profileProblems"] == []
 
 
-def test_synced_skills_resolve_in_host_mode(mode, tmp_path):
+def test_a_synced_skill_name_is_a_finding_in_host_mode_even_when_synced_here(mode, tmp_path):
     home, repo, profile, lock = mode
     synced = home / "skills" / "synced" / "uuid-1" / "skill-creator"
     synced.mkdir(parents=True)
@@ -209,10 +209,11 @@ def test_synced_skills_resolve_in_host_mode(mode, tmp_path):
         lock = make_lock(
             tmp_path / "synced.lock.json",
             {"engineering-skills@mkt": {"skills": ["senior-qa"], "files": QA_FILES}},
-            synced=["skill-creator"],
         )
     (repo / "config" / "CLAUDE.global.md").write_text(
         GOOD_GLOBAL_MD + "- `anthropic-skills:skill-creator`, not `anthropic-skills:pdf`.\n"
     )
     r, rep = check(home, profile, lock=lock)
-    assert rep["unresolvedSkills"] == ["anthropic-skills:pdf"]
+    assert r.returncode == 1
+    assert rep["unresolvedSkills"] == []
+    assert rep["syncedSkills"] == ["anthropic-skills:pdf", "anthropic-skills:skill-creator"]

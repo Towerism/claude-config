@@ -11,7 +11,6 @@ QA = "engineering-skills:senior-qa"
 GOOD_MD = (
     "# Global rules\n"
     "- Test plans: `engineering-skills:senior-qa`, or just `senior-qa`.\n"
-    "- Build skills with `anthropic-skills:skill-creator`.\n"
     "- Start work with `my-lifecycle`.\n"
     "- IMPORTANT: merge only with the user's authorization.\n"
 )
@@ -31,7 +30,6 @@ def offline(claude_home, tmp_path):
     lock = make_lock(
         tmp_path / "plugins.lock.json",
         {"engineering-skills@mkt": {"skills": ["senior-qa", "tdd-guide"], "files": QA_FILES}},
-        synced=["skill-creator"],
     )
     return claude_home, staging, md, lock
 
@@ -50,7 +48,7 @@ def check(home, staging, md, lock, *extra):
     return r, (json.loads(r.stdout) if r.stdout.strip().startswith("{") else None)
 
 
-def test_full_short_and_synced_names_resolve_from_the_lock(offline):
+def test_full_and_short_names_resolve_from_the_lock(offline):
     r, rep = check(*offline)
     assert r.returncode == 0, r.stdout + r.stderr
     assert rep["unresolvedSkills"] == [] and rep["missingPaths"] == []
@@ -67,10 +65,11 @@ def test_plugin_cache_and_synced_skills_on_disk_are_ignored(offline, tmp_path):
     md.write_text(GOOD_MD + "- `engineering-skills:decoy` and `anthropic-skills:pdf`.\n")
     r, rep = check(home, staging, md, lock)
     assert r.returncode == 1
-    assert rep["unresolvedSkills"] == ["anthropic-skills:pdf", "engineering-skills:decoy"]
+    assert rep["unresolvedSkills"] == ["engineering-skills:decoy"]
+    assert rep["syncedSkills"] == ["anthropic-skills:pdf"]
 
 
-def test_unknown_ambiguous_and_unsynced_names_are_unresolved(offline, tmp_path):
+def test_unknown_and_ambiguous_names_are_unresolved_and_synced_names_reported(offline, tmp_path):
     home, staging, md, _ = offline
     lock = make_lock(
         tmp_path / "two.lock.json",
@@ -78,7 +77,6 @@ def test_unknown_ambiguous_and_unsynced_names_are_unresolved(offline, tmp_path):
             "engineering-skills@mkt": {"skills": ["senior-qa"], "files": QA_FILES},
             "other-bundle@mkt": {"skills": ["senior-qa"]},
         },
-        synced=["skill-creator"],
     )
     md.write_text(
         "- `engineering-skills:senior-qa`, `senior-qa`, `engineering-skills:nope`,\n"
@@ -87,11 +85,8 @@ def test_unknown_ambiguous_and_unsynced_names_are_unresolved(offline, tmp_path):
     )
     r, rep = check(home, staging, md, lock)
     assert r.returncode == 1
-    assert rep["unresolvedSkills"] == [
-        "anthropic-skills:docx",
-        "engineering-skills:nope",
-        "senior-qa",
-    ]
+    assert rep["unresolvedSkills"] == ["engineering-skills:nope", "senior-qa"]
+    assert rep["syncedSkills"] == ["anthropic-skills:docx"]
 
 
 def test_overlay_path_not_in_the_lock_is_missing(offline):
@@ -127,17 +122,15 @@ def test_overlay_for_a_repo_skill_is_checked_on_disk(offline):
     [
         None,
         "{not json",
-        json.dumps({"lockVersion": 2, "plugins": {}, "synced": []}),
-        json.dumps({"lockVersion": 1, "synced": []}),
-        json.dumps({"lockVersion": 1, "plugins": [], "synced": []}),
-        json.dumps({"lockVersion": 1, "plugins": {"a@m": {"skills": "x"}}, "synced": []}),
-        json.dumps({"lockVersion": 1, "plugins": {"a@m": {"skills": [], "files": []}},
-                    "synced": []}),
-        json.dumps({"lockVersion": 1, "plugins": {}}),
+        json.dumps({"lockVersion": 1, "plugins": {}, "synced": []}),
+        json.dumps({"lockVersion": 2}),
+        json.dumps({"lockVersion": 2, "plugins": []}),
+        json.dumps({"lockVersion": 2, "plugins": {"a@m": {"skills": "x"}}}),
+        json.dumps({"lockVersion": 2, "plugins": {"a@m": {"skills": [], "files": []}}}),
         json.dumps([1]),
     ],
-    ids=["missing", "invalid-json", "unknown-version", "no-plugins", "plugins-not-object",
-         "skills-not-list", "files-not-object", "no-synced", "not-an-object"],
+    ids=["missing", "invalid-json", "old-version", "no-plugins", "plugins-not-object",
+         "skills-not-list", "files-not-object", "not-an-object"],
 )  # fmt: skip
 def test_unusable_lock_is_a_usage_error(offline, tmp_path, content):
     home, staging, md, _ = offline
@@ -155,3 +148,12 @@ def test_a_user_skill_in_the_home_still_resolves_offline(offline):
     md.write_text(GOOD_MD + "- And `home-skill`.\n")
     r, rep = check(home, staging, md, lock)
     assert r.returncode == 0, rep
+
+
+def test_a_version_1_lock_is_refused_by_its_version(offline, tmp_path):
+    home, staging, md, _ = offline
+    lock = tmp_path / "old.lock.json"
+    lock.write_text(json.dumps({"lockVersion": 1, "plugins": {}, "synced": ["pdf"]}))
+    r, rep = check(home, staging, md, lock)
+    assert r.returncode == 2
+    assert "lockVersion 1" in rep["error"] and "version 2" in rep["error"], rep["error"]

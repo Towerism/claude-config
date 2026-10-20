@@ -84,14 +84,16 @@ def test_overlay_path_missing_under_active_install_fails(setup):
     ]
 
 
-def test_synced_anthropic_skill_resolves(setup):
+def test_a_synced_skill_name_is_a_finding_even_when_synced_here(setup):
     home, staging, md = setup
     d = home / "skills" / "synced" / "uuid-1" / "skill-creator"
     d.mkdir(parents=True)
     (d / "SKILL.md").write_text("x")
     md.write_text(GOOD_MD + "- `anthropic-skills:skill-creator`\n")
     r, rep = check(home, staging, md)
-    assert r.returncode == 0, rep
+    assert r.returncode == 1
+    assert rep["syncedSkills"] == ["anthropic-skills:skill-creator"]
+    assert rep["unresolvedSkills"] == []
 
 
 def test_repo_name_email_and_token_are_forbidden(setup):

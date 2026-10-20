@@ -36,6 +36,7 @@ def test_each_host_profile_passes_offline_with_no_home_or_scratch_paths(empty_ho
     assert rep | {"ok": True, "tokenCounts": []} == {
         "ok": True,
         "unresolvedSkills": [],
+        "syncedSkills": [],
         "missingPaths": [],
         "clauseProblems": [],
         "forbiddenContent": [],

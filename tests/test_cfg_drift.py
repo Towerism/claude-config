@@ -177,6 +177,17 @@ def test_warnings_never_make_status_unclean(
     assert "alpha" in result.warnings[2].detail
 
 
+def test_the_skills_this_account_syncs_never_make_a_lock_warning(
+    repo: Path, home: Path, data: Path, deployed: state.State
+) -> None:
+    write_tree(home, {"skills/synced/abc/only-on-this-account/SKILL.md": "x\n"})
+    write_tree(home, {"plugins/installed_plugins.json": json.dumps({"plugins": {}})})
+    (release_of(data, deployed) / "plugins.lock.json").write_text(json.dumps(EMPTY_LOCK))
+    git(release_of(data, deployed), "update-index", "--assume-unchanged", "plugins.lock.json")
+    result = drift.status(repo, data, home)
+    assert [w.kind for w in result.warnings] == []
+
+
 def test_a_missing_origin_main_and_unreadable_lock_are_warnings(
     repo: Path, home: Path, data: Path, deployed: state.State
 ) -> None:

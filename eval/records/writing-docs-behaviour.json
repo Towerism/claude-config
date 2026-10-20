@@ -1,9 +1,9 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/doc_evals.py": "f566eb13acaba8f7341b2894e2b6dd7efe56e5db5653469a6bee04287c011f5d",
+    "eval/doc_evals.py": "fd603ddd1a6dc4485d26adb02e07930fdcebd4e41e13a0906a9044a51c65dc91",
     "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
-    "eval/skill_evals.py": "92a1066105bdc462e5471ce751e033d526075190585ef0615850b331606e0fe4"
+    "eval/skill_evals.py": "e14aee7d6484af41ccd3a07821771b07c8467ba67d212fd78cc04aed5ee24a5f"
   },
   "inputs": {
     "config/skills/writing-docs/SKILL.md#body": "84b63f9322871a2de7ef0a1b16b2a7063b4a34f1b418bad89b4f0f8e62b23bdc",
@@ -22,13 +22,13 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T20:55:18Z",
+  "ranAt": "2026-10-20T21:55:45Z",
   "result": {
     "cases": [
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 18.5,
+            "detectability": 17.2,
             "per_1000_words": {
               "ai_tells": 9.6,
               "cold_reader": 19.2,
@@ -49,14 +49,14 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 15.0,
+            "detectability": 17.7,
             "per_1000_words": {
-              "ai_tells": 7.0,
-              "cold_reader": 14.0,
+              "ai_tells": 7.6,
+              "cold_reader": 15.3,
               "readability": 0.0
             }
           },
-          "lint": 0,
+          "lint": 1,
           "missing": [],
           "right": [
             true,
@@ -71,7 +71,7 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 35.1,
+            "detectability": 46.2,
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
@@ -92,14 +92,14 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 24.2,
+            "detectability": 30.3,
             "per_1000_words": {
-              "ai_tells": 8.8,
+              "ai_tells": 0.0,
               "cold_reader": 0.0,
               "readability": 0.0
             }
           },
-          "lint": 1,
+          "lint": 0,
           "missing": [],
           "right": [
             true,
@@ -114,11 +114,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 25.2,
+            "detectability": 21.5,
             "per_1000_words": {
-              "ai_tells": 41.1,
-              "cold_reader": 27.4,
-              "readability": 41.1
+              "ai_tells": 12.7,
+              "cold_reader": 25.3,
+              "readability": 12.7
             }
           },
           "lint": 1,
@@ -135,14 +135,14 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 20.9,
+            "detectability": 26.0,
             "per_1000_words": {
-              "ai_tells": 7.8,
-              "cold_reader": 15.5,
-              "readability": 31.0
+              "ai_tells": 17.9,
+              "cold_reader": 17.9,
+              "readability": 26.8
             }
           },
-          "lint": 0,
+          "lint": 1,
           "missing": [],
           "right": [
             true,
@@ -157,11 +157,11 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 15.0,
+            "detectability": 17.0,
             "per_1000_words": {
-              "ai_tells": 12.3,
+              "ai_tells": 5.9,
               "cold_reader": 0.0,
-              "readability": 12.3
+              "readability": 5.9
             }
           },
           "lint": 1,
@@ -178,54 +178,11 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 17.0,
+            "detectability": 20.9,
             "per_1000_words": {
-              "ai_tells": 15.3,
+              "ai_tells": 4.9,
               "cold_reader": 0.0,
-              "readability": 10.2
-            }
-          },
-          "lint": 1,
-          "missing": [],
-          "right": [
-            true,
-            true,
-            true,
-            true
-          ],
-          "unparsable": false
-        },
-        "writerError": false
-      },
-      {
-        "baseline": {
-          "diagnostics": {
-            "detectability": 13.6,
-            "per_1000_words": {
-              "ai_tells": 7.2,
-              "cold_reader": 7.2,
-              "readability": 21.7
-            }
-          },
-          "lint": 2,
-          "missing": [],
-          "right": [
-            true,
-            true,
-            true,
-            true
-          ],
-          "unparsable": false
-        },
-        "id": "write-readme",
-        "notLoaded": [],
-        "skill": {
-          "diagnostics": {
-            "detectability": 21.9,
-            "per_1000_words": {
-              "ai_tells": 6.6,
-              "cold_reader": 6.6,
-              "readability": 13.2
+              "readability": 0.0
             }
           },
           "lint": 0,
@@ -243,11 +200,54 @@
       {
         "baseline": {
           "diagnostics": {
-            "detectability": 24.9,
+            "detectability": 13.4,
             "per_1000_words": {
-              "ai_tells": 4.3,
-              "cold_reader": 4.3,
-              "readability": 13.0
+              "ai_tells": 0.0,
+              "cold_reader": 10.5,
+              "readability": 0.0
+            }
+          },
+          "lint": 2,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "id": "write-readme",
+        "notLoaded": [],
+        "skill": {
+          "diagnostics": {
+            "detectability": 20.7,
+            "per_1000_words": {
+              "ai_tells": 6.7,
+              "cold_reader": 6.7,
+              "readability": 26.8
+            }
+          },
+          "lint": 0,
+          "missing": [],
+          "right": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "unparsable": false
+        },
+        "writerError": false
+      },
+      {
+        "baseline": {
+          "diagnostics": {
+            "detectability": 26.0,
+            "per_1000_words": {
+              "ai_tells": 5.3,
+              "cold_reader": 5.3,
+              "readability": 15.8
             }
           },
           "lint": 3,
@@ -264,11 +264,11 @@
         "notLoaded": [],
         "skill": {
           "diagnostics": {
-            "detectability": 29.5,
+            "detectability": 33.7,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 3.9,
-              "readability": 7.9
+              "cold_reader": 3.8,
+              "readability": 11.4
             }
           },
           "lint": 0,

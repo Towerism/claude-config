@@ -58,70 +58,70 @@
  {
   "id": "C-09",
   "text": "Apply the test skills; loading them isn't enough.",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "loading the skill isn't enough",
   "reason": null
  },
  {
   "id": "C-10",
   "text": "read `/engineering-skills:senior-qa`'s reference guides (`references/testing_strategies.md`, `qa_best_practices.md`, `test_automation_patterns.md`)",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "references/test_automation_patterns.md",
   "reason": null
  },
  {
   "id": "C-11",
   "text": "plus `api-test-suite-builder`'s matrices for API routes",
-  "disposition": "overlay:engineering-advanced-skills:api-test-suite-builder",
+  "disposition": "overlay:api-test-suite-builder",
   "mustAppear": "Input Validation Matrix",
   "reason": null
  },
  {
   "id": "C-12",
   "text": "pyramid placement per acceptance criterion: push logic down, and keep E2E for critical journeys;",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "pyramid placement per acceptance criterion",
   "reason": null
  },
  {
   "id": "C-13",
   "text": "coverage targets set by risk;",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "coverage targets set by risk",
   "reason": null
  },
  {
   "id": "C-14",
   "text": "each flake hazard and how it's made deterministic (gates, fake clocks, no wall-clock assertions);",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "no wall-clock assertions",
   "reason": null
  },
  {
   "id": "C-15",
   "text": "isolation and fixtures/factories;",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "isolation and fixtures/factories",
   "reason": null
  },
  {
   "id": "C-16",
   "text": "behaviour over mocks;",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "behaviour over mocks",
   "reason": null
  },
  {
   "id": "C-17",
   "text": "which existing tests get rewritten or deleted;",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "which existing tests get rewritten or deleted",
   "reason": null
  },
  {
   "id": "C-18",
   "text": "which criteria are review checks rather than tests.",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "which criteria are review checks rather than tests",
   "reason": null
  },
@@ -135,7 +135,7 @@
  {
   "id": "C-20",
   "text": "Load the same skill(s) again before writing the tests themselves, so the tests provide as much value as possible, aimed at the riskiest behaviour, not line coverage.",
-  "disposition": "overlay:engineering-skills:senior-qa",
+  "disposition": "overlay:senior-qa",
   "mustAppear": "riskiest behaviour, not line coverage",
   "reason": null
  },
@@ -156,84 +156,84 @@
  {
   "id": "C-23",
   "text": "read its reference guides (`references/pipeline-design-notes.md`, `deployment-gates.md`, and `github-actions-templates.md` or `gitlab-ci-templates.md` for the platform)",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "references/gitlab-ci-templates.md",
   "reason": null
  },
  {
   "id": "C-24",
   "text": "run `scripts/stack_detector.py` against the repo so stages come from detected stack signals, not guesswork",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "not guesswork",
   "reason": null
  },
  {
   "id": "C-25",
   "text": "stages and commands traced to detected stack signals, and each referenced command confirmed to exist in the repo;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "each command confirmed to exist in the repo",
   "reason": null
  },
  {
   "id": "C-26",
   "text": "gate order (lint → test → build → deploy), with deploy requiring green CI and a build artifact;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "deploy requiring green CI and a build artifact",
   "reason": null
  },
  {
   "id": "C-27",
   "text": "cache keys matched to the package manager and lockfile;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "cache keys matched to the package manager and lockfile",
   "reason": null
  },
  {
   "id": "C-28",
   "text": "matrix builds only where compatibility truly requires them, with the reason stated;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "matrix builds only where compatibility requires them",
   "reason": null
  },
  {
   "id": "C-29",
   "text": "secrets and env vars listed and documented, never embedded in YAML;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "never embedded in YAML",
   "reason": null
  },
  {
   "id": "C-30",
   "text": "environment protection: staging vs. production, protected branches, and manual approval for production;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "manual approval for production",
   "reason": null
  },
  {
   "id": "C-31",
   "text": "a rollback command or procedure for every deploy job;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "rollback command or procedure for every deploy job",
   "reason": null
  },
  {
   "id": "C-32",
   "text": "each pitfall from `pipeline-design-notes.md` checked and either addressed or marked not applicable;",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "addressed or marked N/A",
   "reason": null
  },
  {
   "id": "C-33",
   "text": "how the change is validated before merge (YAML parses, run locally where possible, e.g. `act`), and which items are review checks rather than automated checks.",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "review checks rather than automated checks",
   "reason": null
  },
  {
   "id": "C-34",
   "text": "Load the skill again before writing the pipeline itself, and add one optimization at a time (cache, matrix, split jobs).",
-  "disposition": "overlay:engineering-advanced-skills:ci-cd-pipeline-builder",
+  "disposition": "overlay:ci-cd-pipeline-builder",
   "mustAppear": "one optimization at a time",
   "reason": null
  },
@@ -261,7 +261,7 @@
  {
   "id": "C-38",
   "text": "**CRITICAL for a spec** means following the spec as written would cause data loss, a security hole, or an outage",
-  "disposition": "overlay:engineering-skills:adversarial-reviewer",
+  "disposition": "overlay:adversarial-reviewer",
   "mustAppear": "Could go wrong if implemented badly",
   "reason": null
  },
@@ -289,14 +289,14 @@
  {
   "id": "C-42",
   "text": "**Quota findings aren't CRITICAL.**",
-  "disposition": "overlay:engineering-skills:adversarial-reviewer",
+  "disposition": "overlay:adversarial-reviewer",
   "mustAppear": "is at most a WARNING",
   "reason": null
  },
  {
   "id": "C-43",
   "text": "the promotion rule (2+ personas → one level up) never promotes a finding to CRITICAL unless it would be CRITICAL on its own",
-  "disposition": "overlay:engineering-skills:adversarial-reviewer",
+  "disposition": "overlay:adversarial-reviewer",
   "mustAppear": "never promotes a finding to CRITICAL unless it would be CRITICAL on its own",
   "reason": null
  },
@@ -422,21 +422,21 @@
  {
   "id": "C-61",
   "text": "run `/engineering-advanced-skills:ship-gate`. Merge only if it allows the merge.",
-  "disposition": "overlay:engineering-advanced-skills:ship-gate",
+  "disposition": "overlay:ship-gate",
   "mustAppear": "merge only if it allows the merge",
   "reason": null
  },
  {
   "id": "C-62",
   "text": "If it blocks or raises issues, fix them (pushing to the PR branch, and giving the changed changeset one adversarial pass if it changes meaningfully) and run ship-gate again. Repeat until it allows the merge.",
-  "disposition": "overlay:engineering-advanced-skills:ship-gate",
+  "disposition": "overlay:ship-gate",
   "mustAppear": "Repeat until it allows the merge",
   "reason": null
  },
  {
   "id": "C-63",
   "text": "Never merge past a ship-gate block.",
-  "disposition": "overlay:engineering-advanced-skills:ship-gate",
+  "disposition": "overlay:ship-gate",
   "mustAppear": "Never merge past a ship-gate block",
   "reason": null
  },
@@ -572,5 +572,12 @@
   "disposition": "claude-md",
   "mustAppear": "`(#N)` or `(KEY-N)`",
   "reason": null
+ },
+ {
+  "id": "C-83",
+  "text": "flaky tests, bugs: `focused-fix`; … ops docs: `senior-devops`, `runbook-generator`",
+  "disposition": "dropped",
+  "mustAppear": null,
+  "reason": "#62 (2026-10-20): the owner dropped focused-fix and senior-devops when the claude-code-skills plugins were removed; no session had loaded either. The other routing entries stay, runbook-generator included."
  }
 ]

@@ -33,9 +33,10 @@ def test_every_overlay_names_a_skill_the_profile_deploys(profile):
 
 
 def test_every_overlay_is_named_after_a_repo_skill():
+    trees = [REPO_ROOT / "config" / "skills", REPO_ROOT / "config" / "vendored-skills"]
     for name in overlay_skills():
         assert ":" not in name, f"{name}.md still has a plugin namespace"
-        assert (REPO_ROOT / "config" / "skills" / name / "SKILL.md").is_file(), name
+        assert any((tree / name / "SKILL.md").is_file() for tree in trees), name
 
 
 @pytest.mark.parametrize("profile", PROFILES, ids=lambda p: p.name)

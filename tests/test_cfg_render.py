@@ -43,11 +43,19 @@ def test_the_personal_profile_renders_every_component() -> None:
         ManagedPath(f"hooks/{h}", f"config/hooks/{h}", "file", f"{DATA}/current/config/hooks/{h}")
         for h in profile["hooks"]
     ]
+    trees = {s: "skills" if (REPO_ROOT / "config" / "skills" / s).is_dir() else "vendored-skills"
+             for s in profile["skills"]}  # fmt: skip
     expected += [
-        ManagedPath(f"skills/{s}", f"config/skills/{s}", "dir", f"{DATA}/current/config/skills/{s}")
+        ManagedPath(
+            f"skills/{s}",
+            f"config/{trees[s]}/{s}",
+            "dir",
+            f"{DATA}/current/config/{trees[s]}/{s}",
+        )
         for s in profile["skills"]
     ]
     assert list(ds.paths) == expected
+    assert sorted(trees.values()).count("skills") == 5
     assert ds.host == "hosts/personal.json"
 
 

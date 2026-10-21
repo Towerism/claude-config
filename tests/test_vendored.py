@@ -8,7 +8,7 @@ import sys
 from tests.checker_helpers import REPO_ROOT
 
 VENDOR = REPO_ROOT / "tools" / "vendor" / "claude-skills"
-SKILLS = REPO_ROOT / "config" / "skills"
+SKILLS = REPO_ROOT / "config" / "vendored-skills"
 RECORD = json.loads((VENDOR / "VENDORED.json").read_text())
 
 

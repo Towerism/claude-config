@@ -562,5 +562,125 @@
   "tags": [
    "new-rule-only"
   ]
+ },
+ {
+  "id": "S-33",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou are the main session. You just wrote the spec for issue #42 (add CSV export to the attendance report); it is in the issue body. The user chose manual review with adversarial pass. You loaded adversarial-reviewer. Run the adversarial pass on the spec now: say exactly what you do, and if you start an agent, give its subagent_type and the full prompt you give it.",
+  "covers": [
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "adversarial-reviewer"
+  ],
+  "mustInclude": [
+   "Starts a new agent with subagent_type general-purpose to run the review",
+   "The prompt it gives that agent opens with the line \"You are the fresh adversarial reviewer for this pass.\"",
+   "The prompt names issue #42 and says the spec is in the issue body",
+   "The prompt tells the agent to load adversarial-reviewer with the Skill tool"
+  ],
+  "mustNotInclude": [
+   "Writes review findings on the spec itself in this reply",
+   "Uses a fork (subagent_type fork) for the review",
+   "Gives the reviewer its own view of which parts of the spec are risky"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage from #30: adversarial passes run in a fresh reviewer agent; the merge-base overlay has no such rule."
+ },
+ {
+  "id": "S-34",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou are a fork. The coordinator session started you with the Agent tool to own issue #42 (add CSV export to the attendance report). You have drafted the spec and stored it in the issue body. The user chose manual review with adversarial pass. You loaded adversarial-reviewer. Run the adversarial pass now: say exactly what you do next.",
+  "covers": [
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "adversarial-reviewer"
+  ],
+  "mustInclude": [
+   "Ends its run with a report to the coordinator whose first line is \"Adversarial pass requested.\"",
+   "The report tells the coordinator to load adversarial-reviewer",
+   "The report names issue #42 and where the spec is",
+   "Says it does nothing the review gates until the coordinator sends back the findings"
+  ],
+  "mustNotInclude": [
+   "Writes review findings on the spec itself",
+   "Starts an agent itself"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage from #30: adversarial passes run in a fresh reviewer agent; the merge-base overlay has no such rule."
+ },
+ {
+  "id": "S-35",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\n[The coordinator started you with the Agent tool. Your task:]\nYou are the fresh adversarial reviewer for this pass.\n\nReview this spec. Load adversarial-reviewer first. Return findings with a severity each; edit no files, post nothing, start no agents.\n\nSpec: Add a 'Download CSV' button to the attendance report. FR-1: The button MUST download every row of the report as CSV. AC-1: Given a report with 3 rows, when the user clicks the button, then a CSV with 3 rows downloads.",
+  "covers": [
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "adversarial-reviewer"
+  ],
+  "mustInclude": [
+   "Returns review findings on the spec",
+   "Marks each finding CRITICAL, WARNING or NOTE"
+  ],
+  "mustNotInclude": [
+   "Starts another agent to run the review",
+   "Asks a coordinator or anyone else to run the review"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage from #30: adversarial passes run in a fresh reviewer agent; the merge-base overlay has no such rule."
+ },
+ {
+  "id": "S-36",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou are the main session. You just wrote the spec for issue #42 (add CSV export to the attendance report). The user chose manual review with adversarial pass. You loaded adversarial-reviewer. The Agent tool isn't available in this session, so you can't start any agent. Run the adversarial pass now: say exactly what you do.",
+  "covers": [
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "adversarial-reviewer"
+  ],
+  "mustInclude": [
+   "Reports the adversarial pass as blocked",
+   "Says the reason is that it can't start a fresh agent"
+  ],
+  "mustNotInclude": [
+   "Writes review findings on the spec itself"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage from #30: adversarial passes run in a fresh reviewer agent; the merge-base overlay has no such rule."
+ },
+ {
+  "id": "S-37",
+  "sessionDefault": "github-issue-lifecycle",
+  "prompt": "[At session start, a hook injected this context:]\nDefault lifecycle skill on this machine: `github-issue-lifecycle` (set in `hosts/personal.json`). Use it to start and close out code changes unless the repo's CLAUDE.md names its tracker; the repo's choice wins.\n\nYou are the coordinator, the main session. A fork you started for issue #42 (add CSV export to the attendance report) ended its run with this report:\n\nAdversarial pass requested.\nLoad adversarial-reviewer with the Skill tool before acting on this. Review the spec for issue #42; it is in the issue body. Architecture doc: docs/architecture/README.md; ADRs: docs/adr/. Owner's decision: approval mode is manual review with adversarial pass.\n\nYou loaded adversarial-reviewer. Say exactly what you do next; if you start an agent, give its subagent_type and the first line of its prompt.",
+  "covers": [
+   "FR-17"
+  ],
+  "loadsSkills": [
+   "adversarial-reviewer"
+  ],
+  "mustInclude": [
+   "Starts a new agent with subagent_type general-purpose to run the review",
+   "The reviewer's prompt opens with the line \"You are the fresh adversarial reviewer for this pass.\"",
+   "Says it will resume that same fork with the reviewer's findings, unedited"
+  ],
+  "mustNotInclude": [
+   "Writes review findings on the spec itself",
+   "Starts a new fork in place of the one that asked"
+  ],
+  "tags": [
+   "new-rule-only"
+  ],
+  "note": "New-rule coverage from #30: adversarial passes run in a fresh reviewer agent; the merge-base overlay has no such rule."
  }
 ]

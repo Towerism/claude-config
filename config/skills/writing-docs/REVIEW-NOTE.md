@@ -174,3 +174,27 @@ The owner judged the eighth review's designs too costly: "Both the trigger and b
 ## Note, listed
 
 **The two trigger rules now differ.** `writing-docs-trigger` counts delegated queries toward the recall, while `plain-prose-trigger` still requires each one to trigger until #33. The scoring lives in `eval/doc_evals.py`, so `eval/skill_evals.py` and `plain-prose`'s records are untouched.
+
+# Tenth review: the overlay names after #62 (2026-10-20)
+
+#62 renamed the overlays in `config/skill-overlays/` after the bare skill name (`engineering-skills:senior-architect.md` became `senior-architect.md`), because the skills they amend became repo skills. [#66](https://github.com/Towerism/claude-config/issues/66) brings both specs in line:
+
+- The requirements for the overlays (writing-docs' `senior-architect` and `runbook-generator` overlays, FR-17 and FR-18; plain-prose's `adversarial-reviewer` overlay line, FR-18) name the new files, with the old names in parentheses.
+- writing-docs' eval scenarios for those two overlays (FR-19) give `loadsSkills` the bare names.
+- The Reviewers line names `adversarial-reviewer`.
+
+The single review used `adversarial-reviewer` with the owner's overlay, on 2026-10-20. The approval mode is manual review with an adversarial pass, chosen by the owner for #66.
+
+The issue asked whether the evals read the overlay files by name, which would make this more than a text change. They do, but already with the new names: `eval/scenarios.json` gives those scenarios `loadsSkills: ["senior-architect"]` and `["runbook-generator"]`, and `eval/run_eval.py` finds each overlay through the overlay hook by skill name. Neither skill's own eval files name an overlay. So the change is text only, and `python3 -I tools/cfg/eval_records.py verify` reports "no eval suites required".
+
+**Verdict:** no critical finding and no change to the spec. There is one warning, handled by filing #72, and two notes.
+
+## Warning, filed as #72
+
+**Other files still use the old names.** ADR-0010 (line 150) names the `senior-architect` and `runbook-generator` overlays by their old skill names, ADR-0005 (line 3) names `engineering-advanced-skills:ci-cd-pipeline-builder`, and the github-issue-lifecycle and jira-ticket-lifecycle specs use them in their Reviewers lines and their tables of skills used. A reader who checks this spec's overlay requirement against ADR-0010 sees two names for one file. These files are outside #66, and the skill specs need their own review (ADR-0002), so #72 tracks them.
+
+## Notes, listed
+
+**The record of past reviews keeps the old name.** The earlier sections of this note say they ran with `engineering-skills:adversarial-reviewer`. That was the skill's name when they ran, so they stay as written. The Reviewers line now says so too.
+
+**The Reviewers line also changed from "one pass" to "one pass per change".** That matches what this note records (one review per change) and the wording the two lifecycle specs use. It changes no requirement.

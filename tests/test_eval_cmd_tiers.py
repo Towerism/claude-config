@@ -7,6 +7,7 @@ import time
 import pytest
 
 from tests import test_eval_cmd as cmd_tests
+from tests.checker_helpers import REPO_ROOT
 from tests.eval_helpers import GATES, commit, git
 from tests.test_eval_cmd import PASS, fake_runners, run
 from tools.cfg import eval as eval_cmd
@@ -119,6 +120,45 @@ def test_a_version_gated_suite_on_the_same_version_does_not_run(world, capsys):
     seen = []
     assert run([], fake_runners(seen=seen)) == 0
     assert seen == []
+
+
+def test_a_named_version_gated_suite_still_gets_the_version_check(world, capsys):
+    version_gated_world(world, "2.1.200 (Claude Code)")
+    seen = []
+    assert run(["--suite", "hook-merge", "--no-record"], fake_runners(seen=seen)) == 0
+    assert [(k, c.tier) for k, c in seen] == [("hook-merge", "full")]
+
+
+def test_without_claude_on_path_the_version_check_is_skipped(world, capsys):
+    version_gated_world(world, "2.1.200 (Claude Code)")
+    capsys.readouterr()
+    assert run([], fake_runners(), which=lambda name: None) == 0
+    out = capsys.readouterr().out
+    assert "running it" not in out and "no eval suites required" in out
+
+
+def test_each_record_names_the_model_that_graded_it(world):
+    commit(world["repo"], {"config/CLAUDE.global.md": "# New\n", MERGE: "print(3)\n"})
+    assert run([], fake_runners()) == 0
+    assert record(world, "scenario")["models"]["grader"] == "haiku"
+    assert record(world, "rubric")["models"]["grader"] == "default"
+    assert record(world, "hook-merge")["models"]["grader"] == "none"
+
+
+def test_a_criteria_file_missing_a_key_is_refused_before_any_model(world, capsys):
+    bars = json.loads((REPO_ROOT / "eval" / "criteria.json").read_text())
+    del bars["hooks"]["p95LimitMs"]
+    commit(world["repo"], {"eval/criteria.json": json.dumps(bars), MERGE: "print(3)\n"})
+    seen = []
+    assert run([], fake_runners(seen=seen)) == 2
+    assert seen == []
+    assert "eval/criteria.json is missing hooks.p95LimitMs" in capsys.readouterr().err
+
+
+def test_a_criteria_file_that_does_not_parse_is_refused(world, capsys):
+    commit(world["repo"], {"eval/criteria.json": "{", MERGE: "print(3)\n"})
+    assert run([], fake_runners()) == 2
+    assert "missing valid JSON" in capsys.readouterr().err
 
 
 def test_parse_gates_reads_version_gated():

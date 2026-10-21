@@ -154,10 +154,10 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         first = [i for i in picked for _ in range(first_runs)]
         for index, run in se.run_all(ctx, one, first):
             runs[index].append(run)
-        split = [] if smoke else [i for i, r in runs.items() if r[0][0] != r[1][0]]
+        split = [] if smoke else [i for i, r in runs.items() if len({x[0] for x in r}) > 1]
         for index, run in se.run_all(ctx, one, split):
             runs[index].append(run)
-    needed = 1 if smoke else 2
+    needed = 1 if smoke else int(run_eval.eval_criteria(ctx)["docTrigger"]["needed"])
     results = []
     for index in picked:
         case = cases[index]

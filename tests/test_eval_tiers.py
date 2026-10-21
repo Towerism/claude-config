@@ -438,10 +438,11 @@ def test_a_change_that_reaches_every_scenario_runs_them_all(scen, change):
     assert selection(path, base) == (None, [])
 
 
-def test_a_scenarios_file_that_does_not_parse_selects_nothing_from_it(scen):
+@pytest.mark.parametrize("text", ["{", '{"a": 1}', "[1, 2]"])
+def test_a_scenarios_file_without_scenarios_runs_everything_so_the_run_fails_loudly(scen, text):
     path, base = scen
-    commit(path, {"eval/scenarios.json": "{"})
-    assert selection(path, base) == ([], [])
+    commit(path, {"eval/scenarios.json": text})
+    assert selection(path, base) == (None, [])
 
 
 def test_a_new_scenario_suite_runs_every_scenario(scen):

@@ -452,6 +452,10 @@ def scenario_selection(
         if p.startswith(OVERLAYS) and p.endswith(".md")
     }  # fmt: skip
     before, after = _scenarios_at(repo, base), _scenarios_at(repo, head)
+    if SCENARIOS in changed and not after:
+        # A scenarios file with no scenarios in it runs everything, so the runner fails
+        # loudly instead of a record passing with nothing run.
+        return None, []
     loads = {sid: set(json.loads(text).get("loadsSkills") or []) for sid, text in after.items()}
     picked = {sid for sid, text in after.items() if before.get(sid) != text}
     picked |= {sid for sid, used in loads.items() if used & skills}

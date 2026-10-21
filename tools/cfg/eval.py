@@ -213,7 +213,7 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
     ap.add_argument("--base", default="origin/main", help="branch to compare against")
     ap.add_argument(
         "--model",
-        help="model for the arms under test; graders, judges and readers use the model "
+        help="model for the scenario arms; graders, judges and readers use the model "
         "eval/criteria.json names",
     )
     ap.add_argument(
@@ -251,15 +251,50 @@ def smoke_problems(repo: Path, head: str, name: str, suite: er.Suite) -> list[st
     ]
 
 
+# Suites whose verdict a grading call decides, on the criteria file's model (#77).
+GRADED = {"scenario", "cold-reader", "doc-reader"}
+CRITERIA_KEYS = (
+    "graderModel", "rubric.pass", "rubric.tries", "scenario.tries", "trigger.recall",
+    "trigger.firstRuns", "trigger.needed", "trigger.maxTurns", "coldReader.tries",
+    "docTrigger.firstRuns", "docTrigger.needed", "docTrigger.ordinaryTurns",
+    "docTrigger.delegatedTurns", "docReader.rightShare", "hooks.tries", "hooks.timingRuns",
+    "hooks.smokeTimingRuns", "hooks.p95LimitMs",
+)  # fmt: skip
+
+
+def grader_for(suite: er.Suite, meta: dict[str, Any]) -> str:
+    """Which model graded a suite: the criteria file's, the default for rubric, or none."""
+    if suite.runner in GRADED:
+        return str(meta["models"]["grader"])
+    return "default" if suite.runner == "rubric" else "none"
+
+
+def _criteria_text(repo: Path, head: str) -> str:
+    blob = er.read_blob(repo, head, run_eval.CRITERIA)
+    if blob is not None:
+        return blob.decode()
+    return (Path(run_eval.__file__).parent / "criteria.json").read_text()
+
+
+def criteria_problems(repo: Path, head: str) -> list[str]:
+    """The keys the harness reads that HEAD's criteria file lacks, so a run can't stop halfway."""
+    try:
+        data = json.loads(_criteria_text(repo, head))
+    except ValueError:
+        return ["valid JSON"]
+    missing = []
+    for key in CRITERIA_KEYS:
+        node = data
+        for part in key.split("."):
+            node = node.get(part) if isinstance(node, dict) else None
+        if node is None:
+            missing.append(key)
+    return missing
+
+
 def grader_model(repo: Path, head: str) -> str:
     """The grader model HEAD's eval/criteria.json names, or the harness copy's."""
-    blob = er.read_blob(repo, head, run_eval.CRITERIA)
-    text = (
-        blob.decode()
-        if blob is not None
-        else (Path(run_eval.__file__).parent / "criteria.json").read_text()
-    )
-    return str(json.loads(text)["graderModel"])
+    return str(json.loads(_criteria_text(repo, head))["graderModel"])
 
 
 def tier_label(tier: str, seconds: float) -> str:
@@ -290,13 +325,19 @@ def main(
         unknown = [n for n in names if n not in suites]
         if unknown:
             raise er.GatesError(f"unknown suite: {', '.join(unknown)}")
-        installed = version()
+        bad = criteria_problems(repo, head)
+        if bad:
+            raise run_eval.Refusal(f"{run_eval.CRITERIA} is missing {', '.join(bad)}")
         # A version-gated suite, such as a hook suite, also runs when Claude Code changed
-        # since its record, which CI can't see (#77's cost cuts).
+        # since its record, which CI can't see (#77's cost cuts). With --suite, only the
+        # named suites are checked; without claude on PATH, none are (it's refused below).
+        installed = version() if which("claude") else None
         newer = []
-        for n, s in sorted(er.gates_at(repo, head).items()):
+        candidates = names if args.suite else sorted(er.gates_at(repo, head))
+        for n in candidates:
             ran = (er.read_record(repo, n, head) or {}).get("claudeVersion")
-            if s.version_gated and ran is not None and ran != installed and not args.suite:
+            gated = suites[n].version_gated and installed is not None
+            if gated and ran is not None and ran != installed:
                 print(f"{n}: Claude Code is {installed}, its record ran on {ran}; running it")
                 newer.append(n)
         names = sorted(set(names) | set(newer))
@@ -337,9 +378,9 @@ def main(
         print(f"eval: {e}", file=sys.stderr)
         return 2
 
-    meta = {
+    meta: dict[str, Any] = {
         "ranAt": clock(),
-        "claudeVersion": installed,
+        "claudeVersion": installed or version(),
         "models": {"arm": args.model or "default", "grader": grader_model(repo, head)},
     }
     run_eval.set_call_limit(args.workers)
@@ -365,7 +406,8 @@ def main(
         def one(name: str) -> tuple[dict[str, Any], float, bool]:
             suite = suites[name]
             if selected.get(name) == ():
-                return {"pass": True, "cases": [], "selectedCases": []}, 0.0, False
+                moved = er.resolve_commit(repo, "HEAD") != head
+                return {"pass": True, "cases": [], "selectedCases": []}, 0.0, moved
             ctx = run_eval.Context(
                 live=live,
                 root=root,
@@ -400,8 +442,10 @@ def main(
                         code = max(code, 1)
                         continue
                     if not args.no_record:
+                        models = {**meta["models"], "grader": grader_for(suites[name], meta)}
                         record = er.build_record(
-                            repo, name, suites[name], head, base, result, meta,
+                            repo, name, suites[name], head, base, result,
+                            {**meta, "models": models},
                             tier=tiers[name], duration=seconds,
                             smoke_cases=list(suites[name].smoke),
                         )  # fmt: skip

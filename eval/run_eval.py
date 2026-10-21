@@ -105,9 +105,9 @@ def is_smoke(ctx: Context) -> bool:
     return ctx.tier == "smoke"
 
 
-def tries(ctx: Context) -> int:
-    """How many tries a failing case gets: one re-run in the full tier, none in smoke."""
-    return 1 if is_smoke(ctx) else 2
+def tries(ctx: Context, suite: str) -> int:
+    """How many tries a failing case gets: eval/criteria.json's count, or one in smoke."""
+    return 1 if is_smoke(ctx) else int(eval_criteria(ctx)[suite]["tries"])
 
 
 def smoke_pick(
@@ -418,7 +418,7 @@ def run_case(
 ) -> dict[str, Any]:
     """One scenario on one arm, re-run once on failure (v2 spec EC-8), never in smoke."""
     attempts = []
-    for _ in range(tries(ctx)):
+    for _ in range(tries(ctx, "scenario")):
         answer = claude(ctx, arm_dir, PREAMBLE + prefix + sc["prompt"], model=ctx.model)
         graded = grade(ctx, grader, sc, answer, arm)
         attempts.append({"answer": answer, **graded})
@@ -569,7 +569,7 @@ def run_rubric(ctx: Context) -> dict[str, Any]:
     replies: list[str] = []
     scores: list[int | None] = []
     try:
-        for _ in range(tries(ctx)):
+        for _ in range(tries(ctx, "rubric")):
             reply = claude(ctx, grader, prompt)
             replies.append(reply)
             scores.append(parse_rubric(reply))

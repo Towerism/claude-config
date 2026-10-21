@@ -181,10 +181,12 @@ def _attempts(ctx: run_eval.Context, check: Callable[[int], bool]) -> tuple[bool
 
     Returns (passed, re-runs used).
     """
-    first = check(1)
-    if first or run_eval.is_smoke(ctx):
-        return first, 0
-    return check(2), 1
+    passed = check(1)
+    used = 0
+    while not passed and used + 1 < run_eval.tries(ctx, "hooks"):
+        used += 1
+        passed = check(used + 1)
+    return passed, used
 
 
 @contextmanager

@@ -16,11 +16,13 @@ env = run_tests.env
 fresh_tempdir = run_tests.fresh_tempdir
 TODAY = {
     "graderModel": "haiku",
-    "rubric": {"pass": 80},
+    "rubric": {"pass": 80, "tries": 2},
+    "scenario": {"tries": 2},
     "trigger": {"recall": 0.7, "firstRuns": 2, "needed": 2, "maxTurns": 4},
-    "docTrigger": {"firstRuns": 2, "ordinaryTurns": 3, "delegatedTurns": 4},
+    "coldReader": {"tries": 2},
+    "docTrigger": {"firstRuns": 2, "needed": 2, "ordinaryTurns": 3, "delegatedTurns": 4},
     "docReader": {"rightShare": 0.9},
-    "hooks": {"timingRuns": 20, "smokeTimingRuns": 5, "p95LimitMs": 500},
+    "hooks": {"tries": 2, "timingRuns": 20, "smokeTimingRuns": 5, "p95LimitMs": 500},
 }
 
 
@@ -52,7 +54,7 @@ def test_a_tree_without_the_file_uses_the_harness_copy(env):
 
 
 def test_the_rubric_bar_comes_from_the_tree_under_test(env):
-    ctx = context(env, FakeClaude(rubric_scores=(85, 85)), rubric={"pass": 90})
+    ctx = context(env, FakeClaude(rubric_scores=(85, 85)), rubric={"pass": 90, "tries": 2})
     assert re_.run_rubric(ctx)["pass"] is False
 
 

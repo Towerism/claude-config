@@ -464,10 +464,10 @@ def run_cold_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         arms = Arms(skill, skill_cfg, base_cfg, reader_cfg, box, write_args)
 
         def one(case: Case) -> tuple[dict[str, Any], int]:
-            first = attempt(ctx, arms, case)
-            if first["result"] == "pass" or run_eval.is_smoke(ctx):
-                return first, 0
-            return attempt(ctx, arms, case), 1
+            result, used = attempt(ctx, arms, case), 0
+            while result["result"] != "pass" and used + 1 < run_eval.tries(ctx, "coldReader"):
+                result, used = attempt(ctx, arms, case), used + 1
+            return result, used
 
         done = run_all(ctx, one, run_eval.smoke_pick(ctx, cases, key=lambda c: str(c["id"])))
     results = sorted((r for r, _ in done), key=lambda r: str(r["id"]))

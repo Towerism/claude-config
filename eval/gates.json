@@ -159,7 +159,8 @@
       "cases": "config/skills/plain-prose/evals/trigger-evals.json",
       "paths": [
         "config/skills/plain-prose/evals/trigger-evals.json",
-        "config/skills/*/SKILL.md"
+        "config/skills/*/SKILL.md",
+        "config/vendored-skills/*/SKILL.md"
       ],
       "selectors": [
         {
@@ -201,7 +202,8 @@
       ],
       "paths": [
         "config/skills/writing-docs/evals/trigger-evals.json",
-        "config/skills/*/SKILL.md"
+        "config/skills/*/SKILL.md",
+        "config/vendored-skills/*/SKILL.md"
       ],
       "selectors": [
         {

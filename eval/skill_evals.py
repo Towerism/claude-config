@@ -7,8 +7,8 @@ skill can use them (ADR-0005, ADR-0010).
 Every run gets the isolation eval/run_eval.py gives the scenario suite (a private
 CLAUDE_CONFIG_DIR outside $HOME, the live settings without hooks, a private
 credentials copy) plus three limits. For a trigger run, `skills/` holds a copy of
-every skill in the HEAD commit's config/skills/, so the session lists what a
-deployed session lists (#62); for a cold-reader run, only the HEAD commit's copy
+every skill in the HEAD commit's config/skills/ and config/vendored-skills/, so
+the session lists what a deployed session lists (#62, #75); for a cold-reader run, only the HEAD commit's copy
 of the skill under test, or nothing for a baseline or a grader. The tools are set
 with --tools, which removes the others rather than merely skipping their prompts.
 And a stub gh comes first on PATH with an empty GH_CONFIG_DIR, so prompts about
@@ -103,8 +103,8 @@ def sandbox(ctx: run_eval.Context) -> Iterator[Sandbox]:
 
 
 def repo_skills(ctx: run_eval.Context) -> list[Path]:
-    """Every skill directory in the HEAD commit's config/skills/, as a deployed session has."""
-    return sorted(p.parent for p in (ctx.head_tree / "config" / "skills").glob("*/SKILL.md"))
+    """Every skill directory in the HEAD commit's two skill trees, as a deployed session has."""
+    return run_eval.tree_skills(ctx.head_tree)
 
 
 @contextmanager

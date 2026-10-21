@@ -106,7 +106,7 @@ def _fragment(ctx: run_eval.Context) -> dict[str, Any]:
 
 
 def _tree_skill(ctx: run_eval.Context) -> Path:
-    skill = ctx.head_tree / "config" / "skills" / SKILL
+    skill = ctx.head_tree / "config" / "vendored-skills" / SKILL
     if not (skill / "SKILL.md").is_file():
         raise run_eval.Refusal(f"the tree under test has no {SKILL} skill at {skill}")
     return skill

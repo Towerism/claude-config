@@ -49,6 +49,14 @@ REMOVED_PLUGINS = (
     "engineering-skills@claude-code-skills",
     "engineering-advanced-skills@claude-code-skills",
 )
+# Repo skills, by tree: the skills maintained here, then the upstream copies (#75).
+SKILL_TREES = ("config/skills", "config/vendored-skills")
+
+
+def tree_skills(tree: Path) -> list[Path]:
+    """Every skill directory with a SKILL.md in either of `tree`'s skill trees, by name."""
+    found = [p.parent for t in SKILL_TREES for p in (tree / t).glob("*/SKILL.md")]
+    return sorted(found, key=lambda p: p.name)
 
 
 class Refusal(Exception):
@@ -182,8 +190,8 @@ def overlay_text(ctx: Context, tree: Path, skill: str) -> str | None:
         # Repo skills come from the tree, so a branch's overlays resolve before it is
         # deployed. The plugins stay linked for older trees whose overlays are namespaced.
         (home / "skills").mkdir()
-        for skill_md in sorted((tree / "config" / "skills").glob("*/SKILL.md")):
-            (home / "skills" / skill_md.parent.name).symlink_to(skill_md.parent)
+        for skill_dir in tree_skills(tree):
+            (home / "skills" / skill_dir.name).symlink_to(skill_dir)
         (home / "plugins").symlink_to(ctx.live / "plugins")
         payload = {"hook_event_name": "PostToolUse", "tool_name": "Skill",
                    "tool_input": {"skill": skill}}  # fmt: skip

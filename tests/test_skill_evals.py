@@ -20,7 +20,7 @@ from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
 SKILL = "plain-prose"
-# Another repo skill: trigger runs list it beside SKILL, behaviour runs don't.
+# A vendored repo skill: trigger runs list it beside SKILL, behaviour runs don't.
 OTHER = "other-skill"
 
 
@@ -41,8 +41,8 @@ def make_head(root: Path, trigger=None, behaviour=None) -> Path:
         (skill / "scripts" / rel).write_text((src / rel).read_text())
     (skill / "evals" / "trigger-evals.json").write_text(json.dumps(trigger or []))
     (skill / "evals" / "behaviour-evals.json").write_text(json.dumps(behaviour or []))
-    other = root / "config" / "skills" / OTHER
-    other.mkdir()
+    other = root / "config" / "vendored-skills" / OTHER
+    other.mkdir(parents=True)
     (other / "SKILL.md").write_text(f"---\nname: {OTHER}\ndescription: d\n---\nBody\n")
     return root
 

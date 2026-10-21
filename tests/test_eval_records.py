@@ -466,6 +466,9 @@ def prose_repo(tmp_path):
          ["plain-prose-behaviour", "plain-prose-trigger", "writing-docs-trigger"]),
         ({"config/skills/other-skill/SKILL.md": "---\nname: other-skill\n---\n"},
          ["plain-prose-trigger", "writing-docs-trigger"]),
+        # The vendored skills are listed in every trigger run too (#75).
+        ({"config/vendored-skills/copied/SKILL.md": "---\nname: copied\n---\n"},
+         ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, ["plain-prose-behaviour"]),
     ],
 )  # fmt: skip

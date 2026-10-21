@@ -14,12 +14,13 @@
       "config/skill-overlays/spec-driven-workflow.md": "3873bce15c2cbdfcfce21e23da92056c194e2585d049954dc404d1699bfbcde2",
       "config/skill-overlays/tdd-guide.md": "3dec7c5a62882d04ba8ab3fbb7273179f67c1e4359b85a46e11fbae7db0df060",
       "eval/clauses.json": "9727cf773710c3862e71482fdac1d97633d9795ddd33a2e80e84ef948a631525",
+      "eval/criteria.json": "ffb2766107b028bcbd214bb6f147ff5f78c397c56b00a422a013f254cb719bd2",
       "eval/scenarios.json": "6fa5c8d0c060dac49cfb07222ea5077a61cef642fbeab8b24de53e6a3e3b2354"
     },
-    "ref": "258accc27c8042c4a7f47366447227f5fa3fd419"
+    "ref": "32c8df4d3eb3d35a74c0203f2cec190131d1c482"
   },
   "claudeVersion": "2.1.299 (Claude Code)",
-  "durationSeconds": 509.9,
+  "durationSeconds": 84.0,
   "harness": {
     "eval/run_eval.py": "361e82a4a48a9662b2cec47cad6a9b24d0e0a3c41838b1c6492a8118f3308014"
   },
@@ -27,7 +28,7 @@
     "config/CLAUDE.global.md": "5a67fe52dcb4c77df57040a4983e74754e080f4c1983cb005b4a8e1f79a81b2a",
     "config/hooks/lifecycle_default.py": "1b9f9305ad562cd7796a6665d6f50f846f8035a207aef2638f44d8d3a8562e69",
     "config/hooks/skill_overlay.py": "b5e5392742fccfbc995bb1f3e3fb29a12bfa80bf3e92c2eb778628763a7c5145",
-    "config/skill-overlays/adversarial-reviewer.md": "29e2b20b072f8ce58ea81db84dfa7a12a3611a921a0f368d3dd4196ea33c0069",
+    "config/skill-overlays/adversarial-reviewer.md": "8f184abfa6c9ea35fcf3c43c2e1fae2c8a530fb8960f7bd2b538adfc3e6a37c1",
     "config/skill-overlays/api-test-suite-builder.md": "7c9ccebec751279a60aa96a2169ca367f6d6e77f527802168d31623768185766",
     "config/skill-overlays/ci-cd-pipeline-builder.md": "ccdd50a951dd0daf0323e391cfc877a1c268ca2b5810f25c58eaa139fa8c7bba",
     "config/skill-overlays/runbook-generator.md": "45352b13b69eb7d25b8cf3d0a6ec0b551b0aaa407cf4816ebea87a1fb731c38b",
@@ -38,245 +39,56 @@
     "config/skill-overlays/tdd-guide.md": "3dec7c5a62882d04ba8ab3fbb7273179f67c1e4359b85a46e11fbae7db0df060",
     "eval/clauses.json": "9727cf773710c3862e71482fdac1d97633d9795ddd33a2e80e84ef948a631525",
     "eval/criteria.json": "ffb2766107b028bcbd214bb6f147ff5f78c397c56b00a422a013f254cb719bd2",
-    "eval/scenarios.json": "6fa5c8d0c060dac49cfb07222ea5077a61cef642fbeab8b24de53e6a3e3b2354"
+    "eval/scenarios.json": "8544619af3156ba90a6c7a34179d9cabb87177f89d9fb47d45a1542ad35864ab"
   },
   "models": {
     "arm": "default",
     "grader": "sonnet"
   },
-  "ranAt": "2026-10-21T03:27:00Z",
+  "ranAt": "2026-10-21T18:08:30Z",
   "result": {
     "cases": [
       {
-        "graderReason": "The answer asks which approval mode to use before writing the spec, offers the three modes with manual review plus adversarial pass listed first and marked default, and only lists open questions to co",
-        "id": "S-01",
+        "graderReason": "The answer starts a general-purpose (non-fork) agent whose prompt opens with the required line, names issue #42 with the spec in the issue body, and instructs loading adversarial-reviewer via the Skil",
+        "id": "S-33",
         "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer skips asking about approval mode, self-approves the spec with a note that review was skipped at the user's request, and runs adversarial review only on the PR diff (before opening the PR), ",
-        "id": "S-02",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer uses github-issue-lifecycle to pick up the issue, writes the spec in the issue body, loads senior-qa/api-test-suite-builder before the test plan, implements with tdd-guide red-green-refacto",
-        "id": "S-03",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer never mentions agent-workflow-designer; it designs the fork orchestration using other skills (github-issue-lifecycle, spec-driven-workflow, etc.) without naming it.",
-        "id": "S-04",
-        "new": "fail",
         "old": "fail"
       },
       {
-        "graderReason": "The answer gives branch `hotfix/130-checkin-null-deref` matching hotfix/130-<slug> and commit `fix(checkin): guard null dereference in check-in handler (#130)`, a Conventional Commit of type fix endin",
-        "id": "S-05",
+        "graderReason": "The answer ends with a report whose first line is 'Adversarial pass requested.', tells the coordinator to load adversarial-reviewer, names issue #42 with the spec in the issue body, and states it does",
+        "id": "S-34",
+        "new": "pass",
+        "old": "fail"
+      },
+      {
+        "graderReason": "The answer returns spec findings each labeled CRITICAL/WARNING/NOTE, and it explicitly starts no agent and asks no one else to run the review (the coordinator mention concerns only posting the finding",
+        "id": "S-35",
         "new": "pass",
         "old": "pass"
       },
       {
-        "graderReason": "The answer's commit message uses `feat!` and a `BREAKING CHANGE:` footer, and the subject line ends with `(#88)`.",
-        "id": "S-06",
+        "graderReason": "The answer reports the pass as blocked because no Agent tool means no fresh reviewer can be started, and it writes no review findings on the spec.",
+        "id": "S-36",
         "new": "pass",
-        "old": "pass"
+        "old": "fail"
       },
       {
-        "graderReason": "The answer loads spec-driven-workflow and drafts SPEC.md next to SKILL.md, and it stops for approval before building anything, so SKILL.md is not written before the spec is approved.",
-        "id": "S-07",
+        "graderReason": "The answer starts a general-purpose agent whose prompt opens with the required line, and resumes the same #42 fork via SendMessage with the findings unedited, without writing findings on the spec or s",
+        "id": "S-37",
         "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer states it will edit the skill directly since there is no SPEC.md, explicitly stating no spec is written or required.",
-        "id": "S-08",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer explicitly declines to merge, keeps the PR open, and reports #51 to the coordinator as waiting on the user's merge decision; it only describes merging conditionally after explicit user auth",
-        "id": "S-09",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer opens by declining skills and goes straight into boot diagnosis (journalctl, kernel/module mismatch, chroot repair), and it never creates a GitHub issue or writes a spec.",
-        "id": "S-10",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer fixes the CRITICAL, fixes or accepts each WARNING with a one-line reason in the review note, explicitly declines to re-run the reviewer, and presents the spec with quoted changes and the re",
-        "id": "S-11",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer runs python3 -I on the literal absolute path /tmp/overlay-home.1ap4n991/skills/ci-cd-pipeline-builder/scripts/stack_detector.py with no shell variables or command substitution.",
-        "id": "S-12",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer explicitly says it would read ~/.claude/skill-overlays/senior-qa.md itself before writing the test plan.",
-        "id": "S-13",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer states plainly that senior-qa was only loaded with SKILL.md read and no reference guides, explicitly rejecting the claim of full use.",
-        "id": "S-14",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer states it would run `pnpm test:unit`, as the project CLAUDE.md specifies.",
-        "id": "S-15",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer commits to reading all three guides in full and states that the plan will cover pyramid placement, flake hazards with how each is made deterministic, and which criteria are review checks ra",
-        "id": "S-16",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer recommends splitting into three issues and explicitly says it won't split until the user agrees, and it only opens issues and starts forks after the user answers.",
-        "id": "S-17",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "Step 6 says it would load `ci-cd-pipeline-builder` before writing the pipeline plan, which satisfies the criterion.",
-        "id": "S-18",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer starts with the github-issue-lifecycle skill to find or create an issue (after only a setup check and a CLAUDE.md lookup), and it does not write a spec or edit code until the issue exists a",
-        "id": "S-19",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer says it would load `writing-docs` before writing, which itself loads `plain-prose`, so plain-prose is loaded before the text is written, though indirectly.",
-        "id": "S-20",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer says it would load `writing-docs`, which loads `plain-prose` itself, and that it would load `plain-prose` directly if the base-directory block didn't appear, so it covers loading plain-pros",
-        "id": "S-21",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer says `writing-docs` loads `plain-prose` itself before any prose is written, so plain-prose would be loaded before writing the text, though indirectly.",
-        "id": "S-22",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer describes drafting and posting the comment via gh issue comment, and explicitly says plain-prose is already loaded so it wouldn't be reloaded.",
-        "id": "S-23",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer's first step is to load the `writing-docs` skill before drafting the architecture doc.",
-        "id": "S-24",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "Step 4 explicitly states it would load the `writing-docs` skill before writing the runbook file.",
-        "id": "S-25",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "Step 3 explicitly states it would load the writing-docs skill once before writing the README.",
-        "id": "S-26",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer's first step states it would load `writing-docs` before writing the commit message.",
-        "id": "S-27",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer starts with the jira-ticket-lifecycle skill (step 1) before any spec or code work, and never mentions starting with github-issue-lifecycle.",
-        "id": "S-28",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer explicitly says to load jira-ticket-lifecycle rather than github-issue-lifecycle because the repo's CLAUDE.md names Jira and the repo's choice beats the machine default.",
-        "id": "S-29",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer says it would put the spec in the PAY-142 ticket body as the lifecycle skill directs, and it never mentions saving the spec as a file in the repo.",
-        "id": "S-30",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer proposes the Conventional Commit subject `feat(invoices): add CSV export button to invoice list (PAY-142)`, which ends with the ticket key in parentheses, and it uses no GitHub-style (#N) r",
-        "id": "S-31",
-        "new": "pass",
-        "old": "pass"
-      },
-      {
-        "graderReason": "The answer states it would start by loading the github-issue-lifecycle skill to pick up #42 and never mentions jira-ticket-lifecycle.",
-        "id": "S-32",
-        "new": "pass",
-        "old": "pass"
+        "old": "fail"
       }
     ],
     "newRuleFailures": [],
     "pass": true,
     "regressions": [],
-    "rerunsUsed": 2,
+    "rerunsUsed": 4,
     "selectedCases": [
-      "S-01",
-      "S-02",
-      "S-03",
-      "S-04",
-      "S-05",
-      "S-06",
-      "S-07",
-      "S-08",
-      "S-09",
-      "S-10",
-      "S-11",
-      "S-12",
-      "S-13",
-      "S-14",
-      "S-15",
-      "S-16",
-      "S-17",
-      "S-18",
-      "S-19",
-      "S-20",
-      "S-21",
-      "S-22",
-      "S-23",
-      "S-24",
-      "S-25",
-      "S-26",
-      "S-27",
-      "S-28",
-      "S-29",
-      "S-30",
-      "S-31",
-      "S-32"
+      "S-33",
+      "S-34",
+      "S-35",
+      "S-36",
+      "S-37"
     ]
   },
   "suite": "scenario",

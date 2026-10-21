@@ -1,8 +1,18 @@
 # claude-config
 
-This repo is the source of truth for one person's Claude Code configuration: the global `CLAUDE.md`, the skill overlays, the hooks and the custom skills that live in `~/.claude`. It lets the owner review, test and redeploy that configuration from git on two machines. It is public, so everything committed here is world-readable.
+claude-config is one person's Claude Code setup, kept in git. It makes Claude Code work through a development pipeline built from small skills. Each skill has one job: start the issue, write the spec, plan the tests, build test-first, review, or check the merge. A short global `CLAUDE.md` puts those skills in order and says who approves and merges. The owner's rules for each skill live in a separate overlay file, which a hook adds to the conversation when that skill loads. The skills themselves stay unedited, so one can be swapped without touching the others. [How the skills fit together](docs/architecture/skills.md) explains the design and the reasons for it.
 
-Since 2026-10-19 the owner's personal machine runs this configuration through `cfg`, the repo's deploy tool. To deploy, handle drift, roll back or set up another machine, follow [docs/runbook.md](docs/runbook.md). The build order is in [docs/architecture/plan.md](docs/architecture/plan.md).
+The repo also holds `cfg`, the tool that deploys this configuration into `~/.claude`, and the tests, evals and CI that check every change first. The owner's personal machine has run it through `cfg` since 2026-10-19 and the work machine since 2026-10-21. The repo is public, so everything committed here is world-readable.
+
+| Path | What it holds |
+|---|---|
+| `config/` | Everything that is deployed: the global CLAUDE.md (as `CLAUDE.global.md`), overlays, hooks, the settings keys the repo owns, and the skills |
+| `hosts/` | One profile per machine, listing which skills, hooks and plugins it receives |
+| `tools/cfg/` | The `cfg` command: plan, status, diff, deploy, rollback, capture, restore, lock and eval |
+| `eval/` | Model evals, run on the owner's machine, and their committed records |
+| `docs/` | The architecture docs, ADRs and runbook |
+
+To deploy, handle drift, roll back or set up another machine, follow [docs/runbook.md](docs/runbook.md).
 
 ## Set up a clone
 
@@ -41,13 +51,14 @@ When `gitleaks` is installed, it runs as well. `pre-push` refuses any push to `m
 
 Three limits are worth knowing:
 
-- `git push --no-verify` skips the push checks too. CI (issue #10) will be the backstop.
+- `git push --no-verify` skips the push checks too. CI is the backstop: it runs gitleaks and the commit checks over every pull request's commits.
 - When you write a commit message in an editor, git lists the changed and untracked file names on `#` lines, and the commit-msg hook scans those lines. A file whose name looks like an email address (high-resolution images named with `@2x` often do) or holds an excluded term will refuse the commit. Use `git commit -m`, `-F` or `--no-status` instead.
 - The hooks run whatever code is checked out. Don't check out a pull request from a fork in a clone with hooks enabled. Review it on GitHub, or in a clone where `core.hooksPath` is set to `/dev/null`.
 
 ## Where the design lives
 
+- [docs/architecture/skills.md](docs/architecture/skills.md): what each skill does, how the global CLAUDE.md, overlays and hooks combine them, and why the configuration is built that way.
 - [docs/runbook.md](docs/runbook.md): what to type to deploy, handle drift, roll back, undo and set up a second machine, with the output to expect.
 - [docs/architecture/README.md](docs/architecture/README.md): how the repo is laid out, how deploys and rollbacks work, and the threats it guards against.
-- [docs/architecture/plan.md](docs/architecture/plan.md): the 17 build issues and the owner's resolved questions.
+- [docs/architecture/plan.md](docs/architecture/plan.md): the 17 build issues, all now closed, and the owner's resolved questions.
 - [docs/adr/](docs/adr/): the architecture decision records. Any change that departs from one needs a new or updated ADR.

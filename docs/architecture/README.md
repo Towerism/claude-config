@@ -1,17 +1,17 @@
 # claude-config architecture
 
-This repository will become the source of truth for one person's Claude Code configuration. Today that configuration lives only in `~/.claude`, where it was installed on 2026-10-15. The repo lets the owner track, review, test and redeploy it from git on two machines. This document explains how the repo is laid out, how its tooling deploys and rolls back the configuration, how changes are checked, and what could go wrong. Read it before working on the repo or approving its build plan.
+This repository is the source of truth for one person's Claude Code configuration. `cfg`, the repo's deploy tool, installs it into `~/.claude` on the owner's personal machine (since 2026-10-19) and work machine (since 2026-10-20). The owner tracks, reviews, tests and redeploys it from git. This document explains how the repo is laid out, how its tooling deploys and rolls back the configuration, how changes are checked, and what could go wrong. Read it before working on the repo. For what the configuration itself does, and why it is built from small skills that the global CLAUDE.md combines into one pipeline, read [How the skills fit together](skills.md) first.
 
-Status: accepted by the owner on 2026-10-16. From here on, these documents and the ADRs are the source of truth, and any departure needs a new or updated ADR. Nothing has been built, committed or deployed yet. Each decision is recorded in an ADR (architecture decision record), from [ADR-0001](../adr/0001-deployment-model.md) to [ADR-0010](../adr/0010-prose-for-people.md). The build plan and the remaining open questions are in [plan.md](plan.md).
+Status: accepted by the owner on 2026-10-16. From here on, these documents and the ADRs are the source of truth, and any departure needs a new or updated ADR. All 17 issues of the build plan are closed: 16 were completed and issue 7 was dropped. Each decision is recorded in an ADR (architecture decision record), from [ADR-0001](../adr/0001-deployment-model.md) to [ADR-0011](../adr/0011-tracker-agnostic-lifecycle.md). The build plan and the owner's answers to its questions are in [plan.md](plan.md).
 
-The configuration being moved into the repo is:
-- the global CLAUDE.md (version 2);
-- seven overlays;
-- two hooks;
+Today `config/` holds:
+- the global CLAUDE.md;
+- nine overlays;
+- three hooks: overlay injection, merge confirmation and the machine's default lifecycle;
 - the `settings.json` keys those hooks and plugins need;
-- two custom skills, `github-issue-lifecycle` and `linux-troubleshooting`.
+- five skills maintained here, in `config/skills/`, and 17 copied from upstream, in `config/vendored-skills/`.
 
-Two new prose skills are planned on top of that.
+When the repo was started on 2026-10-16, the configuration imported into it was the global CLAUDE.md (version 2), seven overlays, two hooks, those `settings.json` keys and two custom skills, `github-issue-lifecycle` and `linux-troubleshooting`. The two prose skills were planned on top of that.
 
 ## Terms
 
@@ -56,43 +56,43 @@ The diagram below shows the repo, the two machines that deploy from it, and the 
 
 ```mermaid
 flowchart LR
-  subgraph GH["GitHub (public repo, Actions free)"]
-    R[(claude-config repo)]
-    CI[CI workflow<br/>no model, no secrets]
+  subgraph GH["GitHub: public repo, free Actions"]
+    R[("claude-config repo")]
+    CI["CI workflow<br/>no model, no secrets"]
     R --> CI
   end
 
   subgraph M1["Personal machine"]
-    WC1[working clone<br/>~/dev/claude-config]
-    CFG1[cfg tool]
-    H1[(~/.claude)]
-    EV[local eval harness<br/>claude -p, owner's subscription]
-    WC1 --> CFG1 -->|deploy / restore| H1
-    H1 -->|status / diff / capture| CFG1
-    WC1 --> EV -->|eval/records/*.json| WC1
+    WC1["working clone<br/>~/dev/claude-config"]
+    CFG1["cfg tool"]
+    H1[("~/.claude")]
+    EV["local eval harness<br/>claude -p, owner's subscription"]
+    WC1 --> CFG1 -->|"deploy, restore"| H1
+    H1 -->|"status, diff, capture"| CFG1
+    WC1 --> EV -->|"eval/records/*.json"| WC1
   end
 
   subgraph M2["Work machine"]
-    WC2[working clone]
-    CFG2[cfg tool, host=work]
-    H2[(~/.claude)]
+    WC2["working clone"]
+    CFG2["cfg tool, host=work"]
+    H2[("~/.claude")]
     WC2 --> CFG2 --> H2
   end
 
-  WC1 <-->|push / pull, PRs| R
-  WC2 <-->|pull| R
+  WC1 <-->|"push, pull, PRs"| R
+  WC2 <-->|"pull"| R
 
-  MP1[(claude-code-skills marketplace<br/>alirezarezvani/claude-skills)]
-  MP2[(claude-plugins-official)]
-  MP1 -->|harness keeps its clone up to date; no plugin from it is enabled (#62)| H1
-  MP2 -->|harness installs and updates plugins| H1
+  MP1[("claude-code-skills marketplace<br/>alirezarezvani/claude-skills")]
+  MP2[("claude-plugins-official")]
+  MP1 -->|"harness keeps its clone up to date, no plugin from it enabled since issue 62"| H1
+  MP2 -->|"harness installs and updates plugins"| H1
   MP1 --> H2
 
-  SYNC[(claude.ai skill sync)] -->|skills/synced/ only| H1
+  SYNC[("claude.ai skill sync")] -->|"skills/synced/ only"| H1
   SYNC --> H2
 
-  HARN[Claude Code harness] -->|writes enabledPlugins, permissions, theme| H1
-  H1 -->|CLAUDE.md, hooks, overlays, skills| HARN
+  HARN["Claude Code harness"] -->|"writes enabledPlugins, permissions, theme"| H1
+  H1 -->|"CLAUDE.md, hooks, overlays, skills"| HARN
 ```
 
 Every part of `~/.claude` has one owner, and the repo touches only what it owns:
@@ -126,8 +126,8 @@ claude-config/
 │   ├── hooks/*.py               → ~/.claude/hooks/: skill_overlay.py (overlays), merge_confirm.py (merge guard), lifecycle_default.py (the machine's default lifecycle, ADR-0011)
 │   ├── settings.fragment.json   settings keys the repo owns; hook commands use {claude_home}
 │   ├── skills/<name>/           → ~/.claude/skills/<name>/  the skills maintained here (SKILL.md, SPEC.md, REVIEW-NOTE.md, scripts, tests, evals)
-│   │   ├── plain-prose/         planned: readability rules for all prose, plus prose_check.py (ADR-0010)
-│   │   └── writing-docs/        planned: documentation steps, plus doc_lint.py (ADR-0010)
+│   │   ├── plain-prose/         readability rules for all prose, plus prose_check.py (ADR-0010)
+│   │   └── writing-docs/        documentation steps, plus doc_lint.py (ADR-0010)
 │   └── vendored-skills/<name>/  → ~/.claude/skills/<name>/  senior-qa/ and 16 more, copied whole from claude-code-skills, each with VENDORED.json; not edited by hand (#62, #75, ADR-0002)
 │
 ├── hosts/
@@ -165,7 +165,8 @@ claude-config/
 │   └── out/                     raw transcripts, gitignored
 │
 └── docs/
-    ├── architecture/  adr/  runbook.md
+    ├── architecture/            README.md (this file), skills.md (how the skills fit together), plan.md
+    ├── adr/  runbook.md
     ├── evidence/                results of one-off checks, such as symlink-check.md
     └── history/                 frozen spec revisions, review diffs, selected evidence, the retired skill
 ```
@@ -174,16 +175,16 @@ The module diagram shows which parts of the tooling depend on which. An arrow me
 
 ```mermaid
 flowchart TD
-  cli[cfg CLI] --> render & state & drift & deploy & restore & capture & lock & evalcmd[eval]
-  deploy --> render & release & link & settings_merge & state & smoke[hook smoke test]
+  cli["cfg CLI"] --> render & state & drift & deploy & restore & capture & lock & evalcmd["eval"]
+  deploy --> render & release & link & settings_merge & state & smoke["hook smoke test"]
   drift --> release & link & state
   capture --> drift
   restore --> state
-  check[check_config.py] --> hookmod[config/hooks/skill_overlay.py<br/>NAME, REL_PATH, skill_dir]
-  check --> lockf[plugins.lock.json]
+  check["check_config.py"] --> hookmod["config/hooks/skill_overlay.py<br/>NAME, REL_PATH, skill_dir"]
+  check --> lockf["plugins.lock.json"]
   cli --> check
-  evalcmd --> runeval[eval/run_eval.py] & gates[eval/gates.json]
-  ci[CI] --> check & tests & validator[vendor spec_validator] & recordcheck[eval record verifier] & lc[lifecycle commit-check / diff-check]
+  evalcmd --> runeval["eval/run_eval.py"] & gates["eval/gates.json"]
+  ci["CI"] --> check & tests & validator["vendor spec_validator"] & recordcheck["eval record verifier"] & lc["lifecycle commit-check and diff-check"]
 ```
 
 Outside the repo, every machine also keeps some `cfg` state:
@@ -196,7 +197,7 @@ Outside the repo, every machine also keeps some `cfg` state:
 ~/.claude/backups/claude-config/<ts>/  originals moved aside before linking, with a manifest and restore.sh
 ```
 
-A copy of `restore.py`, a standalone stdlib script, goes into every backup directory, the same way `install_v2.py` copies itself today. That keeps rollback working when the repo is broken or missing.
+A copy of `restore.py`, a standalone stdlib script, goes into every backup directory, the same way `install_v2.py` copied itself into its backups. That keeps rollback working when the repo is broken or missing.
 
 ## Deploying
 
@@ -209,23 +210,23 @@ sequenceDiagram
   participant G as git
   participant R as releases/
   participant L as ~/.claude
-  U->>C: cfg deploy --host personal [--ref <sha>] [--discard-live <path>]... [--yes]
-  C->>G: resolve origin/main as last fetched (or --ref); read its config/ and hosts/
-  C->>L: classify each managed path; compare owned settings keys
-  C->>R: edits in the deployed release that the target lacks?
+  U->>C: cfg deploy --host personal [--ref SHA] [--discard-live PATH]... [--yes]
+  C->>G: resolve origin/main as last fetched, or --ref, then read its config/ and hosts/
+  C->>L: classify each managed path, compare owned settings keys
+  C->>R: does the deployed release have edits the target lacks?
   alt any conflict not passed with --discard-live
-    C-->>U: stop (exit 1): a diff per conflict; resolve with cfg capture or --discard-live
+    C-->>U: stop with exit 1 and a diff per conflict. Resolve with cfg capture or --discard-live
   end
-  C->>R: git worktree add --detach releases/<sha> (or reuse a clean one)
-  C->>C: the release's own config checker; hook smoke test against the release
-  C-->>U: the change list; continue? [y/N] (--yes skips; no terminal means stop)
-  C->>L: backups/claude-config/<ts>/: restore.py, restore.sh, restore.json
+  C->>R: git worktree add --detach releases/SHA, or reuse a clean one
+  C->>C: run the release's own config checker and a hook smoke test against the release
+  C-->>U: show the change list and ask to continue. --yes skips the question, no terminal means stop
+  C->>L: write backups/claude-config/TS/ with restore.py, restore.sh and restore.json
   C->>L: move what is in the way into the backup, manifest first
-  C->>R: swap current -> releases/<sha> (temp link + os.replace)
-  C->>L: create links through current/; remove cfg links that left the profile
-  C->>L: settings merge: owned keys only, re-read before os.replace, skip if unchanged
-  C->>C: write state.json; hook smoke test through the live commands; prune releases
-  C-->>U: deployed <sha>; undo: cfg rollback (or backups/…/restore.sh)
+  C->>R: swap current to releases/SHA with a temp link and os.replace
+  C->>L: create links through current/, remove cfg links that left the profile
+  C->>L: merge settings: owned keys only, re-read before os.replace, skip if unchanged
+  C->>C: write state.json, smoke-test hooks through the live commands, prune releases
+  C-->>U: deployed SHA. Undo with cfg rollback, or backups/.../restore.sh
 ```
 
 The version 2 installer's safety requirements (v2 spec FR-23) carry over as invariants, and each one keeps a test:
@@ -242,21 +243,21 @@ The first `cfg deploy` on a machine where the configuration is already installed
 
 ```mermaid
 flowchart TD
-  A[cfg deploy --host personal, no state.json yet] --> C[for each managed path: missing, already linked, matches repo, or differs]
-  C --> G[settings: rendered fragment vs live owned keys]
-  G --> E{any path or owned key differs?}
-  E -- yes --> F[stop: show a diff for each; nothing changed]
-  F --> R[owner: cfg capture path, or --discard-live path]
+  A["cfg deploy --host personal, no state.json yet"] --> C["for each managed path: missing, already linked, matches repo, or differs"]
+  C --> G["settings: rendered fragment vs live owned keys"]
+  G --> E{"any path or owned key differs?"}
+  E -->|"yes"| F["stop: show a diff for each, nothing changed"]
+  F --> R["owner: cfg capture PATH, or --discard-live PATH"]
   R --> A
-  E -- no --> W[WARN: list every file and dir to be replaced; confirm]
-  W --> H[move originals to backups/claude-config/ts with manifest and restore.sh]
-  H --> I[create links; merge owned settings keys; write state.json; smoke-test hooks]
-  I --> J[report: linked / already matched / discarded; backup location]
+  E -->|"no"| W["WARN: list every file and dir to be replaced, confirm"]
+  W --> H["move originals to backups/claude-config/TS with manifest and restore.sh"]
+  H --> I["create links, merge owned settings keys, write state.json, smoke-test hooks"]
+  I --> J["report: linked, already matched, discarded, backup location"]
 ```
 
 The diagram shows the loop at the start: every difference sends the owner back to resolve it, and nothing changes on disk until no differences remain. `cfg capture <path>` puts the live version on a feature branch for review. `--discard-live <path>` accepts the repo's version, and the live file still goes into the backup. `settings.json` is resolved the same way when its owned keys differ.
 
-Skill directories that aren't listed in the host profile are never read, reported, copied or touched. The first deploy also leaves the `claude-md-v2-*` backup unchanged. The owner doesn't intend to return to version 1, so once the first deploy passes, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` have no rollback role. Issue 8 lists the two paths and deletes them after the owner's go-ahead.
+Skill directories that aren't listed in the host profile are never read, reported, copied or touched. The first deploy also leaves the `claude-md-v2-*` backup unchanged. The owner doesn't intend to return to version 1, so once the first deploy passes, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` have no rollback role. Issue 8 listed the two paths, and they were deleted on 2026-10-19 after the owner's go-ahead (question Q-2 in the [plan](plan.md#open-questions)).
 
 ## Drift: status, diff and capture
 
@@ -292,13 +293,13 @@ GitHub Actions runs every check that needs no model and no credentials. The mode
 
 ```mermaid
 flowchart LR
-  PR[push / PR] --> CH[changes job<br/>git diff --name-only]
-  CH --> SEC[secrets + hygiene<br/>gitleaks on PR range, deny-list]
-  CH -->|non-docs changed| LT[lint + typecheck<br/>ruff, mypy]
-  LT --> TST[test<br/>pytest tools/, hooks, every skill]
-  TST --> CHK[config checks<br/>check_config --plugin-index, spec_validator --strict,<br/>settings fragment schema]
-  CH --> CC[commits<br/>commit-check each PR commit, diff-check,<br/>readability check on commits + PR text, report-only]
-  CH -->|gated paths changed| ER[eval-record verifier<br/>hashes match, result pass]
+  PR["push or PR"] --> CH["changes job<br/>git diff --name-only"]
+  CH --> SEC["secrets and hygiene<br/>gitleaks on PR range, deny-list"]
+  CH -->|"non-docs changed"| LT["lint and typecheck<br/>ruff, mypy"]
+  LT --> TST["test<br/>pytest tools/, hooks, every skill"]
+  TST --> CHK["config checks<br/>check_config --plugin-index, spec_validator --strict,<br/>settings fragment schema"]
+  CH --> CC["commits<br/>commit-check each PR commit, diff-check,<br/>readability check on commits and PR text, report-only"]
+  CH -->|"gated paths changed"| ER["eval-record verifier<br/>hashes match, result pass"]
 ```
 
 | Gate | Where it runs | How it blocks a merge |

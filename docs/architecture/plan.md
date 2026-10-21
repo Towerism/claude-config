@@ -1,6 +1,6 @@
 # Build plan and open questions
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). At the owner's request, all 17 issues were filed on 2026-10-16 as [#1 to #17](https://github.com/Towerism/claude-config/issues), numbered as in the table below, so a fresh conversation can work on each one. On 2026-10-18 the owner changed the order so the repo gets installed first, and dropped issue 7 ([Q-19](#open-questions)).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). At the owner's request, all 17 issues were filed on 2026-10-16 as [#1 to #17](https://github.com/Towerism/claude-config/issues), numbered as in the table below, so a fresh conversation can work on each one. On 2026-10-18 the owner changed the order so the repo gets installed first, and dropped issue 7 ([Q-19](#open-questions)). All 17 issues are now closed: 16 were completed and issue 7 was dropped. The last, #17, closed on 2026-10-20.
 
 This plan breaks building the claude-config repo into 17 GitHub issues and shows the order they depend on. It also records the approval mode for their specs and lists the questions only the owner can answer. Read it alongside the [architecture doc](README.md), whose [Terms section](README.md#terms) defines words such as payload, `cfg`, release worktree, first deploy, plugin lock and scenario eval.
 
@@ -32,23 +32,23 @@ The graph below shows the same dependencies as the table. An arrow means "must b
 
 ```mermaid
 flowchart LR
-  I1[1 bootstrap] --> I2[2 payload] & I3[3 history]
-  I2 --> I4[4 lifecycle spec amend]
+  I1["1 bootstrap"] --> I2["2 payload"] & I3["3 history"]
+  I2 --> I4["4 lifecycle spec amend"]
   I12 --> I4
-  I2 --> I5[5 checker + lock]
-  I2 --> I6[6 cfg core]
-  I1 --> I14[14 symlink check] --> I6
+  I2 --> I5["5 checker and lock"]
+  I2 --> I6["6 cfg core"]
+  I1 --> I14["14 symlink check"] --> I6
   I5 --> I6
-  I6 --> I8[8 deploy/capture/restore]
-  I2 --> I9[9 eval harness + records]
+  I6 --> I8["8 deploy, capture, restore"]
+  I2 --> I9["9 eval harness and records"]
   I5 --> I9
-  I4 & I5 & I6 & I9 --> I10[10 CI]
-  I2 & I9 --> I12[12 plain-prose skill]
-  I12 --> I13[13 writing-docs skill]
-  I8 & I13 --> I11[11 runbook]
-  I9 & I12 & I14 --> I15[15 tracker-agnostic CLAUDE.md]
-  I2 & I9 & I15 --> I16[16 jira-ticket-lifecycle]
-  I8 & I11 & I15 & I16 --> I17[17 work machine]
+  I4 & I5 & I6 & I9 --> I10["10 CI"]
+  I2 & I9 --> I12["12 plain-prose skill"]
+  I12 --> I13["13 writing-docs skill"]
+  I8 & I13 --> I11["11 runbook"]
+  I9 & I12 & I14 --> I15["15 tracker-agnostic CLAUDE.md"]
+  I2 & I9 & I15 --> I16["16 jira-ticket-lifecycle"]
+  I8 & I11 & I15 & I16 --> I17["17 work machine"]
 ```
 
 The work machine is in scope (issues 15 to 17). Nothing is deferred.

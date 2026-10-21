@@ -1,18 +1,21 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
+  "durationSeconds": 407.2,
   "harness": {
-    "eval/hook_harness.py": "823e6c391116a4364919945c5508bedb1848842c898b31478c1c85d1afc12ab8"
+    "eval/hook_harness.py": "fdebc55cb5cd0affcfc737f13438792d1aaab7dfa79550f6c8265801b9239c4d",
+    "eval/run_eval.py": "361e82a4a48a9662b2cec47cad6a9b24d0e0a3c41838b1c6492a8118f3308014"
   },
   "inputs": {
     "config/hooks/skill_overlay.py": "b5e5392742fccfbc995bb1f3e3fb29a12bfa80bf3e92c2eb778628763a7c5145",
     "config/settings.fragment.json#/hooks/PostToolUse": "cf12546900304c26191328b46c02462d69dbfa33b5cf0d0b55898e1d3550bd1f",
-    "config/settings.fragment.json#/hooks/UserPromptExpansion": "33408f8410248f62241d058b0668ddbce583f2ac7081eb52f346ea1efe1298e1"
+    "config/settings.fragment.json#/hooks/UserPromptExpansion": "33408f8410248f62241d058b0668ddbce583f2ac7081eb52f346ea1efe1298e1",
+    "eval/criteria.json": "ffb2766107b028bcbd214bb6f147ff5f78c397c56b00a422a013f254cb719bd2"
   },
   "models": {
     "arm": "default",
-    "grader": "default"
+    "grader": "none"
   },
-  "ranAt": "2026-10-21T01:16:29Z",
+  "ranAt": "2026-10-21T03:27:00Z",
   "result": {
     "cases": [
       {
@@ -32,9 +35,10 @@
         "result": "pass"
       }
     ],
-    "p95Ms": 35.2,
+    "p95Ms": 43.7,
     "pass": true,
     "rerunsUsed": 0
   },
-  "suite": "hook-overlay"
+  "suite": "hook-overlay",
+  "tier": "full"
 }

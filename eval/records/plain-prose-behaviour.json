@@ -1,8 +1,9 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
+  "durationSeconds": 446.8,
   "harness": {
-    "eval/run_eval.py": "0865e334088f7fd4754642c58ca09f87811da06588262a97704ffdd74d4d3eac",
-    "eval/skill_evals.py": "ebc124f004e226fed3463f5478863291532404e1b5bb2df66339474ff0323846"
+    "eval/run_eval.py": "361e82a4a48a9662b2cec47cad6a9b24d0e0a3c41838b1c6492a8118f3308014",
+    "eval/skill_evals.py": "5c747abf270869a9f4d44a67744685920fc7dbf283d8274eb139b48650396d0a"
   },
   "inputs": {
     "config/skills/plain-prose/SKILL.md#body": "4ab58883c39b7adc3a059b6454fa43e1bf7dbe7bd092115a358e3a059b87728a",
@@ -11,13 +12,14 @@
     "config/skills/plain-prose/references/vendored/plain-english-alternatives.md": "491c34b011de82617613a558ce609ff7ba8fd92554ac90b4c5b4db2ab0aef62e",
     "config/skills/plain-prose/scripts/prose_check.py": "ca6b23d5e5823167bd92e4d3675f5e4ab5bcaa4d298a2996b5b5ba8833f00d8d",
     "config/skills/plain-prose/scripts/vendored/ai_content_detector.py": "2c8a4cfdf527089f2d6b7548575a8e879ef7bf906ccee3596db8aca31fda626b",
-    "config/skills/plain-prose/scripts/vendored/readability_scorer.py": "4a43bc05dabe7e9acd28fdf0c151a158b3d57a2a633eb09675a3c4a67d16b0ce"
+    "config/skills/plain-prose/scripts/vendored/readability_scorer.py": "4a43bc05dabe7e9acd28fdf0c151a158b3d57a2a633eb09675a3c4a67d16b0ce",
+    "eval/criteria.json": "ffb2766107b028bcbd214bb6f147ff5f78c397c56b00a422a013f254cb719bd2"
   },
   "models": {
     "arm": "default",
-    "grader": "default"
+    "grader": "sonnet"
   },
-  "ranAt": "2026-10-21T01:16:29Z",
+  "ranAt": "2026-10-21T03:27:00Z",
   "result": {
     "cases": [
       {
@@ -75,11 +77,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 19.4,
+            "detectability": 11.3,
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 0.0
+              "readability": 26.3
             }
           },
           "lost": [],
@@ -99,27 +101,27 @@
             }
           },
           "lost": [
-            "The cache key ignores the user, so users can see each other's cached data.",
-            "The export endpoint needs a rate limit."
+            "The export endpoint needs a rate limit.",
+            "The cache key ignores the user, so users can see each other's cached data."
           ],
-          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved"
+          "quote": "Great work on this PR! Overall, the implementation is robust and comprehensive. That said, it's important to note a few areas that could potentially be improved:"
         },
         "id": "rewrite-review-note",
         "reason": "",
         "result": "pass",
         "skill": {
-          "aiSounding": false,
+          "aiSounding": true,
           "correct": 3,
           "diagnostics": {
-            "detectability": 18.4,
+            "detectability": 18.0,
             "per_1000_words": {
-              "ai_tells": 6.0,
+              "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 12.0
+              "readability": 6.2
             }
           },
           "lost": [],
-          "quote": ""
+          "quote": "I couldn't run the plain-prose checker script because saving the draft to a file under /tmp needed approval, and this session can't grant it. I checked the text against the skill's rules by hand."
         }
       },
       {
@@ -130,7 +132,7 @@
             "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 30.3,
+              "cold_reader": 42.6,
               "readability": 0.0
             }
           },
@@ -144,11 +146,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 31.7,
+            "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 34.5,
-              "readability": 17.2
+              "cold_reader": 37.0,
+              "readability": 0.0
             }
           },
           "lost": [],
@@ -160,11 +162,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 15.9,
+            "detectability": 15.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 15.4,
-              "readability": 46.2
+              "cold_reader": 15.9,
+              "readability": 47.6
             }
           },
           "lost": [],
@@ -177,11 +179,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 29.6,
+            "detectability": 14.2,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 18.5,
-              "readability": 37.0
+              "cold_reader": 16.4,
+              "readability": 16.4
             }
           },
           "lost": [],
@@ -193,11 +195,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 25.6,
+            "detectability": 30.8,
             "per_1000_words": {
-              "ai_tells": 8.7,
-              "cold_reader": 8.7,
-              "readability": 17.4
+              "ai_tells": 9.8,
+              "cold_reader": 9.8,
+              "readability": 9.8
             }
           },
           "lost": [],
@@ -210,11 +212,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 30.9,
+            "detectability": 27.9,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 8.8,
-              "readability": 17.7
+              "cold_reader": 10.2,
+              "readability": 20.4
             }
           },
           "lost": [],
@@ -225,5 +227,6 @@
     "pass": true,
     "rerunsUsed": 0
   },
-  "suite": "plain-prose-behaviour"
+  "suite": "plain-prose-behaviour",
+  "tier": "full"
 }

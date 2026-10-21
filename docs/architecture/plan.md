@@ -1,6 +1,6 @@
 # Build plan and open questions
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). At the owner's request, all 17 issues were filed on 2026-10-16 as [#1 to #17](https://github.com/Towerism/claude-config/issues), numbered as in the table below, so a fresh conversation can work on each one. On 2026-10-18 the owner changed the order so the repo gets installed first, and dropped issue 7 ([Q-19](#open-questions)). All 17 issues are now closed: 16 were completed and issue 7 was dropped. The last, #17, closed on 2026-10-21.
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). At the owner's request, all 17 issues were filed on 2026-10-16 as [#1 to #17](https://github.com/Towerism/claude-config/issues), numbered as in the table below, so a fresh conversation can work on each one. On 2026-10-18 the owner changed the order so the repo gets installed first, and dropped issue 7 ([Q-19](#open-questions)). All 17 issues are now closed: 16 were completed and issue 7 was dropped. The last, #17, closed on 2026-10-20.
 
 This plan breaks building the claude-config repo into 17 GitHub issues and shows the order they depend on. It also records the approval mode for their specs and lists the questions only the owner can answer. Read it alongside the [architecture doc](README.md), whose [Terms section](README.md#terms) defines words such as payload, `cfg`, release worktree, first deploy, plugin lock and scenario eval.
 

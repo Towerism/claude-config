@@ -2,13 +2,13 @@
 
 claude-config is one person's Claude Code setup, kept in git. It makes Claude Code work through a development pipeline built from small skills. Each skill has one job: start the issue, write the spec, plan the tests, build test-first, review, or check the merge. A short global `CLAUDE.md` puts those skills in order and says who approves and merges. The owner's rules for each skill live in a separate overlay file, which a hook adds to the conversation when that skill loads. The skills themselves stay unedited, so one can be swapped without touching the others. [How the skills fit together](docs/architecture/skills.md) explains the design and the reasons for it.
 
-The repo also holds `cfg`, the tool that deploys this configuration into `~/.claude`, and the tests, evals and CI that check every change first. The owner's personal machine has run it through `cfg` since 2026-10-19 and the work machine since 2026-10-21. The repo is public, so everything committed here is world-readable.
+The repo also holds `cfg`, the tool that deploys this configuration into `~/.claude`, and the tests, evals and CI that check every change first. The owner's personal machine has run it through `cfg` since 2026-10-19 and the work machine since 2026-10-20. The repo is public, so everything committed here is world-readable.
 
 | Path | What it holds |
 |---|---|
 | `config/` | Everything that is deployed: the global CLAUDE.md (as `CLAUDE.global.md`), overlays, hooks, the settings keys the repo owns, and the skills |
 | `hosts/` | One profile per machine, listing which skills, hooks and plugins it receives |
-| `tools/cfg/` | The `cfg` command: plan, status, diff, deploy, rollback, capture, restore, lock and eval |
+| `tools/cfg/` | The `cfg` command: plan, status, diff, deploy, rollback, capture, restore, check, lock and eval |
 | `eval/` | Model evals, run on the owner's machine, and their committed records |
 | `docs/` | The architecture docs, ADRs and runbook |
 

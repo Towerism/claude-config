@@ -332,6 +332,19 @@ def test_the_repos_own_hooks_pass_the_smoke_test(tmp_path: Path, home: Path, dat
     assert result.result == "deployed"
 
 
+def test_the_smoke_test_finds_an_overlay_for_a_vendored_skill(
+    tmp_path: Path, home: Path, data: Path
+) -> None:
+    repo = real_hooks_repo(tmp_path / "real", home)
+    (repo / "config" / "vendored-skills").mkdir()
+    git(repo, "mv", "config/skills/alpha", "config/vendored-skills/alpha")
+    git(repo, "commit", "-q", "-m", "vendor alpha")
+    push(repo)
+    result = deploy.deploy(repo, home, data, HOST, yes=True, clock=clock)
+    assert result.result == "deployed"
+    assert os.readlink(home / "skills" / "alpha") == f"{data}/current/config/vendored-skills/alpha"
+
+
 def test_a_redeploy_passes_when_the_old_release_already_states_a_default(
     tmp_path: Path, home: Path, data: Path
 ) -> None:

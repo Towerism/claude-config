@@ -32,23 +32,23 @@ The graph below shows the same dependencies as the table. An arrow means "must b
 
 ```mermaid
 flowchart LR
-  I1[1 bootstrap] --> I2[2 payload] & I3[3 history]
-  I2 --> I4[4 lifecycle spec amend]
+  I1["1 bootstrap"] --> I2["2 payload"] & I3["3 history"]
+  I2 --> I4["4 lifecycle spec amend"]
   I12 --> I4
-  I2 --> I5[5 checker + lock]
-  I2 --> I6[6 cfg core]
-  I1 --> I14[14 symlink check] --> I6
+  I2 --> I5["5 checker and lock"]
+  I2 --> I6["6 cfg core"]
+  I1 --> I14["14 symlink check"] --> I6
   I5 --> I6
-  I6 --> I8[8 deploy/capture/restore]
-  I2 --> I9[9 eval harness + records]
+  I6 --> I8["8 deploy, capture, restore"]
+  I2 --> I9["9 eval harness and records"]
   I5 --> I9
-  I4 & I5 & I6 & I9 --> I10[10 CI]
-  I2 & I9 --> I12[12 plain-prose skill]
-  I12 --> I13[13 writing-docs skill]
-  I8 & I13 --> I11[11 runbook]
-  I9 & I12 & I14 --> I15[15 tracker-agnostic CLAUDE.md]
-  I2 & I9 & I15 --> I16[16 jira-ticket-lifecycle]
-  I8 & I11 & I15 & I16 --> I17[17 work machine]
+  I4 & I5 & I6 & I9 --> I10["10 CI"]
+  I2 & I9 --> I12["12 plain-prose skill"]
+  I12 --> I13["13 writing-docs skill"]
+  I8 & I13 --> I11["11 runbook"]
+  I9 & I12 & I14 --> I15["15 tracker-agnostic CLAUDE.md"]
+  I2 & I9 & I15 --> I16["16 jira-ticket-lifecycle"]
+  I8 & I11 & I15 & I16 --> I17["17 work machine"]
 ```
 
 The work machine is in scope (issues 15 to 17). Nothing is deferred.

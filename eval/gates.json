@@ -1,4 +1,10 @@
 {
+  "equivalentPaths": [
+    [
+      "config/skills/",
+      "config/vendored-skills/"
+    ]
+  ],
   "suites": {
     "scenario": {
       "runner": "scenario",
@@ -13,7 +19,11 @@
       "harness": [
         "eval/run_eval.py"
       ],
-      "compareBase": true
+      "compareBase": true,
+      "smoke": [
+        "S-01",
+        "S-02"
+      ]
     },
     "rubric": {
       "runner": "rubric",
@@ -171,6 +181,10 @@
       "harness": [
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        1,
+        15
       ]
     },
     "plain-prose-behaviour": {
@@ -191,6 +205,9 @@
       "harness": [
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        "rewrite-review-note"
       ]
     },
     "writing-docs-trigger": {
@@ -219,6 +236,10 @@
         "eval/doc_evals.py",
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        0,
+        21
       ]
     },
     "writing-docs-behaviour": {
@@ -243,6 +264,9 @@
         "eval/doc_evals.py",
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        "rewrite-how-to"
       ]
     }
   }

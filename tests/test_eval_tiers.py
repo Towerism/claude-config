@@ -9,6 +9,7 @@ import json
 
 import pytest
 
+from tests.checker_helpers import REPO_ROOT
 from tests.eval_helpers import commit, git
 from tools.cfg import eval_records as er
 
@@ -273,3 +274,47 @@ def test_the_verify_command_prints_the_tier_each_suite_needs_and_has(repo, capsy
     out = capsys.readouterr().out
     assert "life: needs full, found full" in out
     assert "trig: needs smoke, found smoke" in out
+
+
+# The repo's own smoke lists
+
+
+def clean_case(runner, case, entry):
+    """Whether a full record's entry for `case` passed every one of its runs."""
+    if runner in er.SMOKE_BY_INDEX:
+        runs = entry.get("runs", 3)
+        loads = entry["triggered"]
+        clean = loads == runs if case["should_trigger"] else loads == 0
+        return clean and entry["result"] == "pass" and not entry.get("errors")
+    if runner == "scenario":
+        return entry["old"] == "pass" and entry["new"] == "pass"
+    if runner == "doc-reader":
+        skill, base = entry["skill"], entry["baseline"]
+        return (not entry["writerError"] and not entry["notLoaded"] and not skill["missing"]
+                and all(skill["right"]) and skill["lint"] <= base["lint"])  # fmt: skip
+    return entry["result"] == "pass"
+
+
+SUITES = er.parse_gates((REPO_ROOT / er.GATES_PATH).read_text())
+
+
+@pytest.mark.parametrize("name", sorted(n for n, s in SUITES.items() if s.smoke))
+def test_each_smoke_case_passed_every_run_of_its_suites_latest_full_record(name):
+    suite = SUITES[name]
+    record = json.loads((REPO_ROOT / er.RECORDS_DIR / f"{name}.json").read_text())
+    assert record.get("tier", "full") == "full", f"{name}'s record isn't from the full tier"
+    path = suite.cases or "eval/scenarios.json"
+    cases = json.loads((REPO_ROOT / path).read_text())
+    entries = record["result"]["cases"]
+    for item in suite.smoke:
+        if isinstance(item, int):
+            case, entry = cases[item], entries[item]
+        else:
+            case = next(c for c in cases if c["id"] == item)
+            entry = next(e for e in entries if e["id"] == item)
+        assert clean_case(suite.runner, case, entry), f"{name}: smoke case {item!r} isn't clean"
+
+
+def test_the_repo_declares_its_two_skill_trees_equivalent():
+    pairs = er.parse_equivalences((REPO_ROOT / er.GATES_PATH).read_text())
+    assert pairs == (("config/skills/", "config/vendored-skills/"),)

@@ -242,9 +242,8 @@ def test_a_skill_in_both_trees_is_a_profile_problem(mode):
     vendored_skill(repo, "s1")
     r, rep = check(home, profile, lock=lock)
     assert r.returncode == 1
-    assert rep["profileProblems"] == [
-        {"kind": "skill-in-both-trees", "item": "s1: config/skills/s1 and config/vendored-skills/s1"}
-    ]
+    both = "s1: config/skills/s1 and config/vendored-skills/s1"
+    assert rep["profileProblems"] == [{"kind": "skill-in-both-trees", "item": both}]
 
 
 def test_a_skill_in_neither_tree_is_looked_for_in_the_maintained_tree(tmp_path):

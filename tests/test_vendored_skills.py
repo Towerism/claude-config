@@ -51,11 +51,11 @@ def lists_its_skill_md(skill: Path) -> bool:
 
 def tracked_skills(tree: Path) -> list[Path]:
     """Skill directories git tracks in `tree`, so local synced/ and .trash/ don't count."""
+    # :(glob) keeps * inside one directory, so a fixture skill nested deeper,
+    # such as skill-tester's sample-skill, doesn't count.
+    pathspec = f":(glob){tree.relative_to(REPO_ROOT)}/*/SKILL.md"
     out = subprocess.run(
-        # :(glob) keeps * inside one directory, so a fixture skill nested deeper,
-        # such as skill-tester's sample-skill, doesn't count.
-        ["git", "-C", str(REPO_ROOT), "ls-files", "--",
-         f":(glob){tree.relative_to(REPO_ROOT)}/*/SKILL.md"],  # fmt: skip
+        ["git", "-C", str(REPO_ROOT), "ls-files", "--", pathspec],
         capture_output=True,
         text=True,
         check=True,

@@ -8,9 +8,10 @@ Every run gets the isolation eval/run_eval.py gives the scenario suite (a privat
 CLAUDE_CONFIG_DIR outside $HOME, the live settings without hooks, a private
 credentials copy) plus three limits. For a trigger run, `skills/` holds a copy of
 every skill in the HEAD commit's config/skills/ and config/vendored-skills/, so
-the session lists what a deployed session lists (#62, #75); for a cold-reader run, only the HEAD commit's copy
-of the skill under test, or nothing for a baseline or a grader. The tools are set
-with --tools, which removes the others rather than merely skipping their prompts.
+the session lists what a deployed session lists (#62, #75); for a cold-reader
+run, only the HEAD commit's copy of the skill under test, or nothing for a
+baseline or a grader. The tools are set with --tools, which removes the others
+rather than merely skipping their prompts.
 And a stub gh comes first on PATH with an empty GH_CONFIG_DIR, so prompts about
 issues and PRs can't reach GitHub with the owner's login. Each run's init event
 must list the skill exactly once with it installed and not at all without it;

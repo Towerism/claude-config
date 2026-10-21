@@ -112,10 +112,8 @@ def render(tree: Path, host: str, claude_home: Path, data_dir: Path) -> DeploySe
         _managed("config/skill-overlays", "skill-overlays", "dir", data_dir),
     ]
     paths += [_managed(f"config/hooks/{h}", f"hooks/{h}", "file", data_dir) for h in profile.hooks]
-    paths += [
-        _managed(str(profile.skill_path(s).relative_to(profile.root)), f"skills/{s}", "dir", data_dir)
-        for s in profile.skills
-    ]
+    sources = {s: str(profile.skill_path(s).relative_to(profile.root)) for s in profile.skills}
+    paths += [_managed(sources[s], f"skills/{s}", "dir", data_dir) for s in profile.skills]
     return DeploySet(
         host=host,
         paths=tuple(paths),

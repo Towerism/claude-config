@@ -6,10 +6,11 @@ tools/cfg/eval.py runs these for the suites in eval/gates.json whose runner is
 
 They reuse eval/skill_evals.py's isolation helpers. A doc-trigger config holds a
 copy of every skill in the HEAD commit's config/skills/ and
-config/vendored-skills/, as a deployed session does (#62, #75). A doc-reader config holds the skill and its companions together, or
-the companions alone for the baseline. Each run's init event must list each
-skill under test and each companion exactly once, and a doc-reader run none of
-the skill and companions its config lacks; otherwise the suite stops with an
+config/vendored-skills/, as a deployed session does (#62, #75). A doc-reader
+config holds the skill and its companions together, or the companions alone for
+the baseline. Each run's init event must list each skill under test and each
+companion exactly once, and a doc-reader run none of the skill and companions
+its config lacks; otherwise the suite stops with an
 IsolationError and no record is written.
 
 Both runners keep chance out of the verdict without sampling much, because each

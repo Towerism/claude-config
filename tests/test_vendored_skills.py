@@ -78,10 +78,12 @@ def test_the_maintained_tree_holds_only_the_skills_maintained_here():
 
 
 def test_nothing_outside_the_history_names_a_vendored_skills_old_path():
+    # Eval records are written by eval.py, and eval_records.py verify reports a
+    # stale one, so they are left to that check.
     names = "|".join(sorted(EXPECTED))
     out = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "grep", "-l", "-E", f"config/skills/({names})([^a-z-]|$)",
-         "--", ".", ":!docs/history", ":!config/vendored-skills"],
+         "--", ".", ":!docs/history", ":!config/vendored-skills", ":!eval/records"],
         capture_output=True,
         text=True,
     )  # fmt: skip

@@ -98,6 +98,9 @@ def render(tree: Path, host: str, claude_home: Path, data_dir: Path) -> DeploySe
     missing = [
         f"skill {s}" for s in profile.skills if not (profile.skill_path(s) / "SKILL.md").is_file()
     ]
+    conflicts = profile.skill_conflicts()
+    if conflicts:
+        raise CfgError(f"{host}: a skill can't be in both trees: {'; '.join(conflicts)}")
     missing += [f"hook {h}" for h in profile.hooks if not (tree / "config" / "hooks" / h).is_file()]
     if not profile.overlay_dir.is_dir():
         missing.append("config/skill-overlays")
@@ -110,7 +113,8 @@ def render(tree: Path, host: str, claude_home: Path, data_dir: Path) -> DeploySe
     ]
     paths += [_managed(f"config/hooks/{h}", f"hooks/{h}", "file", data_dir) for h in profile.hooks]
     paths += [
-        _managed(f"config/skills/{s}", f"skills/{s}", "dir", data_dir) for s in profile.skills
+        _managed(str(profile.skill_path(s).relative_to(profile.root)), f"skills/{s}", "dir", data_dir)
+        for s in profile.skills
     ]
     return DeploySet(
         host=host,

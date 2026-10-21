@@ -166,3 +166,27 @@ def test_placeholders_are_replaced_in_nested_lists_and_keys_are_kept(tmp_path: P
     tree = make_tree(tmp_path, fragment=fragment)
     ds = render.render(tree, "hosts/test.json", HOME, DATA)
     assert ds.fragment["extraKnownMarketplaces"] == {"m": {"paths": ["/home/u/.claude/x", 3]}}
+
+
+def test_a_vendored_skill_deploys_from_its_own_tree(tmp_path: Path) -> None:
+    tree = make_tree(tmp_path, profile={**PROFILE, "skills": ["alpha", "gamma"]})
+    write_tree(tree, {"config/vendored-skills/gamma/SKILL.md": "---\nname: gamma\n---\n"})
+    ds = render.render(tree, "hosts/test.json", HOME, DATA)
+    assert ds.paths[-2:] == (
+        ManagedPath(
+            "skills/alpha", "config/skills/alpha", "dir", f"{DATA}/current/config/skills/alpha"
+        ),
+        ManagedPath(
+            "skills/gamma",
+            "config/vendored-skills/gamma",
+            "dir",
+            f"{DATA}/current/config/vendored-skills/gamma",
+        ),
+    )
+
+
+def test_a_skill_in_both_trees_is_refused_naming_both_paths(tmp_path: Path) -> None:
+    tree = make_tree(tmp_path)
+    write_tree(tree, {"config/vendored-skills/alpha/SKILL.md": "---\nname: alpha\n---\n"})
+    with pytest.raises(CfgError, match="config/skills/alpha and config/vendored-skills/alpha"):
+        render.render(tree, "hosts/test.json", HOME, DATA)

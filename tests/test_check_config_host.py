@@ -12,6 +12,7 @@ from tests.checker_helpers import (
     make_skill,
     run_tool,
 )
+from tools.check_config import load_profile
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
 QA_FILES = {"senior-qa": ["SKILL.md", "references/testing_strategies.md"]}
@@ -217,3 +218,35 @@ def test_a_synced_skill_name_is_a_finding_in_host_mode_even_when_synced_here(mod
     assert r.returncode == 1
     assert rep["unresolvedSkills"] == []
     assert rep["syncedSkills"] == ["anthropic-skills:pdf", "anthropic-skills:skill-creator"]
+
+
+def vendored_skill(repo, name):
+    skill = repo / "config" / "vendored-skills" / name
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(f"---\nname: {name}\n---\n")
+
+
+def test_a_profile_skill_in_the_vendored_tree_resolves(mode, tmp_path):
+    home, _, _, lock = mode
+    repo = tmp_path / "with-vendored"
+    profile = make_repo(repo, skills=["s1", "v1"])
+    vendored_skill(repo, "v1")
+    (repo / "config" / "CLAUDE.global.md").write_text(GOOD_GLOBAL_MD + "- Also `v1`.\n")
+    r, rep = check(home, profile, lock=lock)
+    assert rep["profileProblems"] == [], r.stdout + r.stderr
+    assert rep["unresolvedSkills"] == []
+
+
+def test_a_skill_in_both_trees_is_a_profile_problem(mode):
+    home, repo, profile, lock = mode
+    vendored_skill(repo, "s1")
+    r, rep = check(home, profile, lock=lock)
+    assert r.returncode == 1
+    assert rep["profileProblems"] == [
+        {"kind": "skill-in-both-trees", "item": "s1: config/skills/s1 and config/vendored-skills/s1"}
+    ]
+
+
+def test_a_skill_in_neither_tree_is_looked_for_in_the_maintained_tree(tmp_path):
+    profile = load_profile(make_repo(tmp_path, skills=["s1", "gone"]))
+    assert profile.skill_path("gone") == tmp_path / "config" / "skills" / "gone"

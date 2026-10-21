@@ -28,7 +28,7 @@ import subprocess
 import sys
 import tempfile
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -130,6 +130,27 @@ def set_call_limit(n: int) -> None:
 
 def call_limit() -> int:
     return _limit
+
+
+_block = threading.Lock()
+
+
+@contextlib.contextmanager
+def permits(n: int) -> Iterator[None]:
+    """Hold `n` permits of the call limit together, for a suite that runs its own calls.
+
+    One lock guards taking a block, so two scripts can't each hold part of what the
+    other waits for.
+    """
+    sem = _calls
+    with _block:
+        for _ in range(n):
+            sem.acquire()
+    try:
+        yield
+    finally:
+        for _ in range(n):
+            sem.release()
 
 
 def running() -> int:

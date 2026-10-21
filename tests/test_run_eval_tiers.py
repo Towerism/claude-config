@@ -141,6 +141,19 @@ def test_no_more_calls_than_the_limit_are_ever_open(env):
     assert most[0] == 3
 
 
+def test_a_block_of_permits_is_held_together_and_given_back(env):
+    re_.set_call_limit(3)
+    try:
+        with re_.permits(2):
+            got = re_._calls.acquire(blocking=False)
+            assert got is True
+            assert re_._calls.acquire(blocking=False) is False
+            re_._calls.release()
+        assert all(re_._calls.acquire(blocking=False) for _ in range(3))
+    finally:
+        re_.set_call_limit(re_.DEFAULT_CALLS)
+
+
 def test_the_limit_can_be_read_back():
     re_.set_call_limit(5)
     try:

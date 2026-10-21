@@ -249,7 +249,7 @@ The output ends with each suite's verdict, tier and time, and the run's total:
 elapsed: 48.2 s (budget 60 s)
 ```
 
-The budget is 60 s when every suite ran smoke and 180 s otherwise. A total over it adds `over budget`, which doesn't fail the run; report it in the PR. To run every suite in the full tier anyway, add `--tier full`. Commit the records in `eval/records/` and paste the printed summary into the PR.
+The budget is 60 s when every suite ran smoke and 180 s otherwise. A total over it adds `over budget`, which doesn't fail the run; report it in the PR. Because the suites run together, a refusal in one of them, such as a missing plugin, stops them all and exits 2; suites that finished first keep their records. Ctrl-C stops every running `claude` and writes no record for a suite still running. To run every suite in the full tier anyway, add `--tier full`. Commit the records in `eval/records/` and paste the printed summary into the PR.
 
 ## Drift
 

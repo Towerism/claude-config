@@ -191,29 +191,49 @@ def temp_root(repo: Path) -> Path:
     return root
 
 
-def default_runner(
-    cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float
-) -> tuple[int, str]:
-    # The command is built by this harness from fixed arguments; no shell is involved.
-    # Each run gets its own process group, so a timeout or an interrupt ends the
-    # whole tree claude starts, not just claude.
+def _kill_group(proc: subprocess.Popen[str]) -> None:
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(proc.pid, signal.SIGKILL)
+
+
+def run_tracked(
+    cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float | None
+) -> tuple[int, str, str]:
+    """Run `cmd` in its own process group, where stop_all can end it; (exit code, stdout, stderr).
+
+    The commands are built by this harness from fixed arguments; no shell is involved.
+    A process group lets a timeout or an interrupt end the whole tree the command starts.
+    """
     proc = subprocess.Popen(  # noqa: S603
         cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, env=env, cwd=cwd, start_new_session=True,
     )  # fmt: skip
     with _procs_lock:
         _procs.add(proc)
+        if _stop.is_set():  # stop_all ran after this call started but before it was tracked
+            _kill_group(proc)
     try:
-        out, _ = proc.communicate(stdin, timeout=timeout)
+        out, err = proc.communicate(stdin, timeout=timeout)
     except subprocess.TimeoutExpired:
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(proc.pid, signal.SIGKILL)
+        _kill_group(proc)
         proc.communicate()
         raise
     finally:
         with _procs_lock:
             _procs.discard(proc)
-    return proc.returncode, out
+    return proc.returncode, out, err
+
+
+def default_runner(
+    cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float
+) -> tuple[int, str]:
+    code, out, _ = run_tracked(cmd, stdin, env, cwd, timeout)
+    return code, out
+
+
+def stopped() -> bool:
+    """Whether stop_all has run since the last reset_stop."""
+    return _stop.is_set()
 
 
 def make_config_dir(ctx: Context, name: str, claude_md: str) -> Path:

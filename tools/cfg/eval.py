@@ -128,16 +128,12 @@ def run_script_suite(ctx: run_eval.Context, suite: er.Suite) -> dict[str, Any]:
     # The script is the skill's committed eval runner, taken from the HEAD commit. It
     # holds its share of the shared limit on claude calls while it runs.
     with run_eval.permits(workers):
-        out = subprocess.run(  # noqa: S603
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=ctx.root,
-            env={**os.environ, "TMPDIR": str(ctx.root)},
-            check=False,
-        )
-    (ctx.out / "stdout.txt").write_text(out.stdout + out.stderr)
-    return {"pass": out.returncode == 0, "exitCode": out.returncode, "cases": script_cases(results)}
+        if run_eval.stopped():  # interrupted while waiting for its permits
+            return {"pass": False, "exitCode": -1, "cases": []}
+        env = {**os.environ, "TMPDIR": str(ctx.root)}
+        code, out, err = run_eval.run_tracked(cmd, "", env, ctx.root, None)
+    (ctx.out / "stdout.txt").write_text(out + err)
+    return {"pass": code == 0, "exitCode": code, "cases": script_cases(results)}
 
 
 RUNNERS: dict[str, SuiteRunner] = {
@@ -204,6 +200,13 @@ def summary(name: str, result: dict[str, Any], label: str = "") -> str:
     return "\n".join(lines) + "\n"
 
 
+def _positive(text: str) -> int:
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"must be at least 1, not {value}")
+    return value
+
+
 def _parse(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--suite", help="comma-separated suites to run instead of the required ones")
@@ -211,7 +214,7 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
     ap.add_argument("--model", help="model for the scenario arms (the grader keeps the default)")
     ap.add_argument(
         "--workers",
-        type=int,
+        type=_positive,
         default=run_eval.DEFAULT_CALLS,
         help="most claude calls open at once, across all suites "
         f"(default {run_eval.DEFAULT_CALLS})",
@@ -258,6 +261,7 @@ def main(
     which: Callable[[str], str | None] = shutil.which,
     timer: Callable[[], float] = time.monotonic,
 ) -> int:
+    started = timer()
     args = _parse(argv)
     runners = {**RUNNERS, **(runners or {})}
     try:
@@ -298,11 +302,11 @@ def main(
         "models": {"arm": args.model or "default", "grader": "default"},
     }
     run_eval.set_call_limit(args.workers)
+    # Cleared here only: after an interrupt it stays set, so no queued call starts.
     run_eval.reset_stop()
     trees = Path(tempfile.mkdtemp(prefix="eval-trees.", dir=root))
     sections: dict[str, str] = {}
     code = 0
-    started = timer()
     try:
         extract(repo, head, trees / "head", ["config", "eval"])
         has_base = extract(repo, base, trees / "base", ["config"])
@@ -366,7 +370,6 @@ def main(
         code = 130
     finally:
         shutil.rmtree(trees, ignore_errors=True)
-        run_eval.reset_stop()
     print("\n".join(sections[n] for n in names if n in sections), end="")
     if code in (0, 1):
         print(budget_line(timer() - started, set(tiers.values())))

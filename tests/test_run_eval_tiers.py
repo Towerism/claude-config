@@ -178,6 +178,19 @@ def test_a_timed_out_run_is_killed_with_its_process_group(tmp_path):
     assert re_.running() == 0
 
 
+def test_a_process_that_starts_after_stop_all_is_ended_at_once(tmp_path):
+    re_.stop_all()
+    try:
+        begun = time.monotonic()
+        code, _, _ = re_.run_tracked([sys.executable, "-c", "import time; time.sleep(30)"], "",
+                                     dict(os.environ), tmp_path, 60)  # fmt: skip
+        assert code != 0 and time.monotonic() - begun < 10
+        assert re_.stopped() is True
+    finally:
+        re_.reset_stop()
+    assert re_.stopped() is False
+
+
 def test_stop_all_ends_running_processes_and_refuses_new_ones(tmp_path, env):
     results = []
     cmd = [sys.executable, "-c", "import time; time.sleep(30)"]

@@ -378,7 +378,7 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
     HEAD's definition of the suite is applied at both commits. Smoke is enough only
     when the definition (apart from its smoke list), the harness, eval.py and every
     selector are unchanged, and each input either keeps its path or moves to a path
-    eval/gates.json declares equivalent, with the same content.
+    the merge-base's eval/gates.json declares equivalent, with the same content.
     """
     suite = gates_at(repo, head)[name]
     before = gates_at(repo, base).get(name)
@@ -400,7 +400,8 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
         }
         for commit in (base, head)
     }
-    reason = _input_change(files[base], files[head], equivalences_at(repo, head))
+    # The merge-base's pairs, so a branch can't declare the equivalence it relies on.
+    reason = _input_change(files[base], files[head], equivalences_at(repo, base))
     if reason is not None:
         return False, reason
     if not smoke_capable(suite):

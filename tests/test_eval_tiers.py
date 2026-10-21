@@ -98,6 +98,16 @@ def test_any_other_change_needs_the_full_tier_and_says_why(repo, change, reason)
     assert enough(path, base) == (False, reason)
 
 
+def test_an_equivalence_the_branch_adds_itself_does_not_count(repo):
+    path, _ = repo
+    gates = json.loads(json.dumps(GATES))
+    del gates["equivalentPaths"]
+    base = commit(path, {"eval/gates.json": json.dumps(gates)}, "no pairs")
+    commit(path, {"eval/gates.json": json.dumps(GATES), OTHER: None,
+                  MOVED: "---\nname: other\n---\nother\n"})  # fmt: skip
+    assert enough(path, base) == (False, f"{OTHER} was removed or renamed")
+
+
 def test_two_inputs_that_swap_contents_need_the_full_tier(repo):
     path, base = repo
     commit(path, {SKILL: "---\nname: other\n---\nother\n",
@@ -298,11 +308,22 @@ def clean_case(runner, case, entry):
 SUITES = er.parse_gates((REPO_ROOT / er.GATES_PATH).read_text())
 
 
+def latest_full_record(name):
+    """The suite's newest full record: the committed one, or the last full one in git history."""
+    path = f"{er.RECORDS_DIR}/{name}.json"
+    commits = git(REPO_ROOT, "log", "--format=%H", "--", path).split()
+    for sha in ["HEAD", *commits]:
+        blob = er.read_blob(REPO_ROOT, sha, path)
+        record = json.loads(blob) if blob else None
+        if record and record.get("tier", "full") == "full":
+            return record
+    raise AssertionError(f"{name} has no full record in its history")
+
+
 @pytest.mark.parametrize("name", sorted(n for n, s in SUITES.items() if s.smoke))
 def test_each_smoke_case_passed_every_run_of_its_suites_latest_full_record(name):
     suite = SUITES[name]
-    record = json.loads((REPO_ROOT / er.RECORDS_DIR / f"{name}.json").read_text())
-    assert record.get("tier", "full") == "full", f"{name}'s record isn't from the full tier"
+    record = latest_full_record(name)
     path = suite.cases or "eval/scenarios.json"
     cases = json.loads((REPO_ROOT / path).read_text())
     entries = record["result"]["cases"]

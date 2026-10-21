@@ -50,7 +50,8 @@
         }
       ],
       "harness": [
-        "eval/hook_harness.py"
+        "eval/hook_harness.py",
+        "eval/run_eval.py"
       ]
     },
     "hook-merge": {
@@ -65,7 +66,8 @@
         }
       ],
       "harness": [
-        "eval/hook_harness.py"
+        "eval/hook_harness.py",
+        "eval/run_eval.py"
       ]
     },
     "hook-session-start": {

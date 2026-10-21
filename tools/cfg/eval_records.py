@@ -9,6 +9,11 @@ eval/gates.json says the branch requires, it checks that the record exists,
 that its hashes match the files at HEAD (and, for suites compared against the
 merge-base, the files there), and that the recorded run passed.
 
+A record is from the smoke tier or the full tier (#77). The smoke tier is
+enough only when nothing that could move the suite's result changed; see
+smoke_enough. verify fails a smoke record anywhere else, and prints the tier
+each required suite needs and the tier its record has.
+
 Everything is read from commits through git, never from the working tree, so
 a record describes exactly the files a commit holds.
 """
@@ -20,7 +25,7 @@ import hashlib
 import json
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -35,6 +40,17 @@ RUNNERS = {
 SKILL_RUNNERS = {"trigger", "cold-reader", "doc-trigger", "doc-reader"}
 COMPANION_RUNNERS = {"doc-trigger", "doc-reader"}
 SKILL_PARTS = {"description", "body"}
+# The smoke tier (#77). These runners name their smoke cases in a `smoke` list:
+# trigger suites by 0-based position, because their queries have no ids, and the
+# others by id. Those below run a fixed smoke run and take no list. Script suites
+# always run in full.
+SMOKE_BY_INDEX = {"trigger", "doc-trigger"}
+SMOKE_BY_ID = {"scenario", "cold-reader", "doc-reader"}
+SMOKE_FIXED = {"rubric", "hook-overlay", "hook-merge", "hook-session-start"}
+SMOKE_MAX = 3
+# A change to how eval.py runs suites needs the full tier for every suite it runs.
+EVAL_PY = "tools/cfg/eval.py"
+TIERS = ("smoke", "full")
 
 
 class GatesError(Exception):
@@ -63,6 +79,7 @@ class Suite:
     skill: str | None = None
     cases: str | None = None
     companions: tuple[str, ...] = ()
+    smoke: tuple[str | int, ...] = ()
 
 
 def git(repo: Path, *args: str) -> str:
@@ -135,13 +152,43 @@ def _selectors(value: object, what: str) -> tuple[dict[str, str], ...]:
     return tuple(out)
 
 
-def parse_gates(text: str) -> dict[str, Suite]:
+def _smoke(value: object, runner: str, what: str) -> tuple[str | int, ...]:
+    if value is None:
+        return ()
+    if runner in SMOKE_BY_INDEX:
+        kind, ok = "0-based case positions", lambda v: type(v) is int and v >= 0
+    elif runner in SMOKE_BY_ID:
+        kind, ok = "case ids", lambda v: isinstance(v, str)
+    else:
+        raise GatesError(f"{what} smoke: the {runner} runner takes no smoke list")
+    if not (isinstance(value, list) and 1 <= len(value) <= SMOKE_MAX and all(map(ok, value))):
+        raise GatesError(f"{what} smoke must list 1 to {SMOKE_MAX} {kind}")
+    return tuple(value)
+
+
+def _load(text: str) -> dict[str, Any]:
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
         raise GatesError(f"{GATES_PATH} does not parse: {e}") from e
     if not isinstance(data, dict) or not isinstance(data.get("suites"), dict):
         raise GatesError(f"{GATES_PATH} needs a suites object")
+    return data
+
+
+def parse_equivalences(text: str) -> tuple[tuple[str, str], ...]:
+    """The pairs of path prefixes whose files the harness treats the same (#77)."""
+    value = _load(text).get("equivalentPaths", [])
+    pairs = value if isinstance(value, list) else None
+    if pairs is None or not all(
+        isinstance(p, list) and len(p) == 2 and all(isinstance(x, str) for x in p) for p in pairs
+    ):
+        raise GatesError(f"{GATES_PATH} equivalentPaths must be a list of [prefix, prefix] pairs")
+    return tuple((a, b) for a, b in pairs)
+
+
+def parse_gates(text: str) -> dict[str, Suite]:
+    data = _load(text)
     suites = {}
     for name, spec in data["suites"].items():
         what = f"{GATES_PATH} suite {name}"
@@ -172,8 +219,14 @@ def parse_gates(text: str) -> dict[str, Suite]:
             skill=skill if isinstance(skill, str) else None,
             cases=cases if isinstance(cases, str) else None,
             companions=_str_list(companions, f"{what} companions"),
+            smoke=_smoke(spec.get("smoke"), runner, what),
         )
     return suites
+
+
+def smoke_capable(suite: Suite) -> bool:
+    """Whether the suite has a smoke run: a fixed one, or a list of smoke cases."""
+    return suite.runner in SMOKE_FIXED or bool(suite.smoke)
 
 
 def gates_at(repo: Path, commit: str) -> dict[str, Suite]:
@@ -283,6 +336,78 @@ def suite_harness(repo: Path, commit: str, suite: Suite) -> dict[str, str | None
     return {p: _sha(read_blob(repo, commit, p)) for p in suite.harness}
 
 
+def equivalences_at(repo: Path, commit: str) -> tuple[tuple[str, str], ...]:
+    blob = read_blob(repo, commit, GATES_PATH)
+    return () if blob is None else parse_equivalences(blob.decode())
+
+
+def _equivalents(path: str, pairs: tuple[tuple[str, str], ...]) -> list[str]:
+    out = []
+    for a, b in pairs:
+        for one, other in ((a, b), (b, a)):
+            if path.startswith(one):
+                out.append(other + path[len(one) :])
+    return out
+
+
+def _input_change(
+    base_files: dict[str, str | None],
+    head_files: dict[str, str | None],
+    pairs: tuple[tuple[str, str], ...],
+) -> str | None:
+    """Why the inputs differ beyond declared moves, or None when each one pairs up unchanged."""
+    unpaired = set(head_files)
+    for path, digest in sorted(base_files.items()):
+        if path in head_files:
+            if head_files[path] != digest:
+                return f"{path} changed"
+            unpaired.discard(path)
+            continue
+        moved = [q for q in _equivalents(path, pairs) if q in unpaired and q not in base_files]
+        if not moved:
+            return f"{path} was removed or renamed"
+        if head_files[moved[0]] != digest:
+            return f"{path} moved to {moved[0]} and changed"
+        unpaired.discard(moved[0])
+    return f"{min(unpaired)} was added" if unpaired else None
+
+
+def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str | None]:
+    """Whether the smoke tier is enough for suite `name`, and if not, the first reason why.
+
+    HEAD's definition of the suite is applied at both commits. Smoke is enough only
+    when the definition (apart from its smoke list), the harness, eval.py and every
+    selector are unchanged, and each input either keeps its path or moves to a path
+    eval/gates.json declares equivalent, with the same content.
+    """
+    suite = gates_at(repo, head)[name]
+    before = gates_at(repo, base).get(name)
+    if before is None:
+        return False, "the suite is new in this branch"
+    if replace(before, smoke=()) != replace(suite, smoke=()):
+        return False, "the suite's definition in eval/gates.json changed"
+    for path in (*suite.harness, EVAL_PY):
+        if read_blob(repo, base, path) != read_blob(repo, head, path):
+            return False, f"{path} changed"
+    for sel in suite.selectors:
+        if selector_value(repo, base, sel) != selector_value(repo, head, sel):
+            return False, f"the selector {selector_key(sel)} changed"
+    files = {
+        commit: {
+            p: _sha(read_blob(repo, commit, p))
+            for p in list_files(repo, commit)
+            if _matches(p, suite.paths)
+        }
+        for commit in (base, head)
+    }
+    reason = _input_change(files[base], files[head], equivalences_at(repo, head))
+    if reason is not None:
+        return False, reason
+    if not smoke_capable(suite):
+        return False, f"the {suite.runner} runner has no smoke tier"
+    return True, None
+
+
 def build_record(
     repo: Path,
     name: str,
@@ -291,14 +416,22 @@ def build_record(
     base: str,
     result: dict[str, Any],
     meta: dict[str, Any],
+    tier: str = "full",
+    duration: float | None = None,
+    smoke_cases: list[str | int] | None = None,
 ) -> dict[str, Any]:
     record: dict[str, Any] = {
         "suite": name,
         **meta,
+        "tier": tier,
         "harness": suite_harness(repo, head, suite),
         "inputs": suite_inputs(repo, head, suite),
         "result": result,
     }
+    if duration is not None:
+        record["durationSeconds"] = round(duration, 1)
+    if tier == "smoke":
+        record["smokeCases"] = list(smoke_cases or [])
     if suite.compare_base:
         record["base"] = {"ref": base, "inputs": suite_inputs(repo, base, suite)}
     return record
@@ -317,18 +450,67 @@ def _stale(name: str, check: str, want: dict[str, Any], got: object, why: str) -
     ]
 
 
-def check_record(repo: Path, name: str, suite: Suite, head: str, base: str) -> list[str]:
-    path = f"{RECORDS_DIR}/{name}.json"
-    blob = read_blob(repo, head, path)
+def read_record(repo: Path, name: str, commit: str) -> dict[str, Any] | None:
+    blob = read_blob(repo, commit, f"{RECORDS_DIR}/{name}.json")
     if blob is None:
-        return [f"{name}: record: {path} is missing"]
+        return None
     try:
         record = json.loads(blob)
     except json.JSONDecodeError:
-        record = None
-    if not isinstance(record, dict):
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def record_tier(record: dict[str, Any] | None) -> str | None:
+    """A record's tier; one written before #77 has none and counts as full."""
+    return None if record is None else str(record.get("tier", "full"))
+
+
+def case_count(repo: Path, commit: str, suite: Suite) -> tuple[str, int] | None:
+    """The suite's case file and how many cases it holds, for suites that have one."""
+    path = suite.cases or ("eval/scenarios.json" if suite.runner == "scenario" else None)
+    blob = read_blob(repo, commit, path) if path else None
+    try:
+        cases = json.loads(blob) if blob is not None else None
+    except json.JSONDecodeError:
+        cases = None
+    return (str(path), len(cases)) if isinstance(cases, list) else None
+
+
+def _tier_failures(
+    repo: Path, name: str, suite: Suite, head: str, record: dict[str, Any], why_full: str | None
+) -> list[str]:
+    if record_tier(record) == "smoke":
+        if why_full is not None:
+            return [f"{name}: tier: this change needs the full tier ({why_full})"]
+        ran, want = record.get("smokeCases"), list(suite.smoke)
+        if ran != want:
+            return [f"{name}: tier: the smoke record ran {ran}, not the smoke list {want}"]
+        return []
+    count = case_count(repo, head, suite)
+    cases = (record.get("result") or {}).get("cases")
+    if count is not None and isinstance(cases, list) and len(cases) != count[1]:
+        return [f"{name}: cases: the full record has {len(cases)} cases, {count[0]} has {count[1]}"]
+    return []
+
+
+def check_record(
+    repo: Path,
+    name: str,
+    suite: Suite,
+    head: str,
+    base: str,
+    why_full: str | None = "no tier was worked out",
+) -> list[str]:
+    """Every failed check on suite `name`'s record; `why_full` is None when smoke is enough."""
+    path = f"{RECORDS_DIR}/{name}.json"
+    if read_blob(repo, head, path) is None:
+        return [f"{name}: record: {path} is missing"]
+    record = read_record(repo, name, head)
+    if record is None:
         return [f"{name}: record: {path} does not parse"]
-    failures = _stale(
+    failures = _tier_failures(repo, name, suite, head, record, why_full)
+    failures += _stale(
         name,
         "inputs",
         suite_inputs(repo, head, suite),
@@ -357,16 +539,29 @@ def check_record(repo: Path, name: str, suite: Suite, head: str, base: str) -> l
     return failures
 
 
-def verify(repo: Path, base_ref: str) -> tuple[list[str], list[str]]:
-    """The required suites and every failed check, both sorted."""
+def needed_tier(repo: Path, name: str, base: str, head: str) -> tuple[str, str | None]:
+    """The tier suite `name` needs, and why it needs the full one (None for smoke)."""
+    if name not in gates_at(repo, head):
+        return "full", "the suite is gone from eval/gates.json at HEAD"
+    ok, reason = smoke_enough(repo, name, base, head)
+    return ("smoke", None) if ok else ("full", reason)
+
+
+def verify(
+    repo: Path, base_ref: str
+) -> tuple[list[str], list[str], dict[str, tuple[str, str | None]]]:
+    """The required suites, every failed check (sorted), and each suite's needed and found tier."""
     head = resolve_commit(repo, "HEAD")
     base = merge_base(repo, base_ref, head)
     names = required_suites(repo, base, head)
     suites = suite_definitions(repo, base, head)
     failures: list[str] = []
+    tiers: dict[str, tuple[str, str | None]] = {}
     for name in names:
-        failures += check_record(repo, name, suites[name], head, base)
-    return names, sorted(failures)
+        needed, why_full = needed_tier(repo, name, base, head)
+        tiers[name] = (needed, record_tier(read_record(repo, name, head)))
+        failures += check_record(repo, name, suites[name], head, base, why_full)
+    return names, sorted(failures), tiers
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -376,13 +571,16 @@ def main(argv: list[str] | None = None) -> int:
     v.add_argument("--base", default="origin/main", help="branch to compare against")
     args = ap.parse_args(argv)
     try:
-        names, failures = verify(Path.cwd(), args.base)
+        names, failures, tiers = verify(Path.cwd(), args.base)
     except (GatesError, GitError) as e:
         print(f"eval_records: {e}", file=sys.stderr)
         return 2
     if not names:
         print("no eval suites required")
         return 0
+    for name in names:
+        needed, found = tiers[name]
+        print(f"{name}: needs {needed}, found {found or 'no record'}")
     for line in failures:
         print(line)
     if failures:

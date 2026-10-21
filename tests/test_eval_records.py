@@ -280,6 +280,7 @@ def test_verify_reports_a_missing_record(tmp_path, capsys, monkeypatch):
     monkeypatch.chdir(repo)
     assert er.main(["verify"]) == 1
     assert capsys.readouterr().out == (
+        "hook-merge: needs full, found no record\n"
         "hook-merge: record: eval/records/hook-merge.json is missing\n"
     )
 
@@ -379,7 +380,7 @@ def test_records_for_suites_that_are_not_required_are_ignored(tmp_path):
     repo, base = make_repo(tmp_path)
     write_records(repo, base, ["hook-merge"], result={"pass": False})
     commit(repo, {"docs/readme.md": "x\n"})
-    assert er.verify(repo, "main") == ([], [])
+    assert er.verify(repo, "main") == ([], [], {})
 
 
 def test_a_record_with_hashes_of_the_wrong_shape_counts_as_stale(tmp_path):

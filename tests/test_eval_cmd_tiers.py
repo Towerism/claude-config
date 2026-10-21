@@ -140,7 +140,7 @@ def test_without_claude_on_path_the_version_check_is_skipped(world, capsys):
 def test_each_record_names_the_model_that_graded_it(world):
     commit(world["repo"], {"config/CLAUDE.global.md": "# New\n", MERGE: "print(3)\n"})
     assert run([], fake_runners()) == 0
-    assert record(world, "scenario")["models"]["grader"] == "haiku"
+    assert record(world, "scenario")["models"]["grader"] == "sonnet"
     assert record(world, "rubric")["models"]["grader"] == "default"
     assert record(world, "hook-merge")["models"]["grader"] == "none"
 

@@ -376,7 +376,7 @@ def test_the_cold_reader_and_judge_use_the_criteria_model_and_the_writers_do_not
     grading = ("You are a reader", "You are checking")
     graders = [c for c in fake.calls if c["stdin"].startswith(grading)]
     writers = [c for c in fake.calls if not c["stdin"].startswith(grading)]
-    assert graders and all(c["cmd"][c["cmd"].index("--model") + 1] == "haiku" for c in graders)
+    assert graders and all(c["cmd"][c["cmd"].index("--model") + 1] == "sonnet" for c in graders)
     assert writers and all("--model" not in c["cmd"] for c in writers)
 
 

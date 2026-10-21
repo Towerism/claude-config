@@ -1,5 +1,5 @@
 {
-  "graderModel": "haiku",
+  "graderModel": "sonnet",
   "rubric": {
     "pass": 80,
     "tries": 2

@@ -58,7 +58,7 @@ Records live in `eval/records/<suite>.json`. Each run overwrites its suite's rec
   "suite": "scenario",
   "ranAt": "2026-10-20T14:02:11Z",
   "claudeVersion": "2.1.299",
-  "models": { "arm": "default", "grader": "haiku" },
+  "models": { "arm": "default", "grader": "sonnet" },
   "tier": "full",
   "durationSeconds": 142.3,
   "harness": { "eval/run_eval.py": "<sha256>" },
@@ -207,5 +207,5 @@ Moving the files changed the trigger suites' inputs and editing the harness chan
 - **A harness edit needs only the smoke tier.** That covers the `eval/*.py` files a suite's gate lists; `tools/cfg/eval.py` and `tools/cfg/eval_records.py` are in no suite's harness, so an edit to them requires no suite at all. The harness is unit-tested at 100% branch coverage against a fake `claude`, and every pass bar, run count and grader model it applies now lives in `eval/criteria.json`, which every suite except the four lifecycle suites lists as an input. The prompts stay in the harness files, a gap the owner accepted on 2026-10-20.
 - **Records compare inputs by content.** `verify` pairs a recorded input with one at HEAD that kept its path or moved to a path the merge-base's `equivalentPaths` declares equivalent, with the same content, so a byte-for-byte move leaves a record valid. `cfg eval` skips a required suite whose record still verifies.
 - **The full scenario run covers only what a change can affect.** A change to the global CLAUDE.md, a hook in the suite's paths, `eval/clauses.json` or `eval/criteria.json` runs every scenario; otherwise only the scenarios whose `loadsSkills` name a skill whose overlay changed, and those whose own entry changed or is new. The record lists them in `selectedCases`, and `verify` checks that they include the selection.
-- **Graders run on a cheaper model.** The scenario grader, the cold reader and judge, and the doc reader use the model `eval/criteria.json` names, `haiku`; the arms under test keep the owner's model, and `rubric` keeps the default, because its bar was set with it. The owner allowed `sonnet` if `haiku` proves not good enough.
+- **Graders run on a model the criteria file names.** The scenario grader, the cold reader and judge, and the doc reader use the model `eval/criteria.json` names; the arms under test keep the owner's model, and `rubric` keeps the default, because its bar was set with it. The owner asked for `haiku` first and allowed `sonnet` if needed. #78's first full run on `haiku` failed `scenario` on S-15: on both of the new arm's attempts the grader's own reason said the answer ran `pnpm test:unit`, the one required item, yet it marked the answer failing, while the same answer on the old arm, from an identical config, passed. So the grader model is `sonnet`.
 - **The hook suites also follow Claude Code's version.** They are marked `versionGated`, and `cfg eval` runs them in full when `claude --version` differs from their record's `claudeVersion`. CI can't see the installed version, so nothing in CI enforces this check.

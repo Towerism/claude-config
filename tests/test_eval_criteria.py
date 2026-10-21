@@ -15,7 +15,7 @@ from tools.cfg import eval_records as er
 env = run_tests.env
 fresh_tempdir = run_tests.fresh_tempdir
 TODAY = {
-    "graderModel": "haiku",
+    "graderModel": "sonnet",
     "rubric": {"pass": 80, "tries": 2},
     "scenario": {"tries": 2},
     "trigger": {"recall": 0.7, "firstRuns": 2, "needed": 2, "maxTurns": 4},

@@ -414,7 +414,7 @@ def test_the_model_flag_reaches_the_arms_and_the_grader_keeps_the_criteria_model
     arm_calls = [c for c in fake.calls if c["stdin"].endswith("prompt S-01")]
     grader_calls = [c for c in fake.calls if c["stdin"].startswith("You are grading")]
     assert all(c["cmd"][-2:] == ["--model", "sonnet"] for c in arm_calls)
-    assert all(c["cmd"][-2:] == ["--model", "haiku"] for c in grader_calls)
+    assert all(c["cmd"][-2:] == ["--model", "sonnet"] for c in grader_calls)
 
 
 def test_the_default_runner_returns_the_exit_code_and_output(tmp_path):

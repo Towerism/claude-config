@@ -53,6 +53,7 @@ OVERLAY_ENTRIES = ["PostToolUse", "UserPromptExpansion"]
 MERGE_ENTRIES = ["PreToolUse"]
 P95_LIMIT_MS = 500.0
 TIMING_RUNS = 20
+SMOKE_TIMING_RUNS = 5
 OVERLAY_PROMPTS = {
     "main": f"Load the {SKILL} skill, then quote any skill overlay you received.",
     "subagent": (
@@ -168,10 +169,18 @@ def time_hook(hook: Path, home: Path, runs: int) -> list[float]:
     return timings
 
 
-def _attempts(check: Callable[[int], bool]) -> tuple[bool, int]:
-    """Run `check(attempt)` once, and once more if it fails; return (passed, re-runs used)."""
-    if check(1):
-        return True, 0
+def timing_runs(ctx: run_eval.Context) -> int:
+    return SMOKE_TIMING_RUNS if run_eval.is_smoke(ctx) else TIMING_RUNS
+
+
+def _attempts(ctx: run_eval.Context, check: Callable[[int], bool]) -> tuple[bool, int]:
+    """Run `check(attempt)` once, and in the full tier once more if it fails.
+
+    Returns (passed, re-runs used).
+    """
+    first = check(1)
+    if first or run_eval.is_smoke(ctx):
+        return first, 0
     return check(2), 1
 
 
@@ -221,14 +230,17 @@ def run_overlay(ctx: run_eval.Context, timer: Timer = time_hook) -> dict[str, An
         settings = home / "hook-settings.json"
         settings.write_text(json.dumps(render_entries(_fragment(ctx), OVERLAY_ENTRIES, home)))
         cases, reruns = [], 0
-        for name, hooked in [("main", True), ("subagent", True), ("control", False)]:
+        runs = [("main", True), ("subagent", True), ("control", False)]
+        if run_eval.is_smoke(ctx):
+            runs = [r for r in runs if r[0] != "subagent"]
+        for name, hooked in runs:
             args = ["-p", "--output-format", "stream-json", "--verbose"]
             if hooked:
                 args += ["--settings", str(settings)]
-            ok, used = _attempts(_overlay_check(ctx, cfg, name, args, hooked))
+            ok, used = _attempts(ctx, _overlay_check(ctx, cfg, name, args, hooked))
             reruns += used
             cases.append({"id": name, "result": "pass" if ok else "fail"})
-        timings = timer(home / "hooks" / "skill_overlay.py", home, TIMING_RUNS)
+        timings = timer(home / "hooks" / "skill_overlay.py", home, timing_runs(ctx))
     (ctx.out / "timings.json").write_text(json.dumps(timings))
     slowest = round(p95(timings), 1)
     cases.append({"id": "p95", "result": "pass" if slowest < P95_LIMIT_MS else "fail"})
@@ -298,7 +310,7 @@ def run_merge(ctx: run_eval.Context) -> dict[str, Any]:
         cases, reruns = [], 0
         for name, hooked in [("hook", True), ("control", False)]:
             args = base_args + (["--settings", str(settings)] if hooked else [])
-            ok, used = _attempts(_merge_check(ctx, cfg, name, args, env, hooked))
+            ok, used = _attempts(ctx, _merge_check(ctx, cfg, name, args, env, hooked))
             reruns += used
             cases.append({"id": name, "result": "pass" if ok else "fail"})
     return {"pass": all(c["result"] == "pass" for c in cases), "rerunsUsed": reruns,

@@ -18,13 +18,16 @@ quality criteria (v2 spec AC-4).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -77,6 +80,76 @@ class Context:
     out: Path  # eval/out/<suite>: raw answers, never committed
     head_tree: Path  # the HEAD commit's config/ and eval/, extracted
     base_tree: Path | None  # the merge-base's config/, extracted
+    tier: str = "full"  # "smoke" runs only the smoke cases, once each (#77)
+    smoke: tuple[str | int, ...] = ()  # the suite's smoke cases: ids, or positions
+
+
+def is_smoke(ctx: Context) -> bool:
+    return ctx.tier == "smoke"
+
+
+def tries(ctx: Context) -> int:
+    """How many tries a failing case gets: one re-run in the full tier, none in smoke."""
+    return 1 if is_smoke(ctx) else 2
+
+
+def smoke_pick(
+    ctx: Context, items: list[Any], key: Callable[[Any], str] | None = None
+) -> list[Any]:
+    """The cases a run covers: all of them, or in smoke the ones the suite's list names.
+
+    Without `key`, the list holds 0-based positions; with it, ids that `key` reads.
+    """
+    if not is_smoke(ctx):
+        return items
+    by_id = {key(item): item for item in items} if key else {}
+    picked = []
+    for entry in ctx.smoke:
+        found = by_id.get(str(entry)) if key else (
+            items[entry] if isinstance(entry, int) and entry < len(items) else None
+        )  # fmt: skip
+        if found is None:
+            raise Refusal(f"smoke case {entry!r} is not in the suite's cases")
+        picked.append(found)
+    return picked
+
+
+# Calls open at once, across every suite a run starts (#77). eval.py sets the limit.
+DEFAULT_CALLS = 6
+_calls = threading.BoundedSemaphore(DEFAULT_CALLS)
+_limit = DEFAULT_CALLS
+_stop = threading.Event()
+_procs: set[subprocess.Popen[str]] = set()
+_procs_lock = threading.Lock()
+
+
+def set_call_limit(n: int) -> None:
+    global _calls, _limit
+    _calls, _limit = threading.BoundedSemaphore(n), n
+
+
+def call_limit() -> int:
+    return _limit
+
+
+def running() -> int:
+    """How many processes default_runner has started that haven't ended."""
+    with _procs_lock:
+        return len(_procs)
+
+
+def stop_all() -> None:
+    """Stop every running claude process group, and make later calls return at once."""
+    _stop.set()
+    with _procs_lock:
+        procs = list(_procs)
+    for proc in procs:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)
+
+
+def reset_stop() -> None:
+    _stop.clear()
 
 
 def live_home() -> Path:
@@ -101,10 +174,25 @@ def default_runner(
     cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float
 ) -> tuple[int, str]:
     # The command is built by this harness from fixed arguments; no shell is involved.
-    out = subprocess.run(  # noqa: S603
-        cmd, input=stdin, text=True, capture_output=True, env=env, cwd=cwd, timeout=timeout
-    )
-    return out.returncode, out.stdout
+    # Each run gets its own process group, so a timeout or an interrupt ends the
+    # whole tree claude starts, not just claude.
+    proc = subprocess.Popen(  # noqa: S603
+        cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, env=env, cwd=cwd, start_new_session=True,
+    )  # fmt: skip
+    with _procs_lock:
+        _procs.add(proc)
+    try:
+        out, _ = proc.communicate(stdin, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        raise
+    finally:
+        with _procs_lock:
+            _procs.discard(proc)
+    return proc.returncode, out
 
 
 def make_config_dir(ctx: Context, name: str, claude_md: str) -> Path:
@@ -158,7 +246,10 @@ def run_claude(
     inherited = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
     env = {**inherited, **(extra_env or {}), "CLAUDE_CONFIG_DIR": str(cfg)}
     try:
-        return ctx.runner(["claude", *args], prompt, env, cwd, timeout)
+        with _calls:
+            if _stop.is_set():
+                return -1, "<stopped>"
+            return ctx.runner(["claude", *args], prompt, env, cwd, timeout)
     except (subprocess.TimeoutExpired, OSError) as e:
         return -1, f"<run error: {e}>"
     finally:
@@ -267,9 +358,9 @@ def grade(ctx: Context, grader: Path, sc: dict[str, Any], answer: str, arm: str)
 def run_case(
     ctx: Context, arm_dir: Path, arm: str, grader: Path, sc: dict[str, Any], prefix: str
 ) -> dict[str, Any]:
-    """One scenario on one arm, re-run once on failure (v2 spec EC-8)."""
+    """One scenario on one arm, re-run once on failure (v2 spec EC-8), never in smoke."""
     attempts = []
-    for _ in range(2):
+    for _ in range(tries(ctx)):
         answer = claude(ctx, arm_dir, PREAMBLE + prefix + sc["prompt"], model=ctx.model)
         graded = grade(ctx, grader, sc, answer, arm)
         attempts.append({"answer": answer, **graded})
@@ -308,6 +399,20 @@ def summarize(results: list[dict[str, Any]], scenarios: list[dict[str, Any]]) ->
     }
 
 
+def summarize_smoke(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """A smoke run's result: every smoke scenario passes on the new arm, which runs alone."""
+    cases = [
+        {"id": r["id"], "new": "pass" if r["pass"] else "fail",
+         "graderReason": r["attempts"][-1]["reason"][:REASON_LIMIT]}
+        for r in results
+    ]  # fmt: skip
+    return {
+        "pass": all(r["pass"] for r in results),
+        "rerunsUsed": 0,
+        "cases": cases,
+    }
+
+
 def probe(ctx: Context, arms: dict[str, Path]) -> None:
     """Stop the run unless each arm's answer shows its own canary and not the other's."""
     question = "Without tools: quote every line in your instructions containing 'Eval arm marker'."
@@ -323,10 +428,16 @@ def probe(ctx: Context, arms: dict[str, Path]) -> None:
 
 
 def run_scenario(ctx: Context) -> dict[str, Any]:
-    if ctx.base_tree is None or not (ctx.base_tree / "config" / "CLAUDE.global.md").is_file():
-        raise Refusal("the merge-base has no config/CLAUDE.global.md to compare against")
-    trees = {"old": ctx.base_tree, "new": ctx.head_tree}
-    scenarios = json.loads((ctx.head_tree / "eval" / "scenarios.json").read_text())
+    """Each scenario on the merge-base's arm and HEAD's; in smoke, the smoke ones on HEAD's."""
+    smoke = is_smoke(ctx)
+    trees: dict[str, Path] = {"new": ctx.head_tree}
+    if not smoke:
+        base = ctx.base_tree
+        if base is None or not (base / "config" / "CLAUDE.global.md").is_file():
+            raise Refusal("the merge-base has no config/CLAUDE.global.md to compare against")
+        trees = {"old": base, "new": ctx.head_tree}
+    every = json.loads((ctx.head_tree / "eval" / "scenarios.json").read_text())
+    scenarios = smoke_pick(ctx, every, key=lambda sc: str(sc["id"]))
     ctx.out.mkdir(parents=True, exist_ok=True)
     dirs: list[Path] = []
     try:
@@ -339,9 +450,9 @@ def run_scenario(ctx: Context) -> dict[str, Any]:
         dirs.append(grader)
         probe(ctx, arms)
         jobs = [
-            (arms[name], name, sc, overlay_prefix(ctx, trees[name], sc["loadsSkills"]))
+            (arms[name], name, sc, overlay_prefix(ctx, tree, sc["loadsSkills"]))
             for sc in scenarios
-            for name in ("old", "new")
+            for name, tree in trees.items()
         ]
         with ThreadPoolExecutor(ctx.workers) as ex:
             results = list(ex.map(lambda j: run_case(ctx, j[0], j[1], grader, j[2], j[3]), jobs))
@@ -349,7 +460,7 @@ def run_scenario(ctx: Context) -> dict[str, Any]:
     finally:
         for d in dirs:
             remove_config_dir(d)
-    return summarize(results, scenarios)
+    return summarize_smoke(results) if smoke else summarize(results, scenarios)
 
 
 def find_rubric(live: Path) -> Path:
@@ -394,7 +505,7 @@ def run_rubric(ctx: Context) -> dict[str, Any]:
     replies: list[str] = []
     scores: list[int | None] = []
     try:
-        for _ in range(2):
+        for _ in range(tries(ctx)):
             reply = claude(ctx, grader, prompt)
             replies.append(reply)
             scores.append(parse_rubric(reply))

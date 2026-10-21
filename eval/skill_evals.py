@@ -59,7 +59,10 @@ if __package__ in (None, ""):  # pragma: no cover  (only when run as a script)
 
 from eval import hook_harness, run_eval  # noqa: E402
 
-TRIGGER_RUNS = 3
+# Each query runs twice, and a third time only when the two disagree, so a query
+# needs two loads either way (#77; it ran three times before). A smoke run asks each
+# smoke query once, and that run decides.
+FIRST_RUNS = 2
 TRIGGER_NEEDED = 2
 # Each class gets its own rule: recall over the queries that should load the skill, and
 # no near miss at all. Overall accuracy is reported but never decides.
@@ -244,12 +247,21 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
                 return index, "triggered"
             return index, "limited" if hit_turn_limit(evs) else "quiet"
 
-        jobs = [(i, a) for i in range(len(cases)) for a in range(TRIGGER_RUNS)]
-        outcomes = sorted(run_all(ctx, one, jobs))
+        smoke = run_eval.is_smoke(ctx)
+        picked = run_eval.smoke_pick(ctx, list(range(len(cases))))
+        first = 1 if smoke else FIRST_RUNS
+        outcomes = run_all(ctx, one, [(i, a) for i in picked for a in range(first)])
+        if not smoke:
+            loads = {i: {o == "triggered" for j, o in outcomes if j == i} for i in picked}
+            split = [i for i in picked if len(loads[i]) > 1]
+            outcomes += run_all(ctx, one, [(i, first) for i in split])
+        outcomes.sort()
+    needed = 1 if smoke else TRIGGER_NEEDED
     results = []
-    for index, case in enumerate(cases):
+    for index in picked:
+        case = cases[index]
         runs = [o for i, o in outcomes if i == index]
-        triggered = runs.count("triggered") >= TRIGGER_NEEDED
+        triggered = runs.count("triggered") >= needed
         errors = runs.count("error")
         entry = {
             "id": case["query"][:60],
@@ -266,14 +278,13 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     recall = (
         round(sum(r["result"] == "pass" for r in positive) / len(positive), 3) if positive else 1.0
     )
-    false_triggers = sum(
-        1 for r in results if not r["shouldTrigger"] and r["triggered"] >= TRIGGER_NEEDED
-    )
+    false_triggers = sum(1 for r in results if not r["shouldTrigger"] and r["triggered"] >= needed)
     near_misses_clean = all(r["result"] == "pass" for r in results if not r["shouldTrigger"])
     delegated_ok = all(r["result"] == "pass" for r in results if r["delegated"])
     right = sum(r["result"] == "pass" for r in results)
+    full_pass = recall >= TRIGGER_RECALL and near_misses_clean and delegated_ok
     return {
-        "pass": recall >= TRIGGER_RECALL and near_misses_clean and delegated_ok,
+        "pass": right == len(results) if smoke else full_pass,
         "recall": recall,
         "falseTriggers": false_triggers,
         "accuracy": round(right / len(results), 3) if results else 0.0,
@@ -457,11 +468,11 @@ def run_cold_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
 
         def one(case: Case) -> tuple[dict[str, Any], int]:
             first = attempt(ctx, arms, case)
-            if first["result"] == "pass":
+            if first["result"] == "pass" or run_eval.is_smoke(ctx):
                 return first, 0
             return attempt(ctx, arms, case), 1
 
-        done = run_all(ctx, one, cases)
+        done = run_all(ctx, one, run_eval.smoke_pick(ctx, cases, key=lambda c: str(c["id"])))
     results = sorted((r for r, _ in done), key=lambda r: str(r["id"]))
     _write_out(ctx, "cold-reader-results.json", results)
     for r in results:

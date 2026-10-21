@@ -479,3 +479,31 @@ def test_unwrap_removes_only_one_outer_markdown_fence(text, unwrapped):
 def test_the_skill_in_the_baseline_stops_the_suite(make_ctx):
     with pytest.raises(re_.IsolationError):
         run_reader(make_ctx, [WRITE], FINE, baseline_has_skill=True)
+
+
+# The smoke tier (#77)
+
+
+def test_a_smoke_doc_trigger_run_asks_each_smoke_query_once_and_that_run_decides(make_ctx):
+    fake = TriggerFake({"a": ["top"], "b": ["none"], "c": ["none"]})
+    ctx = make_ctx(fake, trigger=[trig("a", True), trig("b", False), trig("c", True)])
+    ctx.tier, ctx.smoke = "smoke", (0, 1)
+    result = de.run_doc_trigger(ctx, suite("doc-trigger"))
+    assert sorted(c["stdin"] for c in fake.calls) == ["a", "b"]
+    assert [c["id"] for c in result["cases"]] == ["a", "b"] and result["pass"] is True
+
+
+def test_a_smoke_doc_trigger_run_fails_on_one_miss(make_ctx):
+    fake = TriggerFake({"a": ["none"]})
+    ctx = make_ctx(fake, trigger=[trig("a", True), trig("b", False)])
+    ctx.tier, ctx.smoke = "smoke", (0,)
+    assert de.run_doc_trigger(ctx, suite("doc-trigger"))["pass"] is False
+
+
+def test_a_smoke_doc_reader_run_covers_only_the_smoke_cases(make_ctx):
+    fake = ReaderFake(FINE)
+    ctx = make_ctx(fake, behaviour=[WRITE, REWRITE])
+    ctx.tier, ctx.smoke = "smoke", ("r",)
+    result = de.run_doc_reader(ctx, suite("doc-reader"))
+    assert [c["id"] for c in result["cases"]] == ["r"]
+    assert len(fake.calls) == 4 and result["pass"] is True

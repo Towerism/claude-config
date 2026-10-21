@@ -139,7 +139,9 @@ def trigger_run(
 def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     skill, companions, skills_dir, cases = _setup(ctx, suite)
     everyone = [skill, *companions]
-    runs: dict[int, list[tuple[bool, bool, bool]]] = {i: [] for i in range(len(cases))}
+    smoke = run_eval.is_smoke(ctx)
+    picked = run_eval.smoke_pick(ctx, list(range(len(cases))))
+    runs: dict[int, list[tuple[bool, bool, bool]]] = {i: [] for i in picked}
     with (
         se.sandbox(ctx) as box,
         se.trigger_config(ctx, "trigger") as cfg,
@@ -148,18 +150,21 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         def one(index: int) -> tuple[int, tuple[bool, bool, bool]]:
             return index, trigger_run(ctx, cfg, box, cases[index], skill, everyone)
 
-        first = [i for i in range(len(cases)) for _ in range(FIRST_RUNS)]
+        # A smoke run asks each smoke query once, and that run decides (#77).
+        first = [i for i in picked for _ in range(1 if smoke else FIRST_RUNS)]
         for index, run in se.run_all(ctx, one, first):
             runs[index].append(run)
-        split = [i for i, r in runs.items() if r[0][0] != r[1][0]]
+        split = [] if smoke else [i for i, r in runs.items() if r[0][0] != r[1][0]]
         for index, run in se.run_all(ctx, one, split):
             runs[index].append(run)
+    needed = 1 if smoke else 2
     results = []
-    for index, case in enumerate(cases):
+    for index in picked:
+        case = cases[index]
         loads = sum(r[0] for r in runs[index])
         entry: dict[str, Any] = {
             "id": case["query"][:60],
-            "result": "pass" if (loads >= 2) == case["should_trigger"] else "fail",
+            "result": "pass" if (loads >= needed) == case["should_trigger"] else "fail",
             "triggered": loads,
             "runs": len(runs[index]),
             "shouldTrigger": case["should_trigger"],
@@ -178,7 +183,9 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     delegated = [r for r in results if r["delegated"]]
     delegated_runs = sum(r["runs"] for r in delegated)
     return {
-        "pass": recall >= se.TRIGGER_RECALL and false_triggers == 0,
+        "pass": all(r["result"] == "pass" for r in results)
+        if smoke
+        else recall >= se.TRIGGER_RECALL and false_triggers == 0,
         "recall": recall,
         "falseTriggers": false_triggers,
         "delegatedRate": round(sum(r["triggered"] for r in delegated) / delegated_runs, 3)
@@ -303,7 +310,9 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
                     "notLoaded": [s for s in everyone if not se.skill_calls(evs or [], s)],
                     "texts": {"skill": skill_text, "baseline": base_text}}  # fmt: skip
 
-        results = sorted(se.run_all(ctx, one, cases), key=lambda r: str(r["id"]))
+        # A smoke run covers only the smoke cases, judged by the same checks (#77).
+        picked = run_eval.smoke_pick(ctx, cases, key=lambda c: str(c["id"]))
+        results = sorted(se.run_all(ctx, one, picked), key=lambda r: str(r["id"]))
     se._write_out(ctx, "doc-reader-results.json", results)
     reasons = []
     for r in results:

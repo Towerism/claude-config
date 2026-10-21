@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from eval import hook_harness as hh
 from eval import run_eval as re_
 from eval import session_harness as sh
 from tests.checker_helpers import REPO_ROOT
@@ -310,3 +311,11 @@ def test_the_command_line_takes_no_arguments_and_runs_without_a_record(monkeypat
     assert calls == [["--suite", "hook-session-start", "--no-record"]]
     assert sh.main(["x"]) == 2
     assert "usage: session_harness.py" in capsys.readouterr().err
+
+
+def test_a_smoke_session_check_skips_the_subagent_and_times_five_runs(ctx):
+    timed = []
+    ctx.runner, ctx.tier = SessionFake(), "smoke"
+    result = sh.run_session(ctx, timer=lambda hook, xdg, runs: timed.append(runs) or [40.0] * runs)
+    assert [c["id"] for c in result["cases"]] == ["main", "control", "p95"]
+    assert timed == [hh.SMOKE_TIMING_RUNS] and result["pass"] is True

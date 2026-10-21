@@ -216,15 +216,17 @@ def run_session(ctx: run_eval.Context, timer: Timer = time_hook) -> dict[str, An
                 ("subagent", base + hooked),
                 ("control", base + ["--tools", ""]),
             ]
+            if run_eval.is_smoke(ctx):
+                runs = [r for r in runs if r[0] != "subagent"]
             cases, reruns = [], 0
             for name, args in runs:
                 check = _check(ctx, cfg, name, args, env, layout.canary)
-                ok, used = hook_harness._attempts(check)
+                ok, used = hook_harness._attempts(ctx, check)
                 reruns += used
                 cases.append({"id": name, "result": "pass" if ok else "fail"})
         finally:
             run_eval.remove_config_dir(cfg)
-        timings = timer(layout.home / "hooks" / HOOK, layout.xdg, hook_harness.TIMING_RUNS)
+        timings = timer(layout.home / "hooks" / HOOK, layout.xdg, hook_harness.timing_runs(ctx))
     finally:
         remove_layout(layout)
     (ctx.out / "timings.json").write_text(json.dumps(timings))

@@ -233,11 +233,13 @@ class Profile:
     def skill_path(self, name: str) -> Path:
         """The skill's directory: the maintained tree first, then the vendored one.
 
-        A skill in neither tree gets its maintained-tree path, so messages about
-        a missing skill name the place a new skill would go.
+        A directory counts only with a SKILL.md, so one a move left behind with
+        git-ignored files in it doesn't hide the skill. A skill in neither tree
+        gets its maintained-tree path, so messages about a missing skill name
+        the place a new skill would go.
         """
         for tree in SKILL_TREES:
-            if (self.root / tree / name).is_dir():
+            if (self.root / tree / name / "SKILL.md").is_file():
                 return self.root / tree / name
         return self.root / SKILL_TREES[0] / name
 
@@ -246,7 +248,7 @@ class Profile:
         return [
             f"{s}: {' and '.join(f'{t}/{s}' for t in SKILL_TREES)}"
             for s in sorted(self.skills)
-            if all((self.root / t / s).is_dir() for t in SKILL_TREES)
+            if all((self.root / t / s / "SKILL.md").is_file() for t in SKILL_TREES)
         ]
 
 

@@ -246,6 +246,19 @@ def test_a_skill_in_both_trees_is_a_profile_problem(mode):
     assert rep["profileProblems"] == [{"kind": "skill-in-both-trees", "item": both}]
 
 
+def test_a_leftover_directory_without_a_skill_md_is_not_a_second_copy(mode, tmp_path):
+    # A pull that moves a skill leaves behind any git-ignored files, such as __pycache__.
+    home, _, _, lock = mode
+    repo = tmp_path / "leftover"
+    profile = make_repo(repo, skills=["s1", "v1"])
+    vendored_skill(repo, "v1")
+    (repo / "config" / "skills" / "v1" / "__pycache__").mkdir(parents=True)
+    (repo / "config" / "CLAUDE.global.md").write_text(GOOD_GLOBAL_MD + "- Also `v1`.\n")
+    r, rep = check(home, profile, lock=lock)
+    assert rep["profileProblems"] == [], r.stdout + r.stderr
+    assert load_profile(profile).skill_path("v1") == repo / "config" / "vendored-skills" / "v1"
+
+
 def test_a_skill_in_neither_tree_is_looked_for_in_the_maintained_tree(tmp_path):
     profile = load_profile(make_repo(tmp_path, skills=["s1", "gone"]))
     assert profile.skill_path("gone") == tmp_path / "config" / "skills" / "gone"

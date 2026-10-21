@@ -45,3 +45,15 @@ This pass covers only the spec change that building `pull-spec` forced: decision
 | W1 | WARNING | Saboteur | `pull-spec` treated the description as holding only the attachment note only while the attachment was still on the ticket. If someone deleted the attachment, it saved the note itself as the working copy, and the next sync would have published the note as the spec. | **Fixed** in the script: the note alone means no spec in the description, and the message also says when the attachment is missing. A new test covers the deleted attachment. |
 | N1 | NOTE | New Hire | SKILL.md had Claude run `pull-spec` first for every spec, so for a skill spec it would copy the ticket's pointer sentence into a working copy nobody uses. | **Fixed:** SKILL.md says to skip `pull-spec` for a skill spec, whose `SPEC.md` in the repo is the working copy. |
 | N2 | NOTE | Security Auditor | Under D-5 the user saves the attachment by hand, and the skill then trusts that file as the spec; a wrong or edited file would be published on the next sync. | Accepted: the user chose the file, `sync-spec` publishes it as a draft, and the spec goes back through its approval mode before anything is built from it. |
+
+---
+
+# Results from the work machine (#17, 2026-10-20)
+
+#16 left three checks for the work machine. All three ran there on 2026-10-20.
+
+| Item | Result |
+|---|---|
+| AC-2's excluded-terms scan over the whole repo | Done. `tools/git_hooks.py check-range 157c698` printed no `deny-term` line and ended with `check-range: terms checked: 5`. |
+| N5, from #16's PR-diff review: neither the `jira` flags nor the login `claim` assigns with had run against a real jira CLI | Done for the flags: every flag and argument the script passes exists in jira 1.7.0. `claim` ran on a real ticket, but the ticket was already the owner's, so it skipped assigning, and the login that `jira me` prints was never passed to `jira issue assign`. That one call is still unshown. |
+| OS-8: whether the spec markers survive the jira CLI's Markdown conversion | Done. After `sync-spec`, the read-back held `spec:start` and `spec:end` as paragraphs of their own, with the whole spec between them and every requirement ID intact. |

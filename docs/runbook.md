@@ -239,7 +239,14 @@ python3 -I tools/cfg/eval_records.py verify
 TMPDIR=/tmp python3 -I tools/cfg/eval.py
 ```
 
-`verify` lists each suite the branch needs, as `<suite>: needs smoke, found ...` or `<suite>: needs full, found ...`. `eval.py` then runs those suites, each in the tier it needs. The smoke tier runs a few named cases once each, and is used only when nothing that could move the suite's result changed, such as a skill moved between `config/skills/` and `config/vendored-skills/` with no change to its files. Any other change gets the full tier. All suites run at once, and `--workers N` sets how many `claude` calls may be open at the same time (default 6).
+`verify` lists each suite the branch needs, as `<suite>: needs smoke, found ...` or `<suite>: needs full, found ...`. `eval.py` then runs those suites, each in the tier it needs:
+
+- A suite whose committed record still verifies is skipped, with `<suite>: record still valid, nothing to run`. That covers a skill moved between `config/skills/` and `config/vendored-skills/` with no change to its files.
+- An edit to the eval harness alone (`eval/*.py`, `tools/cfg/eval.py`) gets the smoke tier: a few named cases, once each.
+- A change to what a suite reads, including a pass bar or the grader model in `eval/criteria.json`, gets the full tier. The full `scenario` run covers only the scenarios the change can affect, and says when a changed overlay is loaded by no scenario.
+- The three hook suites also run in full when your Claude Code version differs from the one their record ran on, with `<suite>: Claude Code is ..., its record ran on ...; running it`. CI can't see your version, so run `eval.py` after a Claude Code update even when `verify` is clean.
+
+All suites run at once, and `--workers N` sets how many `claude` calls may be open at the same time (default 6). Graders, judges and readers use the model `eval/criteria.json` names; the arms under test use `--model`, or the default.
 
 The output ends with each suite's verdict, tier and time, and the run's total:
 

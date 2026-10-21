@@ -110,6 +110,21 @@ def test_a_smoke_rubric_run_grades_once(env):
     assert result["scores"] == [60] and result["pass"] is False
 
 
+def test_a_full_scenario_run_covers_only_the_selected_scenarios_on_both_arms(env):
+    fake = FakeClaude()
+    ctx = context(env, fake, SCENARIOS, cases=("S-2",))
+    result = re_.run_scenario(ctx)
+    assert [c["id"] for c in result["cases"]] == ["S-2"] and result["selectedCases"] == ["S-2"]
+    graded = sorted(c["stdin"].split("ANSWER:\nanswer ", 1)[1].split()[:2]
+                    for c in fake.calls if c["stdin"].startswith("You are grading"))  # fmt: skip
+    assert graded == [["new", "S-2"], ["old", "S-2"]]
+
+
+def test_a_full_scenario_run_without_a_selection_lists_every_scenario(env):
+    result = re_.run_scenario(context(env, FakeClaude(), SCENARIOS))
+    assert result["selectedCases"] == ["S-1", "S-2", "S-3"]
+
+
 # The limit on calls open at once
 
 

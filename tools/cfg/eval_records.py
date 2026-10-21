@@ -48,8 +48,6 @@ SMOKE_BY_INDEX = {"trigger", "doc-trigger"}
 SMOKE_BY_ID = {"scenario", "cold-reader", "doc-reader"}
 SMOKE_FIXED = {"rubric", "hook-overlay", "hook-merge", "hook-session-start"}
 SMOKE_MAX = 3
-# A change to how eval.py runs suites needs the full tier for every suite it runs.
-EVAL_PY = "tools/cfg/eval.py"
 TIERS = ("smoke", "full")
 
 
@@ -80,6 +78,7 @@ class Suite:
     cases: str | None = None
     companions: tuple[str, ...] = ()
     smoke: tuple[str | int, ...] = ()
+    version_gated: bool = False
 
 
 def git(repo: Path, *args: str) -> str:
@@ -209,6 +208,9 @@ def parse_gates(text: str) -> dict[str, Suite]:
         compare_base = spec.get("compareBase", False)
         if not isinstance(compare_base, bool):
             raise GatesError(f"{what}: compareBase must be true or false")
+        version_gated = spec.get("versionGated", False)
+        if not isinstance(version_gated, bool):
+            raise GatesError(f"{what}: versionGated must be true or false")
         suites[name] = Suite(
             runner=runner,
             paths=_str_list(spec.get("paths"), f"{what} paths"),
@@ -220,6 +222,7 @@ def parse_gates(text: str) -> dict[str, Suite]:
             cases=cases if isinstance(cases, str) else None,
             companions=_str_list(companions, f"{what} companions"),
             smoke=_smoke(spec.get("smoke"), runner, what),
+            version_gated=version_gated,
         )
     return suites
 
@@ -376,8 +379,8 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
     """Whether the smoke tier is enough for suite `name`, and if not, the first reason why.
 
     HEAD's definition of the suite is applied at both commits. Smoke is enough only
-    when the definition (apart from its smoke list), the harness, eval.py and every
-    selector are unchanged, and each input either keeps its path or moves to a path
+    when the definition (apart from its smoke list) and every selector are unchanged
+    (a harness edit alone needs smoke), and each input either keeps its path or moves to a path
     the merge-base's eval/gates.json declares equivalent, with the same content.
     """
     suite = gates_at(repo, head)[name]
@@ -386,9 +389,8 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
         return False, "the suite is new in this branch"
     if replace(before, smoke=()) != replace(suite, smoke=()):
         return False, "the suite's definition in eval/gates.json changed"
-    for path in (*suite.harness, EVAL_PY):
-        if read_blob(repo, base, path) != read_blob(repo, head, path):
-            return False, f"{path} changed"
+    # A harness edit, eval.py's included, needs only the smoke tier (#77's cost cuts): the
+    # harness is unit-tested, and the values that decide a verdict live in an input.
     for sel in suite.selectors:
         if selector_value(repo, base, sel) != selector_value(repo, head, sel):
             return False, f"the selector {selector_key(sel)} changed"
@@ -407,6 +409,54 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
     if not smoke_capable(suite):
         return False, f"the {suite.runner} runner has no smoke tier"
     return True, None
+
+
+# Changes that reach every scenario: the global CLAUDE.md, the clause inventory and the
+# criteria file; and any hook in the suite's paths, matched below (#77's cost cuts).
+SCENARIO_WIDE = ("config/CLAUDE.global.md", "eval/clauses.json", "eval/criteria.json")
+OVERLAYS = "config/skill-overlays/"
+SCENARIOS = "eval/scenarios.json"
+
+
+def _scenarios_at(repo: Path, commit: str) -> dict[str, str]:
+    """Each scenario at `commit`, by id, as canonical JSON."""
+    blob = read_blob(repo, commit, SCENARIOS)
+    try:
+        items = json.loads(blob) if blob is not None else []
+    except json.JSONDecodeError:
+        items = []
+    return {
+        str(sc["id"]): json.dumps(sc, sort_keys=True)
+        for sc in items if isinstance(items, list) and isinstance(sc, dict) and "id" in sc
+    }  # fmt: skip
+
+
+def scenario_selection(
+    repo: Path, name: str, suite: Suite, base: str, head: str
+) -> tuple[list[str] | None, list[str]]:
+    """The scenario ids a full run must cover, or None for all; and changed overlays none loads.
+
+    A scenario is selected when an overlay for a skill in its loadsSkills was added,
+    changed, removed or renamed (a rename shows as both names), or when its own entry in
+    eval/scenarios.json changed or is new.
+    """
+    if name not in gates_at(repo, base):
+        return None, []
+    changed = changed_paths(repo, base, head)
+    hooks = [p for p in changed if p.startswith("config/hooks/") and _matches(p, suite.paths)]
+    if hooks or any(p in SCENARIO_WIDE for p in changed):
+        return None, []
+    skills = {
+        PurePosixPath(p).stem
+        for p in changed
+        if p.startswith(OVERLAYS) and p.endswith(".md")
+    }  # fmt: skip
+    before, after = _scenarios_at(repo, base), _scenarios_at(repo, head)
+    loads = {sid: set(json.loads(text).get("loadsSkills") or []) for sid, text in after.items()}
+    picked = {sid for sid, text in after.items() if before.get(sid) != text}
+    picked |= {sid for sid, used in loads.items() if used & skills}
+    loaded = set().union(*loads.values()) if loads else set()
+    return sorted(picked), sorted(skills - loaded)
 
 
 def build_record(
@@ -440,6 +490,39 @@ def build_record(
 
 def dump_record(record: dict[str, Any]) -> str:
     return json.dumps(record, indent=2, sort_keys=True) + "\n"
+
+
+def _stale_inputs(
+    name: str,
+    check: str,
+    want: dict[str, Any],
+    got: object,
+    why: str,
+    pairs: tuple[tuple[str, str], ...],
+) -> list[str]:
+    """Like _stale, but an input that moved to a declared equivalent path, unchanged, matches.
+
+    Selector entries ("file#part") are compared by key, as before.
+    """
+    have = got if isinstance(got, dict) else {}
+    unpaired = {k for k in want if "#" not in k}
+    stale = []
+    for key in sorted(have):
+        if "#" in key:
+            continue
+        if key in want:
+            unpaired.discard(key)
+            if want[key] != have[key]:
+                stale.append(key)
+            continue
+        moved = [q for q in _equivalents(key, pairs) if q in unpaired and q not in have]
+        if moved and want[moved[0]] == have[key]:
+            unpaired.discard(moved[0])
+        else:
+            stale.append(key)
+    selectors = {k for k in set(want) | set(have) if "#" in k}
+    stale += [k for k in selectors if want.get(k, MISSING) != have.get(k, MISSING)]
+    return [f"{name}: {check}: {key} {why}" for key in sorted(set(stale) | unpaired)]
 
 
 def _stale(name: str, check: str, want: dict[str, Any], got: object, why: str) -> list[str]:
@@ -479,7 +562,13 @@ def case_count(repo: Path, commit: str, suite: Suite) -> tuple[str, int] | None:
 
 
 def _tier_failures(
-    repo: Path, name: str, suite: Suite, head: str, record: dict[str, Any], why_full: str | None
+    repo: Path,
+    name: str,
+    suite: Suite,
+    head: str,
+    base: str,
+    record: dict[str, Any],
+    why_full: str | None,
 ) -> list[str]:
     if record_tier(record) == "smoke":
         if why_full is not None:
@@ -488,6 +577,15 @@ def _tier_failures(
         if ran != want:
             return [f"{name}: tier: the smoke record ran {ran}, not the smoke list {want}"]
         return []
+    ran = (record.get("result") or {}).get("selectedCases")
+    if suite.runner == "scenario" and isinstance(ran, list):
+        picked, _ = scenario_selection(repo, name, suite, base, head)
+        wanted = list(_scenarios_at(repo, head)) if picked is None else picked
+        return [
+            f"{name}: cases: the record didn't run {sid}, which this change selects"
+            for sid in wanted
+            if sid not in ran
+        ]
     count = case_count(repo, head, suite)
     cases = (record.get("result") or {}).get("cases")
     if count is not None and isinstance(cases, list) and len(cases) != count[1]:
@@ -510,13 +608,15 @@ def check_record(
     record = read_record(repo, name, head)
     if record is None:
         return [f"{name}: record: {path} does not parse"]
-    failures = _tier_failures(repo, name, suite, head, record, why_full)
-    failures += _stale(
+    failures = _tier_failures(repo, name, suite, head, base, record, why_full)
+    pairs = equivalences_at(repo, base)
+    failures += _stale_inputs(
         name,
         "inputs",
         suite_inputs(repo, head, suite),
         record.get("inputs"),
         "changed since the record",
+        pairs,
     )
     failures += _stale(
         name,
@@ -527,12 +627,13 @@ def check_record(
     )
     if suite.compare_base:
         recorded_base = record.get("base")
-        failures += _stale(
+        failures += _stale_inputs(
             name,
             "base",
             suite_inputs(repo, base, suite),
             recorded_base.get("inputs") if isinstance(recorded_base, dict) else None,
             "differs from the merge-base",
+            pairs,
         )
     result = record.get("result")
     if not (isinstance(result, dict) and result.get("pass") is True):

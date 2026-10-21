@@ -98,6 +98,7 @@ class Context:
     base_tree: Path | None  # the merge-base's config/, extracted
     tier: str = "full"  # "smoke" runs only the smoke cases, once each (#77)
     smoke: tuple[str | int, ...] = ()  # the suite's smoke cases: ids, or positions
+    cases: tuple[str, ...] | None = None  # a full scenario run's selected ids; None for all
 
 
 def is_smoke(ctx: Context) -> bool:
@@ -495,6 +496,9 @@ def run_scenario(ctx: Context) -> dict[str, Any]:
         trees = {"old": base, "new": ctx.head_tree}
     every = json.loads((ctx.head_tree / "eval" / "scenarios.json").read_text())
     scenarios = smoke_pick(ctx, every, key=lambda sc: str(sc["id"]))
+    if not smoke and ctx.cases is not None:
+        # Only the scenarios the change can affect (#77's cost cuts).
+        scenarios = [sc for sc in scenarios if str(sc["id"]) in ctx.cases]
     ctx.out.mkdir(parents=True, exist_ok=True)
     dirs: list[Path] = []
     try:
@@ -517,7 +521,9 @@ def run_scenario(ctx: Context) -> dict[str, Any]:
     finally:
         for d in dirs:
             remove_config_dir(d)
-    return summarize_smoke(results) if smoke else summarize(results, scenarios)
+    if smoke:
+        return summarize_smoke(results)
+    return {**summarize(results, scenarios), "selectedCases": [str(sc["id"]) for sc in scenarios]}
 
 
 def find_rubric(live: Path) -> Path:

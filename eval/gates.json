@@ -55,7 +55,8 @@
       "harness": [
         "eval/hook_harness.py",
         "eval/run_eval.py"
-      ]
+      ],
+      "versionGated": true
     },
     "hook-merge": {
       "runner": "hook-merge",
@@ -72,7 +73,8 @@
       "harness": [
         "eval/hook_harness.py",
         "eval/run_eval.py"
-      ]
+      ],
+      "versionGated": true
     },
     "hook-session-start": {
       "runner": "hook-session-start",
@@ -94,7 +96,8 @@
         "eval/session_harness.py",
         "eval/hook_harness.py",
         "eval/run_eval.py"
-      ]
+      ],
+      "versionGated": true
     },
     "lifecycle-trigger": {
       "runner": "script",

@@ -54,6 +54,81 @@ def test_a_declared_move_runs_smoke_and_a_content_change_runs_full(world):
     assert record(world, "scenario")["tier"] == "full"
 
 
+def test_a_suite_whose_record_still_verifies_is_skipped(world, capsys):
+    commit(world["repo"], {MERGE: "print(3)\n"})
+    assert run([], fake_runners()) == 0
+    commit(world["repo"], {}, "records")
+    capsys.readouterr()
+    seen = []
+    assert run([], fake_runners(seen=seen)) == 0
+    assert seen == []
+    assert "hook-merge: record still valid, nothing to run" in capsys.readouterr().out
+    assert run(["--suite", "hook-merge", "--no-record"], fake_runners(seen=seen)) == 0
+    assert [k for k, _ in seen] == ["hook-merge"]
+
+
+OVERLAY = "config/skill-overlays/engineering-skills:senior-qa.md"
+
+
+def test_an_overlay_no_scenario_loads_runs_no_scenario_and_says_so(world, capsys):
+    commit(world["repo"], {OVERLAY: "changed\n"})
+    seen = []
+    assert run(["--no-record"], fake_runners(seen=seen)) == 0
+    assert "scenario" not in [k for k, _ in seen]
+    out = capsys.readouterr().out
+    assert "no scenario loads engineering-skills:senior-qa" in out
+    assert "### scenario: pass" in out
+
+
+def test_the_scenario_runner_gets_the_scenarios_the_change_selects(world):
+    one = [{"id": "S-1", "loadsSkills": ["engineering-skills:senior-qa"]},
+           {"id": "S-2", "loadsSkills": []}]  # fmt: skip
+    base = commit(world["repo"], {"eval/scenarios.json": json.dumps(one)}, "scenarios")
+    git(world["repo"], "update-ref", "refs/remotes/origin/main", base)
+    commit(world["repo"], {OVERLAY: "changed\n"})
+    seen = []
+    assert run(["--no-record"], fake_runners(seen=seen)) == 0
+    [(_, ctx)] = [(k, c) for k, c in seen if k == "scenario"]
+    assert ctx.cases == ("S-1",)
+    seen.clear()
+    assert run(["--no-record", "--tier", "full"], fake_runners(seen=seen)) == 0
+    assert [c.cases for k, c in seen if k == "scenario"] == [None]
+
+
+def version_gated_world(world, recorded):
+    gates = json.loads(json.dumps(GATES))
+    gates["suites"]["hook-merge"]["versionGated"] = True
+    base = commit(world["repo"], {"eval/gates.json": json.dumps(gates)}, "gated")
+    git(world["repo"], "update-ref", "refs/remotes/origin/main", base)
+    assert run(["--suite", "hook-merge"], fake_runners(), version=lambda: recorded) == 0
+    commit(world["repo"], {}, "record")
+
+
+def test_a_version_gated_suite_runs_when_claude_code_changed(world, capsys):
+    version_gated_world(world, "2.1.200 (Claude Code)")
+    capsys.readouterr()
+    seen = []
+    assert run([], fake_runners(seen=seen)) == 0
+    assert [(k, c.tier) for k, c in seen] == [("hook-merge", "full")]
+    assert ("hook-merge: Claude Code is 2.1.299 (Claude Code), its record ran on "
+            "2.1.200 (Claude Code); running it") in capsys.readouterr().out  # fmt: skip
+
+
+def test_a_version_gated_suite_on_the_same_version_does_not_run(world, capsys):
+    version_gated_world(world, "2.1.299 (Claude Code)")
+    seen = []
+    assert run([], fake_runners(seen=seen)) == 0
+    assert seen == []
+
+
+def test_parse_gates_reads_version_gated():
+    spec = {"runner": "hook-merge", "paths": [], "harness": [], "versionGated": True}
+    assert er.parse_gates(json.dumps({"suites": {"h": spec}}))["h"].version_gated is True
+    spec["versionGated"] = "yes"
+    with pytest.raises(er.GatesError, match="versionGated"):
+        er.parse_gates(json.dumps({"suites": {"h": spec}}))
+
+
 def test_tier_full_runs_every_suite_in_the_full_tier(world):
     tiered_base(world)
     move(world, MERGE)

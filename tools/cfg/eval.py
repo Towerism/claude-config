@@ -290,13 +290,39 @@ def main(
         unknown = [n for n in names if n not in suites]
         if unknown:
             raise er.GatesError(f"unknown suite: {', '.join(unknown)}")
+        installed = version()
+        # A version-gated suite, such as a hook suite, also runs when Claude Code changed
+        # since its record, which CI can't see (#77's cost cuts).
+        newer = []
+        for n, s in sorted(er.gates_at(repo, head).items()):
+            ran = (er.read_record(repo, n, head) or {}).get("claudeVersion")
+            if s.version_gated and ran is not None and ran != installed and not args.suite:
+                print(f"{n}: Claude Code is {installed}, its record ran on {ran}; running it")
+                newer.append(n)
+        names = sorted(set(names) | set(newer))
         if not names:
             print("no eval suites required")
             return 0
-        tiers = {
-            n: "full" if args.tier == "full" else er.needed_tier(repo, n, base, head)[0]
+        needed = {
+            n: ("full", "Claude Code changed")
+            if n in newer
+            else er.needed_tier(repo, n, base, head)
             for n in names
         }
+        if not args.suite and args.tier != "full":
+            # A record that still verifies needs no run, such as one whose inputs only
+            # moved to equivalent paths (#77's cost cuts).
+            valid = [
+                n for n in names
+                if n not in newer
+                and not er.check_record(repo, n, suites[n], head, base, needed[n][1])
+            ]  # fmt: skip
+            for n in valid:
+                print(f"{n}: record still valid, nothing to run")
+            names = [n for n in names if n not in valid]
+            if not names:
+                return 0
+        tiers = {n: "full" if args.tier == "full" else needed[n][0] for n in names}
         smoke = [n for n in names if tiers[n] == "smoke"]
         bad = [p for n in smoke for p in smoke_problems(repo, head, n, suites[n])]
         if bad:
@@ -313,7 +339,7 @@ def main(
 
     meta = {
         "ranAt": clock(),
-        "claudeVersion": version(),
+        "claudeVersion": installed,
         "models": {"arm": args.model or "default", "grader": grader_model(repo, head)},
     }
     run_eval.set_call_limit(args.workers)
@@ -326,8 +352,20 @@ def main(
         extract(repo, head, trees / "head", ["config", "eval"])
         has_base = extract(repo, base, trees / "base", ["config"])
 
+        # The full scenario run covers only the scenarios the change can affect (#77).
+        selected: dict[str, tuple[str, ...] | None] = {}
+        notes: dict[str, str] = {}
+        for n in names:
+            if suites[n].runner == "scenario" and tiers[n] == "full" and args.tier != "full":
+                picked, unloaded = er.scenario_selection(repo, n, suites[n], base, head)
+                selected[n] = None if picked is None else tuple(picked)
+                if unloaded:
+                    notes[n] = f"- no scenario loads {', '.join(unloaded)}\n"
+
         def one(name: str) -> tuple[dict[str, Any], float, bool]:
             suite = suites[name]
+            if selected.get(name) == ():
+                return {"pass": True, "cases": [], "selectedCases": []}, 0.0, False
             ctx = run_eval.Context(
                 live=live,
                 root=root,
@@ -339,6 +377,7 @@ def main(
                 base_tree=trees / "base" if has_base else None,
                 tier=tiers[name],
                 smoke=suite.smoke,
+                cases=selected.get(name),
             )
             begun = timer()
             result = runners[suite.runner](ctx, suite)
@@ -369,7 +408,8 @@ def main(
                         path = repo / er.RECORDS_DIR / f"{name}.json"
                         path.parent.mkdir(parents=True, exist_ok=True)
                         path.write_text(er.dump_record(record))
-                    sections[name] = summary(name, result, tier_label(tiers[name], seconds))
+                    label = tier_label(tiers[name], seconds)
+                    sections[name] = summary(name, result, label) + notes.get(name, "")
                     if not result.get("pass"):
                         code = max(code, 1)
             except BaseException:

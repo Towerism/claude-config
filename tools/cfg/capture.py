@@ -95,6 +95,19 @@ def drift_changes(rel: Path, source: str) -> list[Change]:
     return out
 
 
+def moved_drift_changes(rel: Path, old_source: str, source: str) -> list[Change]:
+    """The release's dirty files under `old_source`, written under `source` instead.
+
+    A branch can move a component, as #75 moved the vendored skills to their own
+    tree. The live link then still points at the old place, and the edits made
+    through it belong at the new one.
+    """
+    return [
+        Change(source + c.path[len(old_source) :], data=c.data, link=c.link)
+        for c in drift_changes(rel, old_source)
+    ]
+
+
 def mirror_changes(live: Path, source: Path, rel_source: str) -> list[Change]:
     """What makes `source` in the repo equal the plain `live` file or directory."""
     if live.is_dir() != source.is_dir():
@@ -210,13 +223,23 @@ def capture(
         )
     wanted = set(paths) or known
     rel = release.releases_dir(data) / st.release if st else None
+    deployed = {old.live: old for old in st.paths} if st else {}
     changes: list[Change] = []
     for p in ds.paths:
         if p.live not in wanted:
             continue
         kind = link.classify(home / p.live, p.target, into / p.source)
+        old = deployed.get(p.live)
         if kind == "linked" and rel is not None and rel.is_dir():
             changes += drift_changes(rel, p.source)
+        elif (
+            kind == "foreign-link"
+            and old is not None
+            and os.readlink(home / p.live) == old.target
+            and rel is not None
+            and rel.is_dir()
+        ):
+            changes += moved_drift_changes(rel, old.source, p.source)
         elif kind == "differs":
             changes += mirror_changes(home / p.live, into / p.source, p.source)
     if "settings.json" in wanted:

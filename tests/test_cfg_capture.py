@@ -320,6 +320,36 @@ def test_capture_of_a_newer_branch_still_finds_the_release_drift(
     assert (branch / "config" / "skill-overlays" / "alpha.md").read_text() == "live edit\n"
 
 
+def test_drift_in_a_skill_the_branch_moved_to_another_tree_lands_at_its_new_path(
+    repo: Path, deployed: Path, data: Path, branch: Path
+) -> None:
+    (branch / "config" / "vendored-skills").mkdir()
+    git(branch, "mv", "config/skills/beta", "config/vendored-skills/beta")
+    git(branch, "commit", "-q", "-m", "vendor beta")
+    current = release.releases_dir(data) / (release.current_release(data) or "")
+    (current / "config" / "skills" / "beta" / "SKILL.md").write_text("live edit\n")
+    result = capture.capture(repo, deployed, data, ["skills/beta"], branch)
+    assert result.written == ["config/vendored-skills/beta/SKILL.md"]
+    assert (branch / "config" / "vendored-skills" / "beta" / "SKILL.md").read_text() == (
+        "live edit\n"
+    )
+    assert not (branch / "config" / "skills" / "beta").exists()
+
+
+def test_a_foreign_link_the_last_deploy_did_not_make_still_has_nothing_to_capture(
+    repo: Path, deployed: Path, data: Path, branch: Path
+) -> None:
+    (branch / "config" / "vendored-skills").mkdir()
+    git(branch, "mv", "config/skills/beta", "config/vendored-skills/beta")
+    git(branch, "commit", "-q", "-m", "vendor beta")
+    current = release.releases_dir(data) / (release.current_release(data) or "")
+    (current / "config" / "skills" / "beta" / "SKILL.md").write_text("live edit\n")
+    (deployed / "skills" / "beta").unlink()
+    os.symlink("/elsewhere", deployed / "skills" / "beta")
+    result = capture.capture(repo, deployed, data, ["skills/beta"], branch)
+    assert result.written == [] and result.deleted == []
+
+
 def test_unchanged_files_in_a_plain_directory_are_not_rewritten(
     repo: Path, home: Path, data: Path, branch: Path
 ) -> None:

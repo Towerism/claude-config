@@ -230,6 +230,27 @@ The first deploy compares every managed path and owned setting with the repo, an
 
 The flow is the same, but nothing stops: every path is `missing` and the settings are `missing-live`. Install the plugins first (see [Setting up a second machine](#setting-up-a-second-machine)). Before switching, the deploy runs each hook on sample input, and without the plugins that test fails with a traceback from `skill_overlay.py` and changes nothing (exit 2).
 
+## Running the evals before a PR
+
+Run the model evals on this machine, on a clean tree, after the last commit that touches a suite's inputs or harness. A later commit to one of those files makes the records stale.
+
+```sh
+python3 -I tools/cfg/eval_records.py verify
+TMPDIR=/tmp python3 -I tools/cfg/eval.py
+```
+
+`verify` lists each suite the branch needs, as `<suite>: needs smoke, found ...` or `<suite>: needs full, found ...`. `eval.py` then runs those suites, each in the tier it needs. The smoke tier runs a few named cases once each, and is used only when nothing that could move the suite's result changed, such as a skill moved between `config/skills/` and `config/vendored-skills/` with no change to its files. Any other change gets the full tier. All suites run at once, and `--workers N` sets how many `claude` calls may be open at the same time (default 6).
+
+The output ends with each suite's verdict, tier and time, and the run's total:
+
+```text
+### hook-merge: pass (smoke, 21.4 s)
+...
+elapsed: 48.2 s (budget 60 s)
+```
+
+The budget is 60 s when every suite ran smoke and 180 s otherwise. A total over it adds `over budget`, which doesn't fail the run; report it in the PR. To run every suite in the full tier anyway, add `--tier full`. Commit the records in `eval/records/` and paste the printed summary into the PR.
+
 ## Drift
 
 Drift is any difference between the live config and the deployed release. `status` reports it and `diff` shows it.

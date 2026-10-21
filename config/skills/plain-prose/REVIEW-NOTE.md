@@ -121,3 +121,9 @@ The issue asked whether the evals read the overlay files by name, which would ma
 **The record of past reviews keeps the old name.** The earlier sections of this note say they ran with `engineering-skills:adversarial-reviewer`. That was the skill's name when they ran, so they stay as written. The Reviewers line now says so too.
 
 **The Reviewers line also changed from "one pass" to "one pass per change".** That matches what this note records (one review per change) and the wording the two lifecycle specs use. It changes no requirement.
+
+## Amendment for #77 (2026-10-20)
+
+FR-24 changes from three runs per trigger query to two, with a third run only when the two disagree. A query still needs two loads to count as triggered, so a query whose two runs agree gets the same verdict as before; only a split costs the third run. `writing-docs-trigger` and both lifecycle trigger suites already work this way. The change comes from [#77](https://github.com/Towerism/claude-config/issues/77), whose spec sets a 3-minute limit for the full eval set; the owner named "lower from 3 to 2" runs per case as an accepted way to get there.
+
+The change was reviewed in #77's single adversarial pass on its spec, and the owner approved it with that spec on 2026-10-20 ("approve"). That pass found nothing about FR-24 itself; its findings and their handling are in the review note on #77.

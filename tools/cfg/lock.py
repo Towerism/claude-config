@@ -17,8 +17,9 @@ into skills/synced/: each account syncs its own, so two machines on
 different accounts write the same lock.
 
 --check builds the lock in memory and lists how the committed one differs.
-It also compares each vendored file, as listed in tools/vendor/*/VENDORED.json
-and config/skills/*/VENDORED.json, with the upstream copy it came from. A file
+It also compares each vendored file, as listed in tools/vendor/*/VENDORED.json,
+config/skills/*/VENDORED.json and config/vendored-skills/*/VENDORED.json, with
+the upstream copy it came from. A file
 taken from an installed plugin that has changed fails the check (`vendored`).
 A file taken from a marketplace clone is only reported (`upstream`), because
 ADR-0010 treats that change as a prompt to review, not a failure.
@@ -183,7 +184,9 @@ def lock_differences(committed: Lock, current: Lock) -> list[str]:
 def vendored_records(repo_root: Path) -> list[Path]:
     """Every VENDORED.json the repo has: the tools' vendored files and each skill's."""
     found = sorted(repo_root.glob("tools/vendor/*/VENDORED.json"))
-    return found + sorted(repo_root.glob("config/skills/*/VENDORED.json"))
+    for tree in check_config.SKILL_TREES:
+        found += sorted(repo_root.glob(f"{tree}/*/VENDORED.json"))
+    return found
 
 
 def _entries(record_path: Path) -> list[dict[str, str]]:

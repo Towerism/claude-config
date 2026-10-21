@@ -406,7 +406,7 @@ def test_a_smoke_overlay_check_skips_the_subagent_and_times_five_runs(ctx):
     ctx.runner, ctx.tier = OverlayFake(), "smoke"
     result = hh.run_overlay(ctx, timer=lambda hook, home, runs: timed.append(runs) or [30.0] * runs)
     assert [c["id"] for c in result["cases"]] == ["main", "control", "p95"]
-    assert timed == [hh.SMOKE_TIMING_RUNS] and result["pass"] is True
+    assert timed == [5] and result["pass"] is True
 
 
 def test_a_smoke_overlay_check_does_not_rerun_a_failure(ctx):

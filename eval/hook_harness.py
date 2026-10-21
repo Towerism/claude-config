@@ -51,9 +51,7 @@ SKILL = "senior-qa"
 CANARY = "AC7-CANARY-90210"
 OVERLAY_ENTRIES = ["PostToolUse", "UserPromptExpansion"]
 MERGE_ENTRIES = ["PreToolUse"]
-P95_LIMIT_MS = 500.0
-TIMING_RUNS = 20
-SMOKE_TIMING_RUNS = 5
+# The timing runs and the 95th-percentile limit live in eval/criteria.json under "hooks".
 OVERLAY_PROMPTS = {
     "main": f"Load the {SKILL} skill, then quote any skill overlay you received.",
     "subagent": (
@@ -170,7 +168,12 @@ def time_hook(hook: Path, home: Path, runs: int) -> list[float]:
 
 
 def timing_runs(ctx: run_eval.Context) -> int:
-    return SMOKE_TIMING_RUNS if run_eval.is_smoke(ctx) else TIMING_RUNS
+    bars = run_eval.eval_criteria(ctx)["hooks"]
+    return int(bars["smokeTimingRuns"] if run_eval.is_smoke(ctx) else bars["timingRuns"])
+
+
+def p95_limit(ctx: run_eval.Context) -> float:
+    return float(run_eval.eval_criteria(ctx)["hooks"]["p95LimitMs"])
 
 
 def _attempts(ctx: run_eval.Context, check: Callable[[int], bool]) -> tuple[bool, int]:
@@ -243,7 +246,7 @@ def run_overlay(ctx: run_eval.Context, timer: Timer = time_hook) -> dict[str, An
         timings = timer(home / "hooks" / "skill_overlay.py", home, timing_runs(ctx))
     (ctx.out / "timings.json").write_text(json.dumps(timings))
     slowest = round(p95(timings), 1)
-    cases.append({"id": "p95", "result": "pass" if slowest < P95_LIMIT_MS else "fail"})
+    cases.append({"id": "p95", "result": "pass" if slowest < p95_limit(ctx) else "fail"})
     return {
         "pass": all(c["result"] == "pass" for c in cases),
         "rerunsUsed": reruns,

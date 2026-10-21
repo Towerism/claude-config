@@ -59,19 +59,15 @@ if __package__ in (None, ""):  # pragma: no cover  (only when run as a script)
 
 from eval import hook_harness, run_eval  # noqa: E402
 
-# Each query runs twice, and a third time only when the two disagree, so a query
-# needs two loads either way (#77; it ran three times before). A smoke run asks each
-# smoke query once, and that run decides.
-FIRST_RUNS = 2
-TRIGGER_NEEDED = 2
-# Each class gets its own rule: recall over the queries that should load the skill, and
-# no near miss at all. Overall accuracy is reported but never decides.
-# The skills' specs set 85%. With the other repo skills listed (#62) both trigger suites
-# fell below it, so the owner lowered the gate to 70% on 2026-10-20 until #67 raises
-# their recall and puts it back.
-TRIGGER_RECALL = 0.70
+# The trigger bars live in eval/criteria.json under "trigger" (#77). Each query runs
+# firstRuns times, and once more only when those disagree, and needs `needed` loads; it
+# ran three times before #77. A smoke run asks each smoke query once, and that run
+# decides. Each class gets its own rule: recall over the queries that should load the
+# skill, and no near miss at all; overall accuracy is reported but never decides. The
+# skills' specs set 85% recall. With the other repo skills listed (#62) both trigger
+# suites fell below it, so the owner lowered the gate to 70% on 2026-10-20 until #67
+# raises their recall and puts it back.
 TRIGGER_TOOLS = "Skill,Read,Agent"
-TRIGGER_MAX_TURNS = "4"
 WRITE_TOOLS = "Skill,Read,Bash"
 DIAGNOSTIC_CHECKER = Path("config/skills/plain-prose/scripts/prose_check.py")
 
@@ -230,7 +226,8 @@ def _cases(ctx: run_eval.Context, suite: Any) -> tuple[str, Path, list[Case]]:
 
 def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     skill, skill_dir, cases = _cases(ctx, suite)
-    args = ["--max-turns", TRIGGER_MAX_TURNS, "--tools", TRIGGER_TOOLS,
+    bars = run_eval.eval_criteria(ctx)["trigger"]
+    args = ["--max-turns", str(bars["maxTurns"]), "--tools", TRIGGER_TOOLS,
             "--allowedTools", TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
     with sandbox(ctx) as box, trigger_config(ctx, "trigger") as cfg:
 
@@ -249,14 +246,14 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
 
         smoke = run_eval.is_smoke(ctx)
         picked = run_eval.smoke_pick(ctx, list(range(len(cases))))
-        first = 1 if smoke else FIRST_RUNS
+        first = 1 if smoke else int(bars["firstRuns"])
         outcomes = run_all(ctx, one, [(i, a) for i in picked for a in range(first)])
         if not smoke:
             loads = {i: {o == "triggered" for j, o in outcomes if j == i} for i in picked}
             split = [i for i in picked if len(loads[i]) > 1]
             outcomes += run_all(ctx, one, [(i, first) for i in split])
         outcomes.sort()
-    needed = 1 if smoke else TRIGGER_NEEDED
+    needed = 1 if smoke else int(bars["needed"])
     results = []
     for index in picked:
         case = cases[index]
@@ -282,7 +279,7 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     near_misses_clean = all(r["result"] == "pass" for r in results if not r["shouldTrigger"])
     delegated_ok = all(r["result"] == "pass" for r in results if r["delegated"])
     right = sum(r["result"] == "pass" for r in results)
-    full_pass = recall >= TRIGGER_RECALL and near_misses_clean and delegated_ok
+    full_pass = recall >= float(bars["recall"]) and near_misses_clean and delegated_ok
     return {
         "pass": right == len(results) if smoke else full_pass,
         "recall": recall,
@@ -398,7 +395,7 @@ class Arms:
 def grade(ctx: run_eval.Context, arms: Arms, case: Case, text: str) -> dict[str, Any]:
     """Reader then judge on `text`; an `error` key says why it couldn't be graded."""
     n = len(case["questions"])
-    no_tools = ["--tools", ""]
+    no_tools = ["--tools", "", *run_eval.grader_args(ctx)]
     evs = stream_run(ctx, arms.reader_cfg, no_tools, reader_prompt(case, text), arms.box,
                      arms.skill, installed=False)  # fmt: skip
     reader = parse_reader(result_text(evs or []), n)

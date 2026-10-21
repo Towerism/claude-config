@@ -1,0 +1,25 @@
+{
+  "graderModel": "haiku",
+  "rubric": {
+    "pass": 80
+  },
+  "trigger": {
+    "recall": 0.7,
+    "firstRuns": 2,
+    "needed": 2,
+    "maxTurns": 4
+  },
+  "docTrigger": {
+    "firstRuns": 2,
+    "ordinaryTurns": 3,
+    "delegatedTurns": 4
+  },
+  "docReader": {
+    "rightShare": 0.9
+  },
+  "hooks": {
+    "timingRuns": 20,
+    "smokeTimingRuns": 5,
+    "p95LimitMs": 500
+  }
+}

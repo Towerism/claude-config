@@ -371,6 +371,26 @@ def test_a_smoke_cold_reader_run_covers_only_the_smoke_cases_and_never_reruns(ma
     assert result["pass"] is False and result["rerunsUsed"] == 0
 
 
+def test_the_cold_reader_and_judge_use_the_criteria_model_and_the_writers_do_not(make_ctx):
+    _, fake, _ = run_reader(make_ctx, [WRITE], {("w", "skill"): [GOOD], ("w", "base"): [BASE]})
+    grading = ("You are a reader", "You are checking")
+    graders = [c for c in fake.calls if c["stdin"].startswith(grading)]
+    writers = [c for c in fake.calls if not c["stdin"].startswith(grading)]
+    assert graders and all(c["cmd"][c["cmd"].index("--model") + 1] == "haiku" for c in graders)
+    assert writers and all("--model" not in c["cmd"] for c in writers)
+
+
+def test_the_trigger_recall_bar_comes_from_the_tree_under_test(make_ctx):
+    cases, plan = positives(15, misses=2)
+    fake = TriggerFake(plan)
+    ctx = make_ctx(fake, trigger=cases)
+    bars = json.loads((REPO_ROOT / "eval" / "criteria.json").read_text())
+    bars["trigger"]["recall"] = 1.0
+    (ctx.head_tree / "eval").mkdir(exist_ok=True)
+    (ctx.head_tree / "eval" / "criteria.json").write_text(json.dumps(bars))
+    assert se.run_trigger(ctx, suite("trigger"))["pass"] is False
+
+
 def test_a_rewrite_case_uses_the_draft_as_its_baseline(make_ctx):
     plan = {("r", "skill"): [GOOD], ("r", "base"): [BASE]}
     result, fake, _ = run_reader(make_ctx, [REWRITE], plan)

@@ -231,7 +231,7 @@ def run_session(ctx: run_eval.Context, timer: Timer = time_hook) -> dict[str, An
         remove_layout(layout)
     (ctx.out / "timings.json").write_text(json.dumps(timings))
     slowest = round(hook_harness.p95(timings), 1)
-    limit = hook_harness.P95_LIMIT_MS
+    limit = hook_harness.p95_limit(ctx)
     cases.append({"id": "p95", "result": "pass" if slowest < limit else "fail"})
     return {
         "pass": all(c["result"] == "pass" for c in cases),

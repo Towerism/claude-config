@@ -63,10 +63,8 @@ FENCE_LINE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 # trigger suite doesn't grade. Ordinary queries get three, because with the other
 # repo skills listed (#62) a run may load a competitor such as senior-architect
 # first. A delegated query needs the Agent call, the subagent's turn and its Skill call.
-ORDINARY_TURNS = "3"
-DELEGATED_TURNS = "4"
-FIRST_RUNS = 2
-RIGHT_SHARE = 0.9
+# These turn caps, the run count and the right-answer share live in eval/criteria.json,
+# under "docTrigger" and "docReader" (#77).
 
 Case = dict[str, Any]
 
@@ -123,7 +121,8 @@ def trigger_run(
     For a delegated case only a subagent's load counts, so a run that loads the skill at
     top level and then hits the limit is turn-limited too.
     """
-    turns = DELEGATED_TURNS if case.get("delegated") else ORDINARY_TURNS
+    bars = run_eval.eval_criteria(ctx)["docTrigger"]
+    turns = str(bars["delegatedTurns"] if case.get("delegated") else bars["ordinaryTurns"])
     args = ["--max-turns", turns, "--tools", se.TRIGGER_TOOLS,
             "--allowedTools", se.TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
     evs = checked_run(ctx, cfg, args, case["query"], box, everyone, [])
@@ -151,7 +150,8 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             return index, trigger_run(ctx, cfg, box, cases[index], skill, everyone)
 
         # A smoke run asks each smoke query once, and that run decides (#77).
-        first = [i for i in picked for _ in range(1 if smoke else FIRST_RUNS)]
+        first_runs = 1 if smoke else int(run_eval.eval_criteria(ctx)["docTrigger"]["firstRuns"])
+        first = [i for i in picked for _ in range(first_runs)]
         for index, run in se.run_all(ctx, one, first):
             runs[index].append(run)
         split = [] if smoke else [i for i, r in runs.items() if r[0][0] != r[1][0]]
@@ -185,7 +185,8 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     return {
         "pass": all(r["result"] == "pass" for r in results)
         if smoke
-        else recall >= se.TRIGGER_RECALL and false_triggers == 0,
+        else recall >= float(run_eval.eval_criteria(ctx)["trigger"]["recall"])
+        and false_triggers == 0,
         "recall": recall,
         "falseTriggers": false_triggers,
         "delegatedRate": round(sum(r["triggered"] for r in delegated) / delegated_runs, 3)
@@ -290,7 +291,8 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             return unwrap(se.result_text(evs or [])), evs
 
         def graded(case: Case, text: str) -> dict[str, Any]:
-            evs = checked_run(ctx, reader_cfg, ["--tools", ""], reader_prompt(case, text), box,
+            reader_args = ["--tools", "", *run_eval.grader_args(ctx)]
+            evs = checked_run(ctx, reader_cfg, reader_args, reader_prompt(case, text), box,
                               [], everyone)  # fmt: skip
             answers = parse_answers(se.result_text(evs or []), len(case["questions"]))
             return {
@@ -327,8 +329,9 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             )
     answers = [a for r in results for a in r["skill"]["right"]]
     right_share = round(sum(answers) / len(answers), 3) if answers else 0.0
-    if right_share < RIGHT_SHARE:
-        reasons.append(f"right answers {right_share:.0%} of all questions, under {RIGHT_SHARE:.0%}")
+    share = float(run_eval.eval_criteria(ctx)["docReader"]["rightShare"])
+    if right_share < share:
+        reasons.append(f"right answers {right_share:.0%} of all questions, under {share:.0%}")
     lint = {arm: sum(r[arm]["lint"] for r in results) for arm in ("skill", "baseline")}
     if lint["skill"] > lint["baseline"]:
         reasons.append(

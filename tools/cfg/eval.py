@@ -211,7 +211,11 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--suite", help="comma-separated suites to run instead of the required ones")
     ap.add_argument("--base", default="origin/main", help="branch to compare against")
-    ap.add_argument("--model", help="model for the scenario arms (the grader keeps the default)")
+    ap.add_argument(
+        "--model",
+        help="model for the arms under test; graders, judges and readers use the model "
+        "eval/criteria.json names",
+    )
     ap.add_argument(
         "--workers",
         type=_positive,
@@ -245,6 +249,17 @@ def smoke_problems(repo: Path, head: str, name: str, suite: er.Suite) -> list[st
         for entry in suite.smoke
         if (entry >= len(cases) if isinstance(entry, int) else entry not in ids)
     ]
+
+
+def grader_model(repo: Path, head: str) -> str:
+    """The grader model HEAD's eval/criteria.json names, or the harness copy's."""
+    blob = er.read_blob(repo, head, run_eval.CRITERIA)
+    text = (
+        blob.decode()
+        if blob is not None
+        else (Path(run_eval.__file__).parent / "criteria.json").read_text()
+    )
+    return str(json.loads(text)["graderModel"])
 
 
 def tier_label(tier: str, seconds: float) -> str:
@@ -299,7 +314,7 @@ def main(
     meta = {
         "ranAt": clock(),
         "claudeVersion": version(),
-        "models": {"arm": args.model or "default", "grader": "default"},
+        "models": {"arm": args.model or "default", "grader": grader_model(repo, head)},
     }
     run_eval.set_call_limit(args.workers)
     # Cleared here only: after an interrupt it stays set, so no queued call starts.

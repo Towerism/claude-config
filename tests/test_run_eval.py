@@ -406,7 +406,7 @@ def test_a_timeout_is_an_answer_marked_as_an_error(env):
     assert leftovers(env["root"]) == []
 
 
-def test_the_model_flag_reaches_the_arms_but_not_the_grader(env):
+def test_the_model_flag_reaches_the_arms_and_the_grader_keeps_the_criteria_model(env):
     fake = FakeClaude()
     ctx = context(env, fake, [scenario("S-01")])
     ctx.model = "sonnet"
@@ -414,7 +414,7 @@ def test_the_model_flag_reaches_the_arms_but_not_the_grader(env):
     arm_calls = [c for c in fake.calls if c["stdin"].endswith("prompt S-01")]
     grader_calls = [c for c in fake.calls if c["stdin"].startswith("You are grading")]
     assert all(c["cmd"][-2:] == ["--model", "sonnet"] for c in arm_calls)
-    assert all("--model" not in c["cmd"] for c in grader_calls)
+    assert all(c["cmd"][-2:] == ["--model", "haiku"] for c in grader_calls)
 
 
 def test_the_default_runner_returns_the_exit_code_and_output(tmp_path):

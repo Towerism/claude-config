@@ -131,7 +131,7 @@ def test_required_suites_run_and_their_records_verify(world, capsys):
     record = json.loads((world["repo"] / "eval" / "records" / "hook-merge.json").read_text())
     assert record["claudeVersion"] == "2.1.299 (Claude Code)"
     assert record["ranAt"] == "2026-10-16T12:00:00Z"
-    assert record["models"] == {"arm": "default", "grader": "default"}
+    assert record["models"] == {"arm": "default", "grader": "haiku"}
     assert record["result"] == PASS
     commit(world["repo"], {}, "records")
     assert er.verify(world["repo"], "origin/main")[1] == []

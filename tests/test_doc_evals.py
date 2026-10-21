@@ -481,6 +481,14 @@ def test_the_skill_in_the_baseline_stops_the_suite(make_ctx):
         run_reader(make_ctx, [WRITE], FINE, baseline_has_skill=True)
 
 
+def test_the_doc_reader_uses_the_criteria_model_and_the_writers_do_not(make_ctx):
+    _, fake, _ = run_reader(make_ctx, [WRITE], FINE)
+    readers = [c for c in fake.calls if role(c) == "reader"]
+    writers = [c for c in fake.calls if role(c) != "reader"]
+    assert readers and all(c["cmd"][c["cmd"].index("--model") + 1] == "haiku" for c in readers)
+    assert writers and all("--model" not in c["cmd"] for c in writers)
+
+
 # The smoke tier (#77)
 
 

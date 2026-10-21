@@ -45,7 +45,9 @@ CANARY = {"old": "Eval arm marker: CANARY-OLD-5150", "new": "Eval arm marker: CA
 GRADER_MD = "# Grader\nFollow the grading instructions exactly.\n"
 RUBRIC_PLUGIN = "claude-md-management"
 RUBRIC_FILE = Path("skills/claude-md-improver/references/quality-criteria.md")
-RUBRIC_PASS = 80
+# Pass bars, run counts and the grader model (#77). They live in an input, so changing
+# one needs the full tier; a tree without the file falls back to this harness's copy.
+CRITERIA = "eval/criteria.json"
 REASON_LIMIT = 200
 CLAUDE_TIMEOUT = 400
 REMOVED_PLUGINS = (
@@ -54,6 +56,20 @@ REMOVED_PLUGINS = (
 )
 # Repo skills, by tree: the skills maintained here, then the upstream copies (#75).
 SKILL_TREES = ("config/skills", "config/vendored-skills")
+
+
+def eval_criteria(ctx: Context) -> dict[str, Any]:
+    """The tree under test's eval/criteria.json, or this harness's copy when it has none."""
+    path = ctx.head_tree / CRITERIA
+    if not path.is_file():
+        path = Path(__file__).resolve().parent / "criteria.json"
+    data: dict[str, Any] = json.loads(path.read_text())
+    return data
+
+
+def grader_args(ctx: Context) -> list[str]:
+    """The model flag for calls that grade, read or judge, not the arms under test."""
+    return ["--model", str(eval_criteria(ctx)["graderModel"])]
 
 
 def tree_skills(tree: Path) -> list[Path]:
@@ -393,7 +409,7 @@ def grade(ctx: Context, grader: Path, sc: dict[str, Any], answer: str, arm: str)
         f"SCENARIO:\n{sc['prompt']}\n\nANSWER:\n{answer}\n\n"
         f"CRITERIA:\n{json.dumps(crit, indent=1)}\n"
     )
-    return score_grade(claude(ctx, grader, prompt), crit)
+    return score_grade(claude(ctx, grader, prompt, model=grader_args(ctx)[1]), crit)
 
 
 def run_case(
@@ -533,6 +549,7 @@ def parse_rubric(raw: str) -> int | None:
 def run_rubric(ctx: Context) -> dict[str, Any]:
     """Score HEAD's CLAUDE.md; at least 80 passes, with one re-run allowed (v2 spec AC-4)."""
     rubric = find_rubric(ctx.live).read_text()
+    bar = int(eval_criteria(ctx)["rubric"]["pass"])
     md = (ctx.head_tree / "config" / "CLAUDE.global.md").read_text()
     prompt = (
         "Score this global CLAUDE.md (a user-wide file, not a project file) against the rubric "
@@ -550,13 +567,13 @@ def run_rubric(ctx: Context) -> dict[str, Any]:
             reply = claude(ctx, grader, prompt)
             replies.append(reply)
             scores.append(parse_rubric(reply))
-            if (scores[-1] or 0) >= RUBRIC_PASS:
+            if (scores[-1] or 0) >= bar:
                 break
     finally:
         remove_config_dir(grader)
     (ctx.out / "rubric.json").write_text(json.dumps(replies, indent=1))
     return {
-        "pass": (scores[-1] or 0) >= RUBRIC_PASS,
+        "pass": (scores[-1] or 0) >= bar,
         "scores": scores,
         "rerunsUsed": len(scores) - 1,
         "cases": [],

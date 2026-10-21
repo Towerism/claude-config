@@ -313,9 +313,15 @@ def test_the_verify_command_prints_the_tier_each_suite_needs_and_has(repo, capsy
 def clean_case(runner, case, entry):
     """Whether a full record's entry for `case` passed every one of its runs."""
     if runner in er.SMOKE_BY_INDEX:
-        runs = entry.get("runs", 3)
         loads = entry["triggered"]
-        clean = loads == runs if case["should_trigger"] else loads == 0
+        if not case["should_trigger"]:
+            clean = loads == 0
+        elif "runs" in entry:
+            clean = loads == entry["runs"]
+        else:
+            # plain-prose-trigger records don't say how many runs a query got (two, or
+            # three on a split), so the best evidence is that it reached the load bar.
+            clean = loads >= 2
         return clean and entry["result"] == "pass" and not entry.get("errors")
     if runner == "scenario":
         return entry["old"] == "pass" and entry["new"] == "pass"

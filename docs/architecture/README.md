@@ -1,17 +1,17 @@
 # claude-config architecture
 
-This repository will become the source of truth for one person's Claude Code configuration. Today that configuration lives only in `~/.claude`, where it was installed on 2026-10-15. The repo lets the owner track, review, test and redeploy it from git on two machines. This document explains how the repo is laid out, how its tooling deploys and rolls back the configuration, how changes are checked, and what could go wrong. Read it before working on the repo or approving its build plan.
+This repository is the source of truth for one person's Claude Code configuration. `cfg`, the repo's deploy tool, installs it into `~/.claude` on the owner's personal machine (since 2026-10-19) and work machine (since 2026-10-21). The owner tracks, reviews, tests and redeploys it from git. This document explains how the repo is laid out, how its tooling deploys and rolls back the configuration, how changes are checked, and what could go wrong. Read it before working on the repo. For what the configuration itself does, and why it is built from small skills that the global CLAUDE.md combines into one pipeline, read [How the skills fit together](skills.md) first.
 
-Status: accepted by the owner on 2026-10-16. From here on, these documents and the ADRs are the source of truth, and any departure needs a new or updated ADR. Nothing has been built, committed or deployed yet. Each decision is recorded in an ADR (architecture decision record), from [ADR-0001](../adr/0001-deployment-model.md) to [ADR-0010](../adr/0010-prose-for-people.md). The build plan and the remaining open questions are in [plan.md](plan.md).
+Status: accepted by the owner on 2026-10-16. From here on, these documents and the ADRs are the source of truth, and any departure needs a new or updated ADR. All 17 issues of the build plan are closed: 16 were completed and issue 7 was dropped. Each decision is recorded in an ADR (architecture decision record), from [ADR-0001](../adr/0001-deployment-model.md) to [ADR-0011](../adr/0011-tracker-agnostic-lifecycle.md). The build plan and the owner's answers to its questions are in [plan.md](plan.md).
 
-The configuration being moved into the repo is:
-- the global CLAUDE.md (version 2);
-- seven overlays;
-- two hooks;
+Today `config/` holds:
+- the global CLAUDE.md;
+- nine overlays;
+- three hooks: overlay injection, merge confirmation and the machine's default lifecycle;
 - the `settings.json` keys those hooks and plugins need;
-- two custom skills, `github-issue-lifecycle` and `linux-troubleshooting`.
+- five skills maintained here, in `config/skills/`, and 17 copied from upstream, in `config/vendored-skills/`.
 
-Two new prose skills are planned on top of that.
+When the repo was started on 2026-10-16, the configuration imported into it was the global CLAUDE.md (version 2), seven overlays, two hooks, those `settings.json` keys and two custom skills, `github-issue-lifecycle` and `linux-troubleshooting`. The two prose skills were planned on top of that.
 
 ## Terms
 
@@ -126,8 +126,8 @@ claude-config/
 │   ├── hooks/*.py               → ~/.claude/hooks/: skill_overlay.py (overlays), merge_confirm.py (merge guard), lifecycle_default.py (the machine's default lifecycle, ADR-0011)
 │   ├── settings.fragment.json   settings keys the repo owns; hook commands use {claude_home}
 │   ├── skills/<name>/           → ~/.claude/skills/<name>/  the skills maintained here (SKILL.md, SPEC.md, REVIEW-NOTE.md, scripts, tests, evals)
-│   │   ├── plain-prose/         planned: readability rules for all prose, plus prose_check.py (ADR-0010)
-│   │   └── writing-docs/        planned: documentation steps, plus doc_lint.py (ADR-0010)
+│   │   ├── plain-prose/         readability rules for all prose, plus prose_check.py (ADR-0010)
+│   │   └── writing-docs/        documentation steps, plus doc_lint.py (ADR-0010)
 │   └── vendored-skills/<name>/  → ~/.claude/skills/<name>/  senior-qa/ and 16 more, copied whole from claude-code-skills, each with VENDORED.json; not edited by hand (#62, #75, ADR-0002)
 │
 ├── hosts/
@@ -165,7 +165,8 @@ claude-config/
 │   └── out/                     raw transcripts, gitignored
 │
 └── docs/
-    ├── architecture/  adr/  runbook.md
+    ├── architecture/            README.md (this file), skills.md (how the skills fit together), plan.md
+    ├── adr/  runbook.md
     ├── evidence/                results of one-off checks, such as symlink-check.md
     └── history/                 frozen spec revisions, review diffs, selected evidence, the retired skill
 ```
@@ -196,7 +197,7 @@ Outside the repo, every machine also keeps some `cfg` state:
 ~/.claude/backups/claude-config/<ts>/  originals moved aside before linking, with a manifest and restore.sh
 ```
 
-A copy of `restore.py`, a standalone stdlib script, goes into every backup directory, the same way `install_v2.py` copies itself today. That keeps rollback working when the repo is broken or missing.
+A copy of `restore.py`, a standalone stdlib script, goes into every backup directory, the same way `install_v2.py` copied itself into its backups. That keeps rollback working when the repo is broken or missing.
 
 ## Deploying
 
@@ -256,7 +257,7 @@ flowchart TD
 
 The diagram shows the loop at the start: every difference sends the owner back to resolve it, and nothing changes on disk until no differences remain. `cfg capture <path>` puts the live version on a feature branch for review. `--discard-live <path>` accepts the repo's version, and the live file still goes into the backup. `settings.json` is resolved the same way when its owned keys differ.
 
-Skill directories that aren't listed in the host profile are never read, reported, copied or touched. The first deploy also leaves the `claude-md-v2-*` backup unchanged. The owner doesn't intend to return to version 1, so once the first deploy passes, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` have no rollback role. Issue 8 lists the two paths and deletes them after the owner's go-ahead.
+Skill directories that aren't listed in the host profile are never read, reported, copied or touched. The first deploy also leaves the `claude-md-v2-*` backup unchanged. The owner doesn't intend to return to version 1, so once the first deploy passes, that backup and the retired skill in `~/.old-claude/skills/issue-spec-driven-workflow/` have no rollback role. Issue 8 listed the two paths, and they were deleted on 2026-10-19 after the owner's go-ahead (question Q-2 in the [plan](plan.md#open-questions)).
 
 ## Drift: status, diff and capture
 

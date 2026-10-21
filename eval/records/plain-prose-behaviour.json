@@ -1,8 +1,8 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
   "harness": {
-    "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
-    "eval/skill_evals.py": "50e1f97105af1e30b5cc92457bb6b0937f5a1f4116e7fceb2c1f4a347d10fd86"
+    "eval/run_eval.py": "0865e334088f7fd4754642c58ca09f87811da06588262a97704ffdd74d4d3eac",
+    "eval/skill_evals.py": "ebc124f004e226fed3463f5478863291532404e1b5bb2df66339474ff0323846"
   },
   "inputs": {
     "config/skills/plain-prose/SKILL.md#body": "4ab58883c39b7adc3a059b6454fa43e1bf7dbe7bd092115a358e3a059b87728a",
@@ -17,7 +17,7 @@
     "arm": "default",
     "grader": "default"
   },
-  "ranAt": "2026-10-20T22:27:57Z",
+  "ranAt": "2026-10-21T01:16:29Z",
   "result": {
     "cases": [
       {
@@ -75,11 +75,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 32.5,
+            "detectability": 19.4,
             "per_1000_words": {
               "ai_tells": 0.0,
               "cold_reader": 0.0,
-              "readability": 34.5
+              "readability": 0.0
             }
           },
           "lost": [],
@@ -111,11 +111,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 17.0,
+            "detectability": 18.4,
             "per_1000_words": {
-              "ai_tells": 0.0,
+              "ai_tells": 6.0,
               "cold_reader": 0.0,
-              "readability": 14.7
+              "readability": 12.0
             }
           },
           "lost": [],
@@ -130,7 +130,7 @@
             "detectability": 32.5,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 37.7,
+              "cold_reader": 30.3,
               "readability": 0.0
             }
           },
@@ -144,11 +144,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 20.0,
+            "detectability": 31.7,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 31.7,
-              "readability": 0.0
+              "cold_reader": 34.5,
+              "readability": 17.2
             }
           },
           "lost": [],
@@ -160,11 +160,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 22.6,
+            "detectability": 15.9,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 16.9,
-              "readability": 50.8
+              "cold_reader": 15.4,
+              "readability": 46.2
             }
           },
           "lost": [],
@@ -177,11 +177,11 @@
           "aiSounding": false,
           "correct": 3,
           "diagnostics": {
-            "detectability": 25.8,
+            "detectability": 29.6,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 19.6,
-              "readability": 19.6
+              "cold_reader": 18.5,
+              "readability": 37.0
             }
           },
           "lost": [],
@@ -193,11 +193,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 21.6,
+            "detectability": 25.6,
             "per_1000_words": {
-              "ai_tells": 0.0,
-              "cold_reader": 8.6,
-              "readability": 8.6
+              "ai_tells": 8.7,
+              "cold_reader": 8.7,
+              "readability": 17.4
             }
           },
           "lost": [],
@@ -210,11 +210,11 @@
           "aiSounding": false,
           "correct": 4,
           "diagnostics": {
-            "detectability": 20.7,
+            "detectability": 30.9,
             "per_1000_words": {
               "ai_tells": 0.0,
-              "cold_reader": 7.7,
-              "readability": 7.7
+              "cold_reader": 8.8,
+              "readability": 17.7
             }
           },
           "lost": [],

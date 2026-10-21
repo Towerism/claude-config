@@ -154,9 +154,9 @@ def test_a_vendored_record_missing_a_field_is_a_usage_error(machine):
 MARKET_REL = "marketing-skill/skills/copy-editing/scripts/s.py"
 
 
-def add_skill_vendoring(home, repo, files):
+def add_skill_vendoring(home, repo, files, tree="config/skills", name="prose"):
     """A skill whose VENDORED.json points at files in a marketplace clone."""
-    skill = repo / "config" / "skills" / "prose"
+    skill = repo / tree / name
     clone = home / "plugins" / "marketplaces" / "claude-code-skills"
     record = []
     for name, content in files.items():
@@ -187,6 +187,18 @@ def test_marketplace_changes_are_listed_under_upstream_without_failing(machine):
         {"path": "config/skills/prose/vendored/a.py",
          "problem": "the marketplace copy has a different sha256"},
         {"path": "config/skills/prose/vendored/b.py", "problem": "the marketplace copy is missing"},
+    ]  # fmt: skip
+
+
+def test_records_in_the_vendored_skill_tree_are_checked_too(machine):
+    home, repo = machine
+    clone = add_skill_vendoring(home, repo, {"a.py": "a"}, "config/vendored-skills", "copied")
+    (clone / MARKET_REL.replace("s.py", "a.py")).write_text("changed upstream")
+    r, rep = run_check(home, repo)
+    assert r.returncode == 0, r.stdout
+    assert rep["upstream"] == [
+        {"path": "config/vendored-skills/copied/vendored/a.py",
+         "problem": "the marketplace copy has a different sha256"},
     ]  # fmt: skip
 
 

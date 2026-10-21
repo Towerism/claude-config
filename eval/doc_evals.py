@@ -5,11 +5,12 @@ tools/cfg/eval.py runs these for the suites in eval/gates.json whose runner is
 `companions`, the skills it runs beside once deployed (ADR-0005, ADR-0010).
 
 They reuse eval/skill_evals.py's isolation helpers. A doc-trigger config holds a
-copy of every skill in the HEAD commit's config/skills/, as a deployed session
-does (#62). A doc-reader config holds the skill and its companions together, or
-the companions alone for the baseline. Each run's init event must list each
-skill under test and each companion exactly once, and a doc-reader run none of
-the skill and companions its config lacks; otherwise the suite stops with an
+copy of every skill in the HEAD commit's config/skills/ and
+config/vendored-skills/, as a deployed session does (#62, #75). A doc-reader
+config holds the skill and its companions together, or the companions alone for
+the baseline. Each run's init event must list each skill under test and each
+companion exactly once, and a doc-reader run none of the skill and companions
+its config lacks; otherwise the suite stops with an
 IsolationError and no record is written.
 
 Both runners keep chance out of the verdict without sampling much, because each
@@ -62,10 +63,8 @@ FENCE_LINE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 # trigger suite doesn't grade. Ordinary queries get three, because with the other
 # repo skills listed (#62) a run may load a competitor such as senior-architect
 # first. A delegated query needs the Agent call, the subagent's turn and its Skill call.
-ORDINARY_TURNS = "3"
-DELEGATED_TURNS = "4"
-FIRST_RUNS = 2
-RIGHT_SHARE = 0.9
+# These turn caps, the run count and the right-answer share live in eval/criteria.json,
+# under "docTrigger" and "docReader" (#77).
 
 Case = dict[str, Any]
 
@@ -122,7 +121,8 @@ def trigger_run(
     For a delegated case only a subagent's load counts, so a run that loads the skill at
     top level and then hits the limit is turn-limited too.
     """
-    turns = DELEGATED_TURNS if case.get("delegated") else ORDINARY_TURNS
+    bars = run_eval.eval_criteria(ctx)["docTrigger"]
+    turns = str(bars["delegatedTurns"] if case.get("delegated") else bars["ordinaryTurns"])
     args = ["--max-turns", turns, "--tools", se.TRIGGER_TOOLS,
             "--allowedTools", se.TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
     evs = checked_run(ctx, cfg, args, case["query"], box, everyone, [])
@@ -138,7 +138,9 @@ def trigger_run(
 def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     skill, companions, skills_dir, cases = _setup(ctx, suite)
     everyone = [skill, *companions]
-    runs: dict[int, list[tuple[bool, bool, bool]]] = {i: [] for i in range(len(cases))}
+    smoke = run_eval.is_smoke(ctx)
+    picked = run_eval.smoke_pick(ctx, list(range(len(cases))))
+    runs: dict[int, list[tuple[bool, bool, bool]]] = {i: [] for i in picked}
     with (
         se.sandbox(ctx) as box,
         se.trigger_config(ctx, "trigger") as cfg,
@@ -147,18 +149,22 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         def one(index: int) -> tuple[int, tuple[bool, bool, bool]]:
             return index, trigger_run(ctx, cfg, box, cases[index], skill, everyone)
 
-        first = [i for i in range(len(cases)) for _ in range(FIRST_RUNS)]
+        # A smoke run asks each smoke query once, and that run decides (#77).
+        first_runs = 1 if smoke else int(run_eval.eval_criteria(ctx)["docTrigger"]["firstRuns"])
+        first = [i for i in picked for _ in range(first_runs)]
         for index, run in se.run_all(ctx, one, first):
             runs[index].append(run)
-        split = [i for i, r in runs.items() if r[0][0] != r[1][0]]
+        split = [] if smoke else [i for i, r in runs.items() if len({x[0] for x in r}) > 1]
         for index, run in se.run_all(ctx, one, split):
             runs[index].append(run)
+    needed = 1 if smoke else int(run_eval.eval_criteria(ctx)["docTrigger"]["needed"])
     results = []
-    for index, case in enumerate(cases):
+    for index in picked:
+        case = cases[index]
         loads = sum(r[0] for r in runs[index])
         entry: dict[str, Any] = {
             "id": case["query"][:60],
-            "result": "pass" if (loads >= 2) == case["should_trigger"] else "fail",
+            "result": "pass" if (loads >= needed) == case["should_trigger"] else "fail",
             "triggered": loads,
             "runs": len(runs[index]),
             "shouldTrigger": case["should_trigger"],
@@ -177,7 +183,10 @@ def run_doc_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     delegated = [r for r in results if r["delegated"]]
     delegated_runs = sum(r["runs"] for r in delegated)
     return {
-        "pass": recall >= se.TRIGGER_RECALL and false_triggers == 0,
+        "pass": all(r["result"] == "pass" for r in results)
+        if smoke
+        else recall >= float(run_eval.eval_criteria(ctx)["trigger"]["recall"])
+        and false_triggers == 0,
         "recall": recall,
         "falseTriggers": false_triggers,
         "delegatedRate": round(sum(r["triggered"] for r in delegated) / delegated_runs, 3)
@@ -282,7 +291,8 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             return unwrap(se.result_text(evs or [])), evs
 
         def graded(case: Case, text: str) -> dict[str, Any]:
-            evs = checked_run(ctx, reader_cfg, ["--tools", ""], reader_prompt(case, text), box,
+            reader_args = ["--tools", "", *run_eval.grader_args(ctx)]
+            evs = checked_run(ctx, reader_cfg, reader_args, reader_prompt(case, text), box,
                               [], everyone)  # fmt: skip
             answers = parse_answers(se.result_text(evs or []), len(case["questions"]))
             return {
@@ -302,7 +312,9 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
                     "notLoaded": [s for s in everyone if not se.skill_calls(evs or [], s)],
                     "texts": {"skill": skill_text, "baseline": base_text}}  # fmt: skip
 
-        results = sorted(se.run_all(ctx, one, cases), key=lambda r: str(r["id"]))
+        # A smoke run covers only the smoke cases, judged by the same checks (#77).
+        picked = run_eval.smoke_pick(ctx, cases, key=lambda c: str(c["id"]))
+        results = sorted(se.run_all(ctx, one, picked), key=lambda r: str(r["id"]))
     se._write_out(ctx, "doc-reader-results.json", results)
     reasons = []
     for r in results:
@@ -317,8 +329,9 @@ def run_doc_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
             )
     answers = [a for r in results for a in r["skill"]["right"]]
     right_share = round(sum(answers) / len(answers), 3) if answers else 0.0
-    if right_share < RIGHT_SHARE:
-        reasons.append(f"right answers {right_share:.0%} of all questions, under {RIGHT_SHARE:.0%}")
+    share = float(run_eval.eval_criteria(ctx)["docReader"]["rightShare"])
+    if right_share < share:
+        reasons.append(f"right answers {right_share:.0%} of all questions, under {share:.0%}")
     lint = {arm: sum(r[arm]["lint"] for r in results) for arm in ("skill", "baseline")}
     if lint["skill"] > lint["baseline"]:
         reasons.append(

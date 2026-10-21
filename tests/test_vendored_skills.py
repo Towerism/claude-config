@@ -2,17 +2,27 @@
 
 A vendored skill is a repo skill whose VENDORED.json lists its SKILL.md. It is
 kept as upstream wrote it, apart from files marked adapted, and ruff skips it.
+Vendored skills live in config/vendored-skills/ and the skills maintained here
+in config/skills/, so the layout shows which ones are edited by hand (#75).
 """
 
 import hashlib
 import json
+import re
+import subprocess
 import tomllib
 from pathlib import Path
 
 from tests.checker_helpers import REPO_ROOT
 
-SKILLS = REPO_ROOT / "config" / "skills"
+SKILLS = REPO_ROOT / "config" / "vendored-skills"
+MAINTAINED = REPO_ROOT / "config" / "skills"
 UPSTREAM_REPO = "alirezarezvani/claude-skills"
+# The skills maintained in this repo. plain-prose vendors a few files, not its SKILL.md.
+OWN_SKILLS = {
+    "github-issue-lifecycle", "jira-ticket-lifecycle", "linux-troubleshooting",
+    "plain-prose", "writing-docs",
+}  # fmt: skip
 # The skills the owner chose to keep when the claude-code-skills plugins were removed.
 EXPECTED = {
     "adversarial-reviewer", "senior-architect", "senior-qa", "tdd-guide",
@@ -34,12 +44,50 @@ def record(skill: Path) -> list[dict[str, object]]:
     return json.loads((skill / "VENDORED.json").read_text())
 
 
+def lists_its_skill_md(skill: Path) -> bool:
+    path = skill / "VENDORED.json"
+    return path.is_file() and any(e["path"] == "SKILL.md" for e in json.loads(path.read_text()))
+
+
+def tracked_skills(tree: Path) -> list[Path]:
+    """Skill directories git tracks in `tree`, so local synced/ and .trash/ don't count."""
+    # :(glob) keeps * inside one directory, so a fixture skill nested deeper,
+    # such as skill-tester's sample-skill, doesn't count.
+    pathspec = f":(glob){tree.relative_to(REPO_ROOT)}/*/SKILL.md"
+    out = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "--", pathspec],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return sorted({(REPO_ROOT / line).parent for line in out.splitlines()})
+
+
 def vendored_skills() -> list[Path]:
-    found = []
-    for path in sorted(SKILLS.glob("*/VENDORED.json")):
-        if any(e["path"] == "SKILL.md" for e in json.loads(path.read_text())):
-            found.append(path.parent)
-    return found
+    return [s for s in tracked_skills(SKILLS) if lists_its_skill_md(s)]
+
+
+def test_the_vendored_tree_holds_only_vendored_skills():
+    assert [s.name for s in tracked_skills(SKILLS) if not lists_its_skill_md(s)] == []
+
+
+def test_the_maintained_tree_holds_only_the_skills_maintained_here():
+    own = tracked_skills(MAINTAINED)
+    assert [s.name for s in own if lists_its_skill_md(s)] == []
+    assert {s.name for s in own} == OWN_SKILLS
+
+
+def test_nothing_outside_the_history_names_a_vendored_skills_old_path():
+    # Eval records are written by eval.py, and eval_records.py verify reports a
+    # stale one, so they are left to that check.
+    names = "|".join(sorted(EXPECTED))
+    out = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "grep", "-l", "-E", f"config/skills/({names})([^a-z-]|$)",
+         "--", ".", ":!docs/history", ":!config/vendored-skills", ":!eval/records"],
+        capture_output=True,
+        text=True,
+    )  # fmt: skip
+    assert out.returncode == 1, f"old paths in: {out.stdout}"
 
 
 def files_on_disk(skill: Path) -> set[str]:
@@ -120,8 +168,9 @@ def test_each_licence_file_holds_the_mit_text():
         assert "Permission is hereby granted, free of charge" in text, skill.name
 
 
-def test_ruff_skips_every_vendored_skill():
+def test_ruff_skips_the_vendored_tree_with_one_entry():
     config = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
-    excluded = set(config["tool"]["ruff"]["extend-exclude"])
-    for skill in vendored_skills():
-        assert f"./config/skills/{skill.name}" in excluded, skill.name
+    excluded = config["tool"]["ruff"]["extend-exclude"]
+    assert "./config/vendored-skills" in excluded
+    per_skill = [e for e in excluded if re.fullmatch(r"\./config/(vendored-)?skills/[\w-]+", e)]
+    assert per_skill == []

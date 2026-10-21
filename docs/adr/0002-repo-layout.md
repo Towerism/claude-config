@@ -1,6 +1,6 @@
 # ADR-0002: Repo layout and boundaries
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Amended 2026-10-20 by #62 (spec approved by the owner): skills copied whole from upstream (see "Amendment for #62").
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Amended 2026-10-20 by #62 (spec approved by the owner): skills copied whole from upstream (see "Amendment for #62"). Amended 2026-10-20 by #75 (spec approved by the owner): those skills live in their own tree, `config/vendored-skills/` (see "Amendment for #75").
 
 Everything that gets deployed lives under `config/`, and nothing outside it reaches the live config (`~/.claude`). The global CLAUDE.md is stored as `config/CLAUDE.global.md`, so it never loads as memory while someone works on the repo. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -31,6 +31,7 @@ Option 3, with the layout shown in section 3 of the [architecture overview](../a
 |---|---|---|
 | `config/` | Yes. It is the only deployed directory. | `config/CLAUDE.global.md` deploys as `~/.claude/CLAUDE.md`, the one rename. Everything else maps one to one: `config/X` becomes `~/.claude/X`. |
 | `config/skills/<name>/` | Yes | The whole skill as it is installed today: `SKILL.md`, plus `SPEC.md` and `REVIEW-NOTE.md` where they exist, and `scripts/`, `references/`, `tests/` and `evals/`. The live skill directory is a symlink to this directory in the deployed release ([ADR-0001](0001-deployment-model.md)), so tests and evals stay reachable without being copied. |
+| `config/vendored-skills/<name>/` | Yes, to `~/.claude/skills/<name>` | Since #75: the skills copied whole from upstream, each with a `VENDORED.json` that lists its `SKILL.md`. They are not edited by hand; see the amendments below. |
 | `CLAUDE.md` at the repo root | No | Project memory for working on this repo: the commands, the gates, and the rule to merge only after `gh pr checks` is green. |
 | `tools/`, `tests/`, `schemas/` | No | Repo tooling and its tests |
 | `eval/` | No | The eval harness, the scenarios, the clause inventory (the list of every CLAUDE.md rule and where it now lives), the map from changed paths to required evals, and the committed eval records. Raw output goes to `eval/out/`, which git ignores. |
@@ -66,3 +67,11 @@ Because of the rename, GNU stow can't be used without reversing this ADR, which 
 - The rule that a skill gets a `SPEC.md` with its first change in this repo applies to the first change that isn't a copy from upstream. Copying the skill in, copying a newer upstream version over it, or adapting a file only to pass the repo's checks doesn't count. The first change to how the skill works adds its `SPEC.md` and `REVIEW-NOTE.md`, and from then on the skill follows the rule above like any other.
 
 `plain-prose` also has a `VENDORED.json`, but it lists only the four files under its `vendored/` directories, not its `SKILL.md`, so it isn't a vendored skill. [ADR-0005's amendment](0005-verification-and-ci.md#amendment-for-62-2026-10-20) says how the copies are checked against upstream.
+
+## Amendment for #75 (2026-10-20)
+
+**Vendored skills have their own tree.** The owner asked for the layout to show which skills can be edited by hand. The 17 vendored skills moved, unchanged, from `config/skills/<name>/` to `config/vendored-skills/<name>/`, and `config/skills/` now holds only the skills maintained here: `github-issue-lifecycle`, `jira-ticket-lifecycle`, `linux-troubleshooting`, `plain-prose` and `writing-docs`.
+
+- The rule from #62 that defines a vendored skill now also sets its tree: a skill whose `VENDORED.json` lists its `SKILL.md` lives in `config/vendored-skills/`, and no other skill does. `plain-prose` stays in `config/skills/`. `tests/test_vendored_skills.py` checks both trees.
+- Both trees deploy the same way, as `~/.claude/skills/<name>`, and host profiles keep listing bare names. `cfg` looks for a name in `config/skills/` first, then in `config/vendored-skills/`, and refuses a name found in both.
+- ruff skips `config/vendored-skills/` as one directory.

@@ -7,10 +7,11 @@ skill can use them (ADR-0005, ADR-0010).
 Every run gets the isolation eval/run_eval.py gives the scenario suite (a private
 CLAUDE_CONFIG_DIR outside $HOME, the live settings without hooks, a private
 credentials copy) plus three limits. For a trigger run, `skills/` holds a copy of
-every skill in the HEAD commit's config/skills/, so the session lists what a
-deployed session lists (#62); for a cold-reader run, only the HEAD commit's copy
-of the skill under test, or nothing for a baseline or a grader. The tools are set
-with --tools, which removes the others rather than merely skipping their prompts.
+every skill in the HEAD commit's config/skills/ and config/vendored-skills/, so
+the session lists what a deployed session lists (#62, #75); for a cold-reader
+run, only the HEAD commit's copy of the skill under test, or nothing for a
+baseline or a grader. The tools are set with --tools, which removes the others
+rather than merely skipping their prompts.
 And a stub gh comes first on PATH with an empty GH_CONFIG_DIR, so prompts about
 issues and PRs can't reach GitHub with the owner's login. Each run's init event
 must list the skill exactly once with it installed and not at all without it;
@@ -58,16 +59,15 @@ if __package__ in (None, ""):  # pragma: no cover  (only when run as a script)
 
 from eval import hook_harness, run_eval  # noqa: E402
 
-TRIGGER_RUNS = 3
-TRIGGER_NEEDED = 2
-# Each class gets its own rule: recall over the queries that should load the skill, and
-# no near miss at all. Overall accuracy is reported but never decides.
-# The skills' specs set 85%. With the other repo skills listed (#62) both trigger suites
-# fell below it, so the owner lowered the gate to 70% on 2026-10-20 until #67 raises
-# their recall and puts it back.
-TRIGGER_RECALL = 0.70
+# The trigger bars live in eval/criteria.json under "trigger" (#77). Each query runs
+# firstRuns times, and once more only when those disagree, and needs `needed` loads; it
+# ran three times before #77. A smoke run asks each smoke query once, and that run
+# decides. Each class gets its own rule: recall over the queries that should load the
+# skill, and no near miss at all; overall accuracy is reported but never decides. The
+# skills' specs set 85% recall. With the other repo skills listed (#62) both trigger
+# suites fell below it, so the owner lowered the gate to 70% on 2026-10-20 until #67
+# raises their recall and puts it back.
 TRIGGER_TOOLS = "Skill,Read,Agent"
-TRIGGER_MAX_TURNS = "4"
 WRITE_TOOLS = "Skill,Read,Bash"
 DIAGNOSTIC_CHECKER = Path("config/skills/plain-prose/scripts/prose_check.py")
 
@@ -103,8 +103,8 @@ def sandbox(ctx: run_eval.Context) -> Iterator[Sandbox]:
 
 
 def repo_skills(ctx: run_eval.Context) -> list[Path]:
-    """Every skill directory in the HEAD commit's config/skills/, as a deployed session has."""
-    return sorted(p.parent for p in (ctx.head_tree / "config" / "skills").glob("*/SKILL.md"))
+    """Every skill directory in the HEAD commit's two skill trees, as a deployed session has."""
+    return run_eval.tree_skills(ctx.head_tree)
 
 
 @contextmanager
@@ -226,7 +226,8 @@ def _cases(ctx: run_eval.Context, suite: Any) -> tuple[str, Path, list[Case]]:
 
 def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     skill, skill_dir, cases = _cases(ctx, suite)
-    args = ["--max-turns", TRIGGER_MAX_TURNS, "--tools", TRIGGER_TOOLS,
+    bars = run_eval.eval_criteria(ctx)["trigger"]
+    args = ["--max-turns", str(bars["maxTurns"]), "--tools", TRIGGER_TOOLS,
             "--allowedTools", TRIGGER_TOOLS, "--permission-prompts", "none"]  # fmt: skip
     with sandbox(ctx) as box, trigger_config(ctx, "trigger") as cfg:
 
@@ -243,12 +244,21 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
                 return index, "triggered"
             return index, "limited" if hit_turn_limit(evs) else "quiet"
 
-        jobs = [(i, a) for i in range(len(cases)) for a in range(TRIGGER_RUNS)]
-        outcomes = sorted(run_all(ctx, one, jobs))
+        smoke = run_eval.is_smoke(ctx)
+        picked = run_eval.smoke_pick(ctx, list(range(len(cases))))
+        first = 1 if smoke else int(bars["firstRuns"])
+        outcomes = run_all(ctx, one, [(i, a) for i in picked for a in range(first)])
+        if not smoke:
+            loads = {i: {o == "triggered" for j, o in outcomes if j == i} for i in picked}
+            split = [i for i in picked if len(loads[i]) > 1]
+            outcomes += run_all(ctx, one, [(i, first) for i in split])
+        outcomes.sort()
+    needed = 1 if smoke else int(bars["needed"])
     results = []
-    for index, case in enumerate(cases):
+    for index in picked:
+        case = cases[index]
         runs = [o for i, o in outcomes if i == index]
-        triggered = runs.count("triggered") >= TRIGGER_NEEDED
+        triggered = runs.count("triggered") >= needed
         errors = runs.count("error")
         entry = {
             "id": case["query"][:60],
@@ -265,14 +275,13 @@ def run_trigger(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
     recall = (
         round(sum(r["result"] == "pass" for r in positive) / len(positive), 3) if positive else 1.0
     )
-    false_triggers = sum(
-        1 for r in results if not r["shouldTrigger"] and r["triggered"] >= TRIGGER_NEEDED
-    )
+    false_triggers = sum(1 for r in results if not r["shouldTrigger"] and r["triggered"] >= needed)
     near_misses_clean = all(r["result"] == "pass" for r in results if not r["shouldTrigger"])
     delegated_ok = all(r["result"] == "pass" for r in results if r["delegated"])
     right = sum(r["result"] == "pass" for r in results)
+    full_pass = recall >= float(bars["recall"]) and near_misses_clean and delegated_ok
     return {
-        "pass": recall >= TRIGGER_RECALL and near_misses_clean and delegated_ok,
+        "pass": right == len(results) if smoke else full_pass,
         "recall": recall,
         "falseTriggers": false_triggers,
         "accuracy": round(right / len(results), 3) if results else 0.0,
@@ -386,7 +395,7 @@ class Arms:
 def grade(ctx: run_eval.Context, arms: Arms, case: Case, text: str) -> dict[str, Any]:
     """Reader then judge on `text`; an `error` key says why it couldn't be graded."""
     n = len(case["questions"])
-    no_tools = ["--tools", ""]
+    no_tools = ["--tools", "", *run_eval.grader_args(ctx)]
     evs = stream_run(ctx, arms.reader_cfg, no_tools, reader_prompt(case, text), arms.box,
                      arms.skill, installed=False)  # fmt: skip
     reader = parse_reader(result_text(evs or []), n)
@@ -455,12 +464,12 @@ def run_cold_reader(ctx: run_eval.Context, suite: Any) -> dict[str, Any]:
         arms = Arms(skill, skill_cfg, base_cfg, reader_cfg, box, write_args)
 
         def one(case: Case) -> tuple[dict[str, Any], int]:
-            first = attempt(ctx, arms, case)
-            if first["result"] == "pass":
-                return first, 0
-            return attempt(ctx, arms, case), 1
+            result, used = attempt(ctx, arms, case), 0
+            while result["result"] != "pass" and used + 1 < run_eval.tries(ctx, "coldReader"):
+                result, used = attempt(ctx, arms, case), used + 1
+            return result, used
 
-        done = run_all(ctx, one, cases)
+        done = run_all(ctx, one, run_eval.smoke_pick(ctx, cases, key=lambda c: str(c["id"])))
     results = sorted((r for r, _ in done), key=lambda r: str(r["id"]))
     _write_out(ctx, "cold-reader-results.json", results)
     for r in results:

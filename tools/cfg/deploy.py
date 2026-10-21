@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from tools import check_config
 from tools.cfg import drift, link, release, render, settings_merge, state
 from tools.cfg.errors import CfgError
 
@@ -397,7 +398,10 @@ def smoke_test(
         shutil.rmtree(tmp, ignore_errors=True)
         tmp.mkdir(parents=True)
         os.symlink(rel / "config" / "skill-overlays", tmp / "skill-overlays")
-        os.symlink(rel / "config" / "skills", tmp / "skills")
+        (tmp / "skills").mkdir()
+        for tree in check_config.SKILL_TREES:
+            for skill_md in sorted((rel / tree).glob("*/SKILL.md")):
+                os.symlink(skill_md.parent, tmp / "skills" / skill_md.parent.name)
         if (home / "plugins").exists():
             os.symlink(home / "plugins", tmp / "plugins")
     env["CLAUDE_HOME"] = str(tmp if tmp is not None else home)

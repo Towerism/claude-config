@@ -49,7 +49,7 @@ Every link goes through `current`, so the links never change after they are firs
 | `~/.claude/CLAUDE.md` | `…/claude-config/current/config/CLAUDE.global.md` |
 | `~/.claude/skill-overlays` | `…/current/config/skill-overlays` (a directory link) |
 | `~/.claude/hooks/skill_overlay.py`, `merge_confirm.py` | `…/current/config/hooks/<file>` (file links, so other files in `hooks/` are left alone) |
-| `~/.claude/skills/<name>`, for each skill in the host profile | `…/current/config/skills/<name>` (a directory link) |
+| `~/.claude/skills/<name>`, for each skill in the host profile | `…/current/config/skills/<name>`, or `…/current/config/vendored-skills/<name>` for a vendored skill since #75 (a directory link) |
 
 Overlays are per-skill policy files that a hook injects when the matching skill loads. A host profile (`hosts/<name>.json`) lists which skills and components a machine gets ([ADR-0003](0003-machine-portability.md)). The hook commands in `settings.json` keep pointing at `~/.claude/hooks/<file>.py`, so they don't change, and the existing hook entries already match.
 

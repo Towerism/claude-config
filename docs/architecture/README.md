@@ -125,10 +125,10 @@ claude-config/
 │   ├── skill-overlays/*.md      → ~/.claude/skill-overlays/
 │   ├── hooks/*.py               → ~/.claude/hooks/: skill_overlay.py (overlays), merge_confirm.py (merge guard), lifecycle_default.py (the machine's default lifecycle, ADR-0011)
 │   ├── settings.fragment.json   settings keys the repo owns; hook commands use {claude_home}
-│   └── skills/<name>/           → ~/.claude/skills/<name>/  (SKILL.md, SPEC.md, REVIEW-NOTE.md, scripts, tests, evals)
-│       ├── plain-prose/         planned: readability rules for all prose, plus prose_check.py (ADR-0010)
-│       ├── senior-qa/ and 16 more  copied whole from claude-code-skills, each with VENDORED.json (#62, ADR-0002)
-│       └── writing-docs/        planned: documentation steps, plus doc_lint.py (ADR-0010)
+│   ├── skills/<name>/           → ~/.claude/skills/<name>/  the skills maintained here (SKILL.md, SPEC.md, REVIEW-NOTE.md, scripts, tests, evals)
+│   │   ├── plain-prose/         planned: readability rules for all prose, plus prose_check.py (ADR-0010)
+│   │   └── writing-docs/        planned: documentation steps, plus doc_lint.py (ADR-0010)
+│   └── vendored-skills/<name>/  → ~/.claude/skills/<name>/  senior-qa/ and 16 more, copied whole from claude-code-skills, each with VENDORED.json; not edited by hand (#62, #75, ADR-0002)
 │
 ├── hosts/
 │   ├── personal.json            host profiles: the same skills, hooks and plugins on both machines;

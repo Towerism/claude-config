@@ -37,28 +37,12 @@ line-length = 100
 # docs/history/ holds frozen copies that are never edited (ADR-0002), so lint
 # findings there could never be fixed. tools/vendor/ holds upstream files
 # kept byte for byte, with their hashes in VENDORED.json, for the same reason.
-# The skills copied whole from claude-code-skills (#62) are kept as upstream
-# wrote them too, so each one is listed; tests/test_vendored_skills.py checks
-# that every skill whose VENDORED.json lists its SKILL.md is here.
+# config/vendored-skills/ holds the skills copied whole from claude-code-skills
+# (#62, moved there by #75), kept as upstream wrote them too;
+# tests/test_vendored_skills.py checks that only vendored skills are in it.
 extend-exclude = [
     "./config/skills/*/scripts/vendored",
-    "./config/skills/adversarial-reviewer",
-    "./config/skills/agent-workflow-designer",
-    "./config/skills/api-design-reviewer",
-    "./config/skills/api-test-suite-builder",
-    "./config/skills/ci-cd-pipeline-builder",
-    "./config/skills/database-schema-designer",
-    "./config/skills/dependency-auditor",
-    "./config/skills/migration-architect",
-    "./config/skills/runbook-generator",
-    "./config/skills/senior-architect",
-    "./config/skills/senior-prompt-engineer",
-    "./config/skills/senior-qa",
-    "./config/skills/ship-gate",
-    "./config/skills/skill-security-auditor",
-    "./config/skills/skill-tester",
-    "./config/skills/spec-driven-workflow",
-    "./config/skills/tdd-guide",
+    "./config/vendored-skills",
     "./docs/history",
     "./tools/vendor",
 ]

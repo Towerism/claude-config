@@ -56,13 +56,14 @@ def make_tree(root: Path, md: str = "# Global\n", overlay: str | None = "Read `r
               hook: bool = True, scenarios: list[dict] | None = None) -> Path:  # fmt: skip
     """A snapshot like the one eval.py extracts from a commit: config/ and eval/.
 
-    It holds one repo skill, SKILL, with the file its overlay names.
+    It holds one repo skill, SKILL, with the file its overlay names. SKILL is
+    senior-qa, an upstream copy, so it sits in the vendored tree as in the repo.
     """
     (root / "config" / "skill-overlays").mkdir(parents=True)
     (root / "config" / "CLAUDE.global.md").write_text(md)
     if overlay is not None:
         (root / "config" / "skill-overlays" / f"{SKILL}.md").write_text(overlay)
-    skill = root / "config" / "skills" / SKILL
+    skill = root / "config" / "vendored-skills" / SKILL
     (skill / "references").mkdir(parents=True)
     (skill / "SKILL.md").write_text(f"---\nname: {SKILL}\n---\n")
     (skill / "references" / "a.md").write_text("a\n")

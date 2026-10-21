@@ -21,7 +21,7 @@ from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
 SKILL, COMPANION = "writing-docs", "plain-prose"
-# Another repo skill: trigger runs list it beside both, behaviour runs don't.
+# A vendored repo skill: trigger runs list it beside both, behaviour runs don't.
 OTHER = "other-skill"
 
 
@@ -46,8 +46,9 @@ def make_head(root: Path, trigger=None, behaviour=None) -> Path:
     (skills / SKILL / "evals").mkdir()
     (skills / SKILL / "evals" / "trigger-evals.json").write_text(json.dumps(trigger or []))
     (skills / SKILL / "evals" / "behaviour-evals.json").write_text(json.dumps(behaviour or []))
-    (skills / OTHER).mkdir()
-    (skills / OTHER / "SKILL.md").write_text(f"---\nname: {OTHER}\ndescription: d\n---\nBody\n")
+    other = root / "config" / "vendored-skills" / OTHER
+    other.mkdir(parents=True)
+    (other / "SKILL.md").write_text(f"---\nname: {OTHER}\ndescription: d\n---\nBody\n")
     return root
 
 
@@ -478,3 +479,39 @@ def test_unwrap_removes_only_one_outer_markdown_fence(text, unwrapped):
 def test_the_skill_in_the_baseline_stops_the_suite(make_ctx):
     with pytest.raises(re_.IsolationError):
         run_reader(make_ctx, [WRITE], FINE, baseline_has_skill=True)
+
+
+def test_the_doc_reader_uses_the_criteria_model_and_the_writers_do_not(make_ctx):
+    _, fake, _ = run_reader(make_ctx, [WRITE], FINE)
+    readers = [c for c in fake.calls if role(c) == "reader"]
+    writers = [c for c in fake.calls if role(c) != "reader"]
+    assert readers and all(c["cmd"][c["cmd"].index("--model") + 1] == "sonnet" for c in readers)
+    assert writers and all("--model" not in c["cmd"] for c in writers)
+
+
+# The smoke tier (#77)
+
+
+def test_a_smoke_doc_trigger_run_asks_each_smoke_query_once_and_that_run_decides(make_ctx):
+    fake = TriggerFake({"a": ["top"], "b": ["none"], "c": ["none"]})
+    ctx = make_ctx(fake, trigger=[trig("a", True), trig("b", False), trig("c", True)])
+    ctx.tier, ctx.smoke = "smoke", (0, 1)
+    result = de.run_doc_trigger(ctx, suite("doc-trigger"))
+    assert sorted(c["stdin"] for c in fake.calls) == ["a", "b"]
+    assert [c["id"] for c in result["cases"]] == ["a", "b"] and result["pass"] is True
+
+
+def test_a_smoke_doc_trigger_run_fails_on_one_miss(make_ctx):
+    fake = TriggerFake({"a": ["none"]})
+    ctx = make_ctx(fake, trigger=[trig("a", True), trig("b", False)])
+    ctx.tier, ctx.smoke = "smoke", (0,)
+    assert de.run_doc_trigger(ctx, suite("doc-trigger"))["pass"] is False
+
+
+def test_a_smoke_doc_reader_run_covers_only_the_smoke_cases(make_ctx):
+    fake = ReaderFake(FINE)
+    ctx = make_ctx(fake, behaviour=[WRITE, REWRITE])
+    ctx.tier, ctx.smoke = "smoke", ("r",)
+    result = de.run_doc_reader(ctx, suite("doc-reader"))
+    assert [c["id"] for c in result["cases"]] == ["r"]
+    assert len(fake.calls) == 4 and result["pass"] is True

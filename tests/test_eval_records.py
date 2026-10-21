@@ -280,6 +280,7 @@ def test_verify_reports_a_missing_record(tmp_path, capsys, monkeypatch):
     monkeypatch.chdir(repo)
     assert er.main(["verify"]) == 1
     assert capsys.readouterr().out == (
+        "hook-merge: needs full, found no record\n"
         "hook-merge: record: eval/records/hook-merge.json is missing\n"
     )
 
@@ -379,7 +380,7 @@ def test_records_for_suites_that_are_not_required_are_ignored(tmp_path):
     repo, base = make_repo(tmp_path)
     write_records(repo, base, ["hook-merge"], result={"pass": False})
     commit(repo, {"docs/readme.md": "x\n"})
-    assert er.verify(repo, "main") == ([], [])
+    assert er.verify(repo, "main") == ([], [], {})
 
 
 def test_a_record_with_hashes_of_the_wrong_shape_counts_as_stale(tmp_path):
@@ -465,6 +466,9 @@ def prose_repo(tmp_path):
         ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("# Body", "# New")},
          ["plain-prose-behaviour", "plain-prose-trigger", "writing-docs-trigger"]),
         ({"config/skills/other-skill/SKILL.md": "---\nname: other-skill\n---\n"},
+         ["plain-prose-trigger", "writing-docs-trigger"]),
+        # The vendored skills are listed in every trigger run too (#75).
+        ({"config/vendored-skills/copied/SKILL.md": "---\nname: copied\n---\n"},
          ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, ["plain-prose-behaviour"]),
     ],

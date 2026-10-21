@@ -20,7 +20,7 @@ from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
 SKILL = "plain-prose"
-# Another repo skill: trigger runs list it beside SKILL, behaviour runs don't.
+# A vendored repo skill: trigger runs list it beside SKILL, behaviour runs don't.
 OTHER = "other-skill"
 
 
@@ -41,8 +41,8 @@ def make_head(root: Path, trigger=None, behaviour=None) -> Path:
         (skill / "scripts" / rel).write_text((src / rel).read_text())
     (skill / "evals" / "trigger-evals.json").write_text(json.dumps(trigger or []))
     (skill / "evals" / "behaviour-evals.json").write_text(json.dumps(behaviour or []))
-    other = root / "config" / "skills" / OTHER
-    other.mkdir()
+    other = root / "config" / "vendored-skills" / OTHER
+    other.mkdir(parents=True)
     (other / "SKILL.md").write_text(f"---\nname: {OTHER}\ndescription: d\n---\nBody\n")
     return root
 
@@ -228,7 +228,7 @@ def test_a_run_error_fails_the_query_even_when_it_should_not_trigger(make_ctx):
 
 def test_trigger_runs_list_every_repo_skill_once_with_only_their_tools_and_no_github(make_ctx):
     _, fake, ctx = run_trigger(make_ctx, [trig("q", True)], {"q": ["top"] * 3})
-    assert len(fake.calls) == 3
+    assert len(fake.calls) == 2
     for call in fake.calls:
         cmd = call["cmd"]
         assert cmd[cmd.index("--tools") + 1] == "Skill,Read,Agent"
@@ -360,6 +360,37 @@ def test_a_failing_case_is_rerun_once_and_the_rerun_counted(make_ctx):
     assert result["rerunsUsed"] == 1 and result["pass"] is True
 
 
+def test_a_smoke_cold_reader_run_covers_only_the_smoke_cases_and_never_reruns(make_ctx):
+    bad = {"correct": 1, "lost": [], "ai": False}
+    plan = {("w", "skill"): [bad, GOOD], ("w", "base"): [BASE, BASE]}
+    fake = ReaderFake(plan)
+    ctx = make_ctx(fake, behaviour=[WRITE, REWRITE])
+    ctx.tier, ctx.smoke = "smoke", ("w",)
+    result = se.run_cold_reader(ctx, suite("cold-reader"))
+    assert [c["id"] for c in result["cases"]] == ["w"]
+    assert result["pass"] is False and result["rerunsUsed"] == 0
+
+
+def test_the_cold_reader_and_judge_use_the_criteria_model_and_the_writers_do_not(make_ctx):
+    _, fake, _ = run_reader(make_ctx, [WRITE], {("w", "skill"): [GOOD], ("w", "base"): [BASE]})
+    grading = ("You are a reader", "You are checking")
+    graders = [c for c in fake.calls if c["stdin"].startswith(grading)]
+    writers = [c for c in fake.calls if not c["stdin"].startswith(grading)]
+    assert graders and all(c["cmd"][c["cmd"].index("--model") + 1] == "sonnet" for c in graders)
+    assert writers and all("--model" not in c["cmd"] for c in writers)
+
+
+def test_the_trigger_recall_bar_comes_from_the_tree_under_test(make_ctx):
+    cases, plan = positives(15, misses=2)
+    fake = TriggerFake(plan)
+    ctx = make_ctx(fake, trigger=cases)
+    bars = json.loads((REPO_ROOT / "eval" / "criteria.json").read_text())
+    bars["trigger"]["recall"] = 1.0
+    (ctx.head_tree / "eval").mkdir(exist_ok=True)
+    (ctx.head_tree / "eval" / "criteria.json").write_text(json.dumps(bars))
+    assert se.run_trigger(ctx, suite("trigger"))["pass"] is False
+
+
 def test_a_rewrite_case_uses_the_draft_as_its_baseline(make_ctx):
     plan = {("r", "skill"): [GOOD], ("r", "base"): [BASE]}
     result, fake, _ = run_reader(make_ctx, [REWRITE], plan)
@@ -470,3 +501,32 @@ def test_an_isolation_failure_cancels_the_runs_still_queued(make_ctx):
     with pytest.raises(re_.IsolationError):
         se.run_trigger(ctx, suite("trigger"))
     assert len(fake.calls) < 60
+
+
+# Two runs per query, a third on a split, and the smoke tier (#77)
+
+
+def test_a_query_runs_twice_when_both_runs_agree_and_three_times_when_they_split(make_ctx):
+    cases = [trig("same", True), trig("split", True)]
+    plan = {"same": ["top", "top", "top"], "split": ["top", "none", "top"]}
+    result, fake, _ = run_trigger(make_ctx, cases, plan)
+    asked = [c["stdin"] for c in fake.calls]
+    assert asked.count("same") == 2 and asked.count("split") == 3
+    assert [c["triggered"] for c in result["cases"]] == [2, 2] and result["pass"] is True
+
+
+def test_a_smoke_trigger_run_asks_each_smoke_query_once(make_ctx):
+    cases = [trig("a", True), trig("b", False), trig("c", True)]
+    fake = TriggerFake({"a": ["top"], "b": ["none"], "c": ["none"]})
+    ctx = make_ctx(fake, trigger=cases)
+    ctx.tier, ctx.smoke = "smoke", (0, 1)
+    result = se.run_trigger(ctx, suite("trigger"))
+    assert sorted(c["stdin"] for c in fake.calls) == ["a", "b"]
+    assert [c["id"] for c in result["cases"]] == ["a", "b"] and result["pass"] is True
+
+
+def test_a_smoke_trigger_run_fails_when_one_smoke_query_misses(make_ctx):
+    fake = TriggerFake({"a": ["none"], "b": ["none"]})
+    ctx = make_ctx(fake, trigger=[trig("a", True), trig("b", False)])
+    ctx.tier, ctx.smoke = "smoke", (0, 1)
+    assert se.run_trigger(ctx, suite("trigger"))["pass"] is False

@@ -1,42 +1,44 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
+  "durationSeconds": 500.0,
   "harness": {
-    "eval/run_eval.py": "d11639952a3ac5c7a301f381ad6691a98803d2ab5d8423f3a5552d730ec83740",
-    "eval/skill_evals.py": "50e1f97105af1e30b5cc92457bb6b0937f5a1f4116e7fceb2c1f4a347d10fd86"
+    "eval/run_eval.py": "361e82a4a48a9662b2cec47cad6a9b24d0e0a3c41838b1c6492a8118f3308014",
+    "eval/skill_evals.py": "5c747abf270869a9f4d44a67744685920fc7dbf283d8274eb139b48650396d0a"
   },
   "inputs": {
-    "config/skills/adversarial-reviewer/SKILL.md": "d69e917a7c84405a18b40bd6e41d5fae9aba966db903171028f86bb5c25f6f94",
-    "config/skills/agent-workflow-designer/SKILL.md": "f1133218f4bc98e1aed526f2e2a60b30c02b6dac18c717a04eac45551242a9dd",
-    "config/skills/api-design-reviewer/SKILL.md": "6b52e013d1131c5ec1d9ed089fbf27129a5fd1c22ab5ca04e56c9e2d7d7a0c32",
-    "config/skills/api-test-suite-builder/SKILL.md": "a0db3fd9004317097c1c9c7ef7da6276a98d205a1c2af79fbbddd72fab976d42",
-    "config/skills/ci-cd-pipeline-builder/SKILL.md": "b9628224a9fe77caca4aedda49a72938147000ab275da92ebccf190c3ba8f161",
-    "config/skills/database-schema-designer/SKILL.md": "a0ffeb5bfc3afadc5606057bae85c07551a9d86b647d8c25101b4108c46fba0d",
-    "config/skills/dependency-auditor/SKILL.md": "4bde5bd43d14b39a9c282f1ab74b202d102b070b99a5083724e84526bc5e2f0a",
     "config/skills/github-issue-lifecycle/SKILL.md": "a6996adb42fd864d1decb776490a04faa60fda10bc389d7c2d3870c185147a05",
     "config/skills/jira-ticket-lifecycle/SKILL.md": "5fedc81d71132dd1d8c9aedf0b2051dca2c96b286e71db00eefb187b5a5c5c16",
     "config/skills/linux-troubleshooting/SKILL.md": "e90977c395ccb1d5d6dd0c15f5567e1ee5f7ec8cadd39ca9f873a83e06b2ad42",
-    "config/skills/migration-architect/SKILL.md": "b262c3b4eea8389b4fb65016734a092a99e096a226662c37efc89bc93c69a77a",
     "config/skills/plain-prose/SKILL.md": "4c107e2444c2a05bbae3d1a8fa78753f0cd0ca6f393ee5ea61580d3328e64051",
     "config/skills/plain-prose/SKILL.md#description": "1e4d12a6f25383d2ec2aef3211ae2c32d711c7717de97152bdcfa72f69f97211",
     "config/skills/plain-prose/evals/trigger-evals.json": "2dde18c4d77ac2f81363d4da0c28ae3bf5e9dc52d0775d7847b582ab9f49db3a",
-    "config/skills/runbook-generator/SKILL.md": "ef426a9b8a04cb766ac002efeaf4907083aff817887c7652c3fbd4258661fa53",
-    "config/skills/senior-architect/SKILL.md": "559d402c361591423b22de37485ad3900b3aba8c437bed1ebf70aa4e828e0e22",
-    "config/skills/senior-prompt-engineer/SKILL.md": "bbf9324400a094eef1a92b076d3e2bd2303bc2962db4dd59157adcc827f7e7ef",
-    "config/skills/senior-qa/SKILL.md": "a67b326aa3dccd186b2d076f7e01a2ce5775537c643bba819f759743d2b6678c",
-    "config/skills/ship-gate/SKILL.md": "05f7eee0d78735f3076fc02c732e4c660f55e2f058922e1ef46280a414294fa5",
-    "config/skills/skill-security-auditor/SKILL.md": "8281b2a45e2ab66d21d45910fa47e02158113e319391d51c60215d39090db686",
-    "config/skills/skill-tester/SKILL.md": "a62efa4e6d596e442083543f86a6bfc5724b0d06a4921d9a31bbc1c5d12e23e0",
-    "config/skills/spec-driven-workflow/SKILL.md": "f4eab8a81a5b908fc7d182994f6bb1076512ed1129da7c00440a3af6ba3ab176",
-    "config/skills/tdd-guide/SKILL.md": "b12e75f376db6a72d0f5a9971c720c04546d02f0ecf68f40fd0efde22e46aa6d",
-    "config/skills/writing-docs/SKILL.md": "a3624df652537f1f65610ffd4ef5e9f8797c96739233b54bdf79736ee226a7a4"
+    "config/skills/writing-docs/SKILL.md": "a3624df652537f1f65610ffd4ef5e9f8797c96739233b54bdf79736ee226a7a4",
+    "config/vendored-skills/adversarial-reviewer/SKILL.md": "d69e917a7c84405a18b40bd6e41d5fae9aba966db903171028f86bb5c25f6f94",
+    "config/vendored-skills/agent-workflow-designer/SKILL.md": "f1133218f4bc98e1aed526f2e2a60b30c02b6dac18c717a04eac45551242a9dd",
+    "config/vendored-skills/api-design-reviewer/SKILL.md": "6b52e013d1131c5ec1d9ed089fbf27129a5fd1c22ab5ca04e56c9e2d7d7a0c32",
+    "config/vendored-skills/api-test-suite-builder/SKILL.md": "a0db3fd9004317097c1c9c7ef7da6276a98d205a1c2af79fbbddd72fab976d42",
+    "config/vendored-skills/ci-cd-pipeline-builder/SKILL.md": "b9628224a9fe77caca4aedda49a72938147000ab275da92ebccf190c3ba8f161",
+    "config/vendored-skills/database-schema-designer/SKILL.md": "a0ffeb5bfc3afadc5606057bae85c07551a9d86b647d8c25101b4108c46fba0d",
+    "config/vendored-skills/dependency-auditor/SKILL.md": "4bde5bd43d14b39a9c282f1ab74b202d102b070b99a5083724e84526bc5e2f0a",
+    "config/vendored-skills/migration-architect/SKILL.md": "b262c3b4eea8389b4fb65016734a092a99e096a226662c37efc89bc93c69a77a",
+    "config/vendored-skills/runbook-generator/SKILL.md": "ef426a9b8a04cb766ac002efeaf4907083aff817887c7652c3fbd4258661fa53",
+    "config/vendored-skills/senior-architect/SKILL.md": "559d402c361591423b22de37485ad3900b3aba8c437bed1ebf70aa4e828e0e22",
+    "config/vendored-skills/senior-prompt-engineer/SKILL.md": "bbf9324400a094eef1a92b076d3e2bd2303bc2962db4dd59157adcc827f7e7ef",
+    "config/vendored-skills/senior-qa/SKILL.md": "a67b326aa3dccd186b2d076f7e01a2ce5775537c643bba819f759743d2b6678c",
+    "config/vendored-skills/ship-gate/SKILL.md": "05f7eee0d78735f3076fc02c732e4c660f55e2f058922e1ef46280a414294fa5",
+    "config/vendored-skills/skill-security-auditor/SKILL.md": "8281b2a45e2ab66d21d45910fa47e02158113e319391d51c60215d39090db686",
+    "config/vendored-skills/skill-tester/SKILL.md": "a62efa4e6d596e442083543f86a6bfc5724b0d06a4921d9a31bbc1c5d12e23e0",
+    "config/vendored-skills/spec-driven-workflow/SKILL.md": "f4eab8a81a5b908fc7d182994f6bb1076512ed1129da7c00440a3af6ba3ab176",
+    "config/vendored-skills/tdd-guide/SKILL.md": "b12e75f376db6a72d0f5a9971c720c04546d02f0ecf68f40fd0efde22e46aa6d",
+    "eval/criteria.json": "ffb2766107b028bcbd214bb6f147ff5f78c397c56b00a422a013f254cb719bd2"
   },
   "models": {
     "arm": "default",
-    "grader": "default"
+    "grader": "none"
   },
-  "ranAt": "2026-10-20T22:27:57Z",
+  "ranAt": "2026-10-21T03:27:00Z",
   "result": {
-    "accuracy": 0.88,
+    "accuracy": 0.92,
     "cases": [
       {
         "delegated": false,
@@ -50,49 +52,49 @@
         "id": "write the commit message for the staged change \u2014 it renames ",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
         "id": "post a comment on issue 214 saying the timezone bug is fixed",
-        "result": "fail",
+        "result": "pass",
         "shouldTrigger": true,
-        "triggered": 0
+        "triggered": 2
       },
       {
         "delegated": false,
         "id": "draft the bug report for this: the nightly backup job silent",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
         "id": "my teammate asked why we chose SQLite over Postgres for the ",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
         "id": "the README's setup section is a wall of text and nobody can ",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": true,
         "id": "Use a subagent to write the PR description for the change th",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": true,
         "id": "Delegate this to a general-purpose subagent: draft the GitHu",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
@@ -113,7 +115,7 @@
         "id": "add input validation to create_invoice() so a negative amoun",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
@@ -127,14 +129,14 @@
         "id": "the retry loop in uploader.py just logs 'err' when an upload",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
         "id": "update the --help text for the export subcommand in cli.py, ",
         "result": "pass",
         "shouldTrigger": true,
-        "triggered": 3
+        "triggered": 2
       },
       {
         "delegated": false,
@@ -216,8 +218,9 @@
     ],
     "falseTriggers": 0,
     "pass": true,
-    "recall": 0.8,
+    "recall": 0.867,
     "turnLimitRuns": 0
   },
-  "suite": "plain-prose-trigger"
+  "suite": "plain-prose-trigger",
+  "tier": "full"
 }

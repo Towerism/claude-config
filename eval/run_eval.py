@@ -18,14 +18,17 @@ quality criteria (v2 spec AC-4).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable
+import threading
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,13 +45,37 @@ CANARY = {"old": "Eval arm marker: CANARY-OLD-5150", "new": "Eval arm marker: CA
 GRADER_MD = "# Grader\nFollow the grading instructions exactly.\n"
 RUBRIC_PLUGIN = "claude-md-management"
 RUBRIC_FILE = Path("skills/claude-md-improver/references/quality-criteria.md")
-RUBRIC_PASS = 80
+# Pass bars, run counts and the grader model (#77). They live in an input, so changing
+# one needs the full tier; a tree without the file falls back to this harness's copy.
+CRITERIA = "eval/criteria.json"
 REASON_LIMIT = 200
 CLAUDE_TIMEOUT = 400
 REMOVED_PLUGINS = (
     "engineering-skills@claude-code-skills",
     "engineering-advanced-skills@claude-code-skills",
 )
+# Repo skills, by tree: the skills maintained here, then the upstream copies (#75).
+SKILL_TREES = ("config/skills", "config/vendored-skills")
+
+
+def eval_criteria(ctx: Context) -> dict[str, Any]:
+    """The tree under test's eval/criteria.json, or this harness's copy when it has none."""
+    path = ctx.head_tree / CRITERIA
+    if not path.is_file():
+        path = Path(__file__).resolve().parent / "criteria.json"
+    data: dict[str, Any] = json.loads(path.read_text())
+    return data
+
+
+def grader_args(ctx: Context) -> list[str]:
+    """The model flag for calls that grade, read or judge, not the arms under test."""
+    return ["--model", str(eval_criteria(ctx)["graderModel"])]
+
+
+def tree_skills(tree: Path) -> list[Path]:
+    """Every skill directory with a SKILL.md in either of `tree`'s skill trees, by name."""
+    found = [p.parent for t in SKILL_TREES for p in (tree / t).glob("*/SKILL.md")]
+    return sorted(found, key=lambda p: p.name)
 
 
 class Refusal(Exception):
@@ -69,6 +96,98 @@ class Context:
     out: Path  # eval/out/<suite>: raw answers, never committed
     head_tree: Path  # the HEAD commit's config/ and eval/, extracted
     base_tree: Path | None  # the merge-base's config/, extracted
+    tier: str = "full"  # "smoke" runs only the smoke cases, once each (#77)
+    smoke: tuple[str | int, ...] = ()  # the suite's smoke cases: ids, or positions
+    cases: tuple[str, ...] | None = None  # a full scenario run's selected ids; None for all
+
+
+def is_smoke(ctx: Context) -> bool:
+    return ctx.tier == "smoke"
+
+
+def tries(ctx: Context, suite: str) -> int:
+    """How many tries a failing case gets: eval/criteria.json's count, or one in smoke."""
+    return 1 if is_smoke(ctx) else int(eval_criteria(ctx)[suite]["tries"])
+
+
+def smoke_pick(
+    ctx: Context, items: list[Any], key: Callable[[Any], str] | None = None
+) -> list[Any]:
+    """The cases a run covers: all of them, or in smoke the ones the suite's list names.
+
+    Without `key`, the list holds 0-based positions; with it, ids that `key` reads.
+    """
+    if not is_smoke(ctx):
+        return items
+    by_id = {key(item): item for item in items} if key else {}
+    picked = []
+    for entry in ctx.smoke:
+        found = by_id.get(str(entry)) if key else (
+            items[entry] if isinstance(entry, int) and entry < len(items) else None
+        )  # fmt: skip
+        if found is None:
+            raise Refusal(f"smoke case {entry!r} is not in the suite's cases")
+        picked.append(found)
+    return picked
+
+
+# Calls open at once, across every suite a run starts (#77). eval.py sets the limit.
+DEFAULT_CALLS = 6
+_calls = threading.BoundedSemaphore(DEFAULT_CALLS)
+_limit = DEFAULT_CALLS
+_stop = threading.Event()
+_procs: set[subprocess.Popen[str]] = set()
+_procs_lock = threading.Lock()
+
+
+def set_call_limit(n: int) -> None:
+    global _calls, _limit
+    _calls, _limit = threading.BoundedSemaphore(n), n
+
+
+def call_limit() -> int:
+    return _limit
+
+
+_block = threading.Lock()
+
+
+@contextlib.contextmanager
+def permits(n: int) -> Iterator[None]:
+    """Hold `n` permits of the call limit together, for a suite that runs its own calls.
+
+    One lock guards taking a block, so two scripts can't each hold part of what the
+    other waits for.
+    """
+    sem = _calls
+    with _block:
+        for _ in range(n):
+            sem.acquire()
+    try:
+        yield
+    finally:
+        for _ in range(n):
+            sem.release()
+
+
+def running() -> int:
+    """How many processes default_runner has started that haven't ended."""
+    with _procs_lock:
+        return len(_procs)
+
+
+def stop_all() -> None:
+    """Stop every running claude process group, and make later calls return at once."""
+    _stop.set()
+    with _procs_lock:
+        procs = list(_procs)
+    for proc in procs:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)
+
+
+def reset_stop() -> None:
+    _stop.clear()
 
 
 def live_home() -> Path:
@@ -89,14 +208,49 @@ def temp_root(repo: Path) -> Path:
     return root
 
 
+def _kill_group(proc: subprocess.Popen[str]) -> None:
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(proc.pid, signal.SIGKILL)
+
+
+def run_tracked(
+    cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float | None
+) -> tuple[int, str, str]:
+    """Run `cmd` in its own process group, where stop_all can end it; (exit code, stdout, stderr).
+
+    The commands are built by this harness from fixed arguments; no shell is involved.
+    A process group lets a timeout or an interrupt end the whole tree the command starts.
+    """
+    proc = subprocess.Popen(  # noqa: S603
+        cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, env=env, cwd=cwd, start_new_session=True,
+    )  # fmt: skip
+    with _procs_lock:
+        _procs.add(proc)
+        if _stop.is_set():  # stop_all ran after this call started but before it was tracked
+            _kill_group(proc)
+    try:
+        out, err = proc.communicate(stdin, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_group(proc)
+        proc.communicate()
+        raise
+    finally:
+        with _procs_lock:
+            _procs.discard(proc)
+    return proc.returncode, out, err
+
+
 def default_runner(
     cmd: list[str], stdin: str, env: dict[str, str], cwd: Path, timeout: float
 ) -> tuple[int, str]:
-    # The command is built by this harness from fixed arguments; no shell is involved.
-    out = subprocess.run(  # noqa: S603
-        cmd, input=stdin, text=True, capture_output=True, env=env, cwd=cwd, timeout=timeout
-    )
-    return out.returncode, out.stdout
+    code, out, _ = run_tracked(cmd, stdin, env, cwd, timeout)
+    return code, out
+
+
+def stopped() -> bool:
+    """Whether stop_all has run since the last reset_stop."""
+    return _stop.is_set()
 
 
 def make_config_dir(ctx: Context, name: str, claude_md: str) -> Path:
@@ -150,7 +304,10 @@ def run_claude(
     inherited = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
     env = {**inherited, **(extra_env or {}), "CLAUDE_CONFIG_DIR": str(cfg)}
     try:
-        return ctx.runner(["claude", *args], prompt, env, cwd, timeout)
+        with _calls:
+            if _stop.is_set():
+                return -1, "<stopped>"
+            return ctx.runner(["claude", *args], prompt, env, cwd, timeout)
     except (subprocess.TimeoutExpired, OSError) as e:
         return -1, f"<run error: {e}>"
     finally:
@@ -182,8 +339,8 @@ def overlay_text(ctx: Context, tree: Path, skill: str) -> str | None:
         # Repo skills come from the tree, so a branch's overlays resolve before it is
         # deployed. The plugins stay linked for older trees whose overlays are namespaced.
         (home / "skills").mkdir()
-        for skill_md in sorted((tree / "config" / "skills").glob("*/SKILL.md")):
-            (home / "skills" / skill_md.parent.name).symlink_to(skill_md.parent)
+        for skill_dir in tree_skills(tree):
+            (home / "skills" / skill_dir.name).symlink_to(skill_dir)
         (home / "plugins").symlink_to(ctx.live / "plugins")
         payload = {"hook_event_name": "PostToolUse", "tool_name": "Skill",
                    "tool_input": {"skill": skill}}  # fmt: skip
@@ -253,15 +410,15 @@ def grade(ctx: Context, grader: Path, sc: dict[str, Any], answer: str, arm: str)
         f"SCENARIO:\n{sc['prompt']}\n\nANSWER:\n{answer}\n\n"
         f"CRITERIA:\n{json.dumps(crit, indent=1)}\n"
     )
-    return score_grade(claude(ctx, grader, prompt), crit)
+    return score_grade(claude(ctx, grader, prompt, model=grader_args(ctx)[1]), crit)
 
 
 def run_case(
     ctx: Context, arm_dir: Path, arm: str, grader: Path, sc: dict[str, Any], prefix: str
 ) -> dict[str, Any]:
-    """One scenario on one arm, re-run once on failure (v2 spec EC-8)."""
+    """One scenario on one arm, re-run once on failure (v2 spec EC-8), never in smoke."""
     attempts = []
-    for _ in range(2):
+    for _ in range(tries(ctx, "scenario")):
         answer = claude(ctx, arm_dir, PREAMBLE + prefix + sc["prompt"], model=ctx.model)
         graded = grade(ctx, grader, sc, answer, arm)
         attempts.append({"answer": answer, **graded})
@@ -300,6 +457,20 @@ def summarize(results: list[dict[str, Any]], scenarios: list[dict[str, Any]]) ->
     }
 
 
+def summarize_smoke(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """A smoke run's result: every smoke scenario passes on the new arm, which runs alone."""
+    cases = [
+        {"id": r["id"], "new": "pass" if r["pass"] else "fail",
+         "graderReason": r["attempts"][-1]["reason"][:REASON_LIMIT]}
+        for r in results
+    ]  # fmt: skip
+    return {
+        "pass": all(r["pass"] for r in results),
+        "rerunsUsed": 0,
+        "cases": cases,
+    }
+
+
 def probe(ctx: Context, arms: dict[str, Path]) -> None:
     """Stop the run unless each arm's answer shows its own canary and not the other's."""
     question = "Without tools: quote every line in your instructions containing 'Eval arm marker'."
@@ -315,10 +486,19 @@ def probe(ctx: Context, arms: dict[str, Path]) -> None:
 
 
 def run_scenario(ctx: Context) -> dict[str, Any]:
-    if ctx.base_tree is None or not (ctx.base_tree / "config" / "CLAUDE.global.md").is_file():
-        raise Refusal("the merge-base has no config/CLAUDE.global.md to compare against")
-    trees = {"old": ctx.base_tree, "new": ctx.head_tree}
-    scenarios = json.loads((ctx.head_tree / "eval" / "scenarios.json").read_text())
+    """Each scenario on the merge-base's arm and HEAD's; in smoke, the smoke ones on HEAD's."""
+    smoke = is_smoke(ctx)
+    trees: dict[str, Path] = {"new": ctx.head_tree}
+    if not smoke:
+        base = ctx.base_tree
+        if base is None or not (base / "config" / "CLAUDE.global.md").is_file():
+            raise Refusal("the merge-base has no config/CLAUDE.global.md to compare against")
+        trees = {"old": base, "new": ctx.head_tree}
+    every = json.loads((ctx.head_tree / "eval" / "scenarios.json").read_text())
+    scenarios = smoke_pick(ctx, every, key=lambda sc: str(sc["id"]))
+    if not smoke and ctx.cases is not None:
+        # Only the scenarios the change can affect (#77's cost cuts).
+        scenarios = [sc for sc in scenarios if str(sc["id"]) in ctx.cases]
     ctx.out.mkdir(parents=True, exist_ok=True)
     dirs: list[Path] = []
     try:
@@ -331,9 +511,9 @@ def run_scenario(ctx: Context) -> dict[str, Any]:
         dirs.append(grader)
         probe(ctx, arms)
         jobs = [
-            (arms[name], name, sc, overlay_prefix(ctx, trees[name], sc["loadsSkills"]))
+            (arms[name], name, sc, overlay_prefix(ctx, tree, sc["loadsSkills"]))
             for sc in scenarios
-            for name in ("old", "new")
+            for name, tree in trees.items()
         ]
         with ThreadPoolExecutor(ctx.workers) as ex:
             results = list(ex.map(lambda j: run_case(ctx, j[0], j[1], grader, j[2], j[3]), jobs))
@@ -341,7 +521,9 @@ def run_scenario(ctx: Context) -> dict[str, Any]:
     finally:
         for d in dirs:
             remove_config_dir(d)
-    return summarize(results, scenarios)
+    if smoke:
+        return summarize_smoke(results)
+    return {**summarize(results, scenarios), "selectedCases": [str(sc["id"]) for sc in scenarios]}
 
 
 def find_rubric(live: Path) -> Path:
@@ -373,6 +555,7 @@ def parse_rubric(raw: str) -> int | None:
 def run_rubric(ctx: Context) -> dict[str, Any]:
     """Score HEAD's CLAUDE.md; at least 80 passes, with one re-run allowed (v2 spec AC-4)."""
     rubric = find_rubric(ctx.live).read_text()
+    bar = int(eval_criteria(ctx)["rubric"]["pass"])
     md = (ctx.head_tree / "config" / "CLAUDE.global.md").read_text()
     prompt = (
         "Score this global CLAUDE.md (a user-wide file, not a project file) against the rubric "
@@ -386,17 +569,17 @@ def run_rubric(ctx: Context) -> dict[str, Any]:
     replies: list[str] = []
     scores: list[int | None] = []
     try:
-        for _ in range(2):
+        for _ in range(tries(ctx, "rubric")):
             reply = claude(ctx, grader, prompt)
             replies.append(reply)
             scores.append(parse_rubric(reply))
-            if (scores[-1] or 0) >= RUBRIC_PASS:
+            if (scores[-1] or 0) >= bar:
                 break
     finally:
         remove_config_dir(grader)
     (ctx.out / "rubric.json").write_text(json.dumps(replies, indent=1))
     return {
-        "pass": (scores[-1] or 0) >= RUBRIC_PASS,
+        "pass": (scores[-1] or 0) >= bar,
         "scores": scores,
         "rerunsUsed": len(scores) - 1,
         "cases": [],

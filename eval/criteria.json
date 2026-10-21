@@ -1,0 +1,34 @@
+{
+  "graderModel": "sonnet",
+  "rubric": {
+    "pass": 80,
+    "tries": 2
+  },
+  "scenario": {
+    "tries": 2
+  },
+  "trigger": {
+    "recall": 0.7,
+    "firstRuns": 2,
+    "needed": 2,
+    "maxTurns": 4
+  },
+  "coldReader": {
+    "tries": 2
+  },
+  "docTrigger": {
+    "firstRuns": 2,
+    "needed": 2,
+    "ordinaryTurns": 3,
+    "delegatedTurns": 4
+  },
+  "docReader": {
+    "rightShare": 0.9
+  },
+  "hooks": {
+    "tries": 2,
+    "timingRuns": 20,
+    "smokeTimingRuns": 5,
+    "p95LimitMs": 500
+  }
+}

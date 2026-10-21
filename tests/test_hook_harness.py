@@ -135,7 +135,8 @@ def test_the_canary_home_links_the_trees_skill_and_not_the_live_one(ctx):
     try:
         linked = home / "skills" / hh.SKILL
         assert linked.is_symlink()
-        assert linked.resolve() == (ctx.head_tree / "config" / "skills" / hh.SKILL).resolve()
+        tree_skill = ctx.head_tree / "config" / "vendored-skills" / hh.SKILL
+        assert linked.resolve() == tree_skill.resolve()
     finally:
         import shutil
 
@@ -152,16 +153,16 @@ def test_every_overlay_run_has_a_copy_of_the_trees_canary_skill(ctx):
 
     ctx.runner = runner
     hh.run_overlay(ctx, timer=fixed_timer(30.0))
-    tree_md = (ctx.head_tree / "config" / "skills" / hh.SKILL / "SKILL.md").read_text()
+    tree_md = (ctx.head_tree / "config" / "vendored-skills" / hh.SKILL / "SKILL.md").read_text()
     assert copies and set(copies) == {(False, tree_md)}
 
 
 def test_a_tree_without_the_canary_skill_stops_the_overlay_check(ctx):
     import shutil
 
-    shutil.rmtree(ctx.head_tree / "config" / "skills" / hh.SKILL)
+    shutil.rmtree(ctx.head_tree / "config" / "vendored-skills" / hh.SKILL)
     ctx.runner = OverlayFake()
-    with pytest.raises(re_.Refusal, match="senior-qa"):
+    with pytest.raises(re_.Refusal, match="config/vendored-skills/senior-qa"):
         hh.run_overlay(ctx, timer=fixed_timer(30.0))
     assert leftovers(ctx.root) == []
 
@@ -395,3 +396,28 @@ def test_the_stub_gh_prints_nothing_for_other_commands(tmp_path):
     done, calls = run_stub_gh(tmp_path, "pr", "view", "5")
     assert (done.returncode, done.stdout) == (0, "")
     assert calls == ["pr view 5"]
+
+
+# The smoke tier (#77)
+
+
+def test_a_smoke_overlay_check_skips_the_subagent_and_times_five_runs(ctx):
+    timed = []
+    ctx.runner, ctx.tier = OverlayFake(), "smoke"
+    result = hh.run_overlay(ctx, timer=lambda hook, home, runs: timed.append(runs) or [30.0] * runs)
+    assert [c["id"] for c in result["cases"]] == ["main", "control", "p95"]
+    assert timed == [5] and result["pass"] is True
+
+
+def test_a_smoke_overlay_check_does_not_rerun_a_failure(ctx):
+    ctx.runner, ctx.tier = OverlayFake({"main": ["silent", "ok"]}), "smoke"
+    result = hh.run_overlay(ctx, timer=fixed_timer(30.0))
+    assert result["pass"] is False and result["rerunsUsed"] == 0
+
+
+def test_a_smoke_merge_check_does_not_rerun_a_failure(ctx):
+    fake = MergeFake(hook=())
+    ctx.runner, ctx.tier = fake, "smoke"
+    result = hh.run_merge(ctx)
+    assert result["pass"] is False and result["rerunsUsed"] == 0
+    assert len(fake.calls) == 2

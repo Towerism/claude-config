@@ -2,7 +2,7 @@
 
 This runbook is for the owner, or anyone setting up a machine for them. It covers running claude-config day to day: setting up a clone, deploying, handling drift, rolling back and undoing, and adding a second machine. Most of it changes your live Claude Code config in `~/.claude`; each section says when it does. To learn the commands without touching anything live, start with [Practice on a trial directory](#practice-on-a-trial-directory).
 
-**Last verified:** 2026-10-20, against commit `a7e70be` and Claude Code 2.1.304, when [Setting up the work machine](#setting-up-the-work-machine) ran on the work machine's live config. The rest was last verified on 2026-10-19, against commit `80285b7` and Claude Code 2.1.299, where every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
+**Last verified:** 2026-10-20, against commit `a7e70be` and Claude Code 2.1.304, when [Setting up the work machine](#setting-up-the-work-machine) ran on the work machine's live config. [The first deploy after the vendored skills moved](#the-first-deploy-after-the-vendored-skills-moved-75) was checked the same day on a `--target` trial directory, against #75's branch. The rest was last verified on 2026-10-19, against commit `80285b7` and Claude Code 2.1.299, where every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
 
 Why things work this way is in the [architecture overview](architecture/README.md) and the ADRs it links. This page only says what to type and what to expect.
 
@@ -104,9 +104,27 @@ If the change adds a plugin to your host profile, install it before deploying. #
 
    Expect `status: clean (release <sha>)` and exit 0. Anything else is described in [Drift](#drift).
 
+### The first deploy after the vendored skills moved (#75)
+
+#75 moved the 17 skills copied from upstream from `config/skills/` to `config/vendored-skills/`, so a skill's tree shows whether it may be edited by hand. Nothing changes in `~/.claude`: each skill is still `~/.claude/skills/<name>`, with the same files. Only the link's text changes, from `…/current/config/skills/<name>` to `…/current/config/vendored-skills/<name>`.
+
+Deploy as in [An ordinary deploy](#an-ordinary-deploy-after-a-change-merges). The change list holds one line for each moved skill, 17 in all, and nothing else unless the merge brought other changes:
+
+```text
+cfg deploy would:
+  back up and link skills/adversarial-reviewer (foreign-link)
+  ...
+  back up and link skills/tdd-guide (foreign-link)
+  switch current from <old sha> to <new sha>
+```
+
+`foreign-link` is expected here: the old link points where the last release put it, which isn't where this release puts it. The deploy backs up each old link and makes the new one, with no conflict. Then `status` says `clean`.
+
+On 2026-10-20 this ran on a `--target` trial directory: `origin/main` at `258accc`, then #75's branch with `--ref`. The change list was the 17 lines above, `status` said `clean`, and the 305 files behind the 22 skill links had the same hashes before and after.
+
 ### Moving off the claude-code-skills plugins (#62)
 
-Do this once on each machine, with the first deploy that includes #62's PR 1. That deploy stops enabling `engineering-skills@claude-code-skills` and `engineering-advanced-skills@claude-code-skills` and links the 17 skills copied into `config/skills/` in their place. The plugins stay installed until you uninstall them, and until then a session may list both copies.
+Do this once on each machine, with the first deploy that includes #62's PR 1. That deploy stops enabling `engineering-skills@claude-code-skills` and `engineering-advanced-skills@claude-code-skills` and links the 17 skills copied into `config/skills/` in their place. Since #75 those skills live in `config/vendored-skills/`; see [The first deploy after the vendored skills moved](#the-first-deploy-after-the-vendored-skills-moved-75). The plugins stay installed until you uninstall them, and until then a session may list both copies.
 
 1. Deploy as in [An ordinary deploy](#an-ordinary-deploy-after-a-change-merges): run it without `--yes`, read the change list, then run it with `--yes`. The list adds 17 `skills/<name>` links and changes `settings.json`, whose `enabledPlugins` loses the two plugins.
 
@@ -211,6 +229,34 @@ The first deploy compares every managed path and owned setting with the repo, an
 ### The first deploy on an empty machine
 
 The flow is the same, but nothing stops: every path is `missing` and the settings are `missing-live`. Install the plugins first (see [Setting up a second machine](#setting-up-a-second-machine)). Before switching, the deploy runs each hook on sample input, and without the plugins that test fails with a traceback from `skill_overlay.py` and changes nothing (exit 2).
+
+## Running the evals before a PR
+
+Run the model evals on this machine, on a clean tree, after the last commit that touches a suite's inputs or harness. A later commit to one of those files makes the records stale.
+
+```sh
+python3 -I tools/cfg/eval_records.py verify
+TMPDIR=/tmp python3 -I tools/cfg/eval.py
+```
+
+`verify` lists each suite the branch needs, as `<suite>: needs smoke, found ...` or `<suite>: needs full, found ...`. `eval.py` then runs those suites, each in the tier it needs:
+
+- A suite whose committed record still verifies is skipped, with `<suite>: record still valid, nothing to run`. That covers a skill moved between `config/skills/` and `config/vendored-skills/` with no change to its files.
+- An edit to a suite's harness alone (the `eval/*.py` files its gate lists) gets the smoke tier: a few named cases, once each. `tools/cfg/eval.py` and `tools/cfg/eval_records.py` are in no suite's harness, so an edit to them requires no suite; their unit tests cover them.
+- A change to what a suite reads, including a pass bar or the grader model in `eval/criteria.json`, gets the full tier. The full `scenario` run covers only the scenarios the change can affect, and says when a changed overlay is loaded by no scenario.
+- The three hook suites also run in full when your Claude Code version differs from the one their record ran on, with `<suite>: Claude Code is ..., its record ran on ...; running it`. CI can't see your version, so run `eval.py` after a Claude Code update even when `verify` is clean.
+
+All suites run at once, and `--workers N` sets how many `claude` calls may be open at the same time (default 6). Graders, judges and readers use the model `eval/criteria.json` names; the scenario arms use `--model`, or the default, and every other run uses the default.
+
+The output ends with each suite's verdict, tier and time, and the run's total:
+
+```text
+### hook-merge: pass (smoke, 21.4 s)
+...
+elapsed: 48.2 s (budget 60 s)
+```
+
+The budget is 60 s when every suite ran smoke and 180 s otherwise. A total over it adds `over budget`, which doesn't fail the run; report it in the PR. Because the suites run together, a refusal in one of them, such as a missing plugin, stops them all and exits 2; suites that finished first keep their records. Ctrl-C stops every running `claude` and writes no record for a suite still running. To run every suite in the full tier anyway, add `--tier full`. Commit the records in `eval/records/` and paste the printed summary into the PR.
 
 ## Drift
 

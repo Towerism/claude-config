@@ -1,17 +1,20 @@
 {
   "claudeVersion": "2.1.299 (Claude Code)",
+  "durationSeconds": 111.1,
   "harness": {
-    "eval/hook_harness.py": "62a5307e56d4be18e4b7cf9aa8826f667f1887613a9530714c82f96f0b795258"
+    "eval/hook_harness.py": "fdebc55cb5cd0affcfc737f13438792d1aaab7dfa79550f6c8265801b9239c4d",
+    "eval/run_eval.py": "361e82a4a48a9662b2cec47cad6a9b24d0e0a3c41838b1c6492a8118f3308014"
   },
   "inputs": {
     "config/hooks/merge_confirm.py": "c944a089d826c57699a7b6ed95dd94093063b96ebb9e9df4a71154a804c4f5be",
-    "config/settings.fragment.json#/hooks/PreToolUse": "37dc746be140458dac07f895f75176212005506abdb8c7226ce05f58223f415d"
+    "config/settings.fragment.json#/hooks/PreToolUse": "37dc746be140458dac07f895f75176212005506abdb8c7226ce05f58223f415d",
+    "eval/criteria.json": "ffb2766107b028bcbd214bb6f147ff5f78c397c56b00a422a013f254cb719bd2"
   },
   "models": {
     "arm": "default",
-    "grader": "default"
+    "grader": "none"
   },
-  "ranAt": "2026-10-20T22:27:57Z",
+  "ranAt": "2026-10-21T03:27:00Z",
   "result": {
     "cases": [
       {
@@ -26,5 +29,6 @@
     "pass": true,
     "rerunsUsed": 0
   },
-  "suite": "hook-merge"
+  "suite": "hook-merge",
+  "tier": "full"
 }

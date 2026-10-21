@@ -1,7 +1,7 @@
 """Run the eval suites a branch needs and write their records: `cfg eval`.
 
     python3 -I tools/cfg/eval.py [--suite <name>[,<name>...]] [--base origin/main]
-                                 [--model <id>] [--workers N]
+                                 [--model <id>] [--workers N] [--tier auto|full]
 
 Model evals run only on the owner's machine (ADR-0005). This refuses a dirty
 working tree, works out from eval/gates.json which suites the branch needs
@@ -9,6 +9,14 @@ working tree, works out from eval/gates.json which suites the branch needs
 commit and the merge-base, writes eval/records/<suite>.json, and prints a
 markdown summary for the PR body. It never commits. Raw answers go to
 eval/out/<suite>/, which git ignores.
+
+Each suite runs in the tier the diff needs (#77): the smoke tier, which covers
+a few named cases once each, when nothing that could move its result changed,
+and the full tier otherwise; --tier full forces the full tier. All suites run
+at the same time, and --workers caps the claude calls open at once across all
+of them. The summary gives each suite's time and the run's total against its
+budget, 60 s for smoke and 180 s for full; a run over budget is reported and
+still passes or fails on its results.
 
 Exit codes: 0 every suite passed or none was needed; 1 a suite failed, an
 isolation probe failed, or HEAD moved during a run (no record is written for
@@ -29,7 +37,9 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +52,13 @@ from eval import doc_evals, hook_harness, run_eval, session_harness, skill_evals
 from tools.cfg import eval_records as er  # noqa: E402
 
 SuiteRunner = Callable[[run_eval.Context, er.Suite], dict[str, Any]]
+# The owner's limits for a whole run (#77), in seconds of wall time. A run over its
+# budget is reported, and passes or fails on its results alone.
+SMOKE_BUDGET = 60
+FULL_BUDGET = 180
+# A script suite takes this many permits from the shared limit, or fewer when the
+# limit is lower: the lower of the lifecycle runners' own defaults.
+SCRIPT_WORKERS = 4
 SUMMARY_KEYS = (
     "regressions",
     "newRuleFailures",
@@ -103,20 +120,20 @@ def run_script_suite(ctx: run_eval.Context, suite: er.Suite) -> dict[str, Any]:
         raise run_eval.Refusal("a script suite needs a script")
     ctx.out.mkdir(parents=True, exist_ok=True)
     results = ctx.out / "results.json"
+    workers = min(SCRIPT_WORKERS, run_eval.call_limit())
     cmd = [sys.executable, "-I", str(ctx.head_tree / suite.script), "--out", str(results)]
+    cmd += ["--workers", str(workers)]
     if ctx.model:
         cmd += ["--model", ctx.model]
-    # The script is the skill's committed eval runner, taken from the HEAD commit.
-    out = subprocess.run(  # noqa: S603
-        cmd,
-        capture_output=True,
-        text=True,
-        cwd=ctx.root,
-        env={**os.environ, "TMPDIR": str(ctx.root)},
-        check=False,
-    )
-    (ctx.out / "stdout.txt").write_text(out.stdout + out.stderr)
-    return {"pass": out.returncode == 0, "exitCode": out.returncode, "cases": script_cases(results)}
+    # The script is the skill's committed eval runner, taken from the HEAD commit. It
+    # holds its share of the shared limit on claude calls while it runs.
+    with run_eval.permits(workers):
+        if run_eval.stopped():  # interrupted while waiting for its permits
+            return {"pass": False, "exitCode": -1, "cases": []}
+        env = {**os.environ, "TMPDIR": str(ctx.root)}
+        code, out, err = run_eval.run_tracked(cmd, "", env, ctx.root, None)
+    (ctx.out / "stdout.txt").write_text(out + err)
+    return {"pass": code == 0, "exitCode": code, "cases": script_cases(results)}
 
 
 RUNNERS: dict[str, SuiteRunner] = {
@@ -159,9 +176,10 @@ def _cell(text: object) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def summary(name: str, result: dict[str, Any]) -> str:
+def summary(name: str, result: dict[str, Any], label: str = "") -> str:
     """A markdown section for the PR body: the verdict, key figures and the per-case table."""
-    lines = [f"### {name}: {'pass' if result.get('pass') else 'FAIL'}", ""]
+    verdict = "pass" if result.get("pass") else "FAIL"
+    lines = [f"### {name}: {verdict}" + (f" ({label})" if label else ""), ""]
     for key in SUMMARY_KEYS:
         if key in result:
             value = result[key]
@@ -182,14 +200,105 @@ def summary(name: str, result: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _positive(text: str) -> int:
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"must be at least 1, not {value}")
+    return value
+
+
 def _parse(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--suite", help="comma-separated suites to run instead of the required ones")
     ap.add_argument("--base", default="origin/main", help="branch to compare against")
-    ap.add_argument("--model", help="model for the scenario arms (the grader keeps the default)")
-    ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument(
+        "--model",
+        help="model for the scenario arms; graders, judges and readers use the model "
+        "eval/criteria.json names",
+    )
+    ap.add_argument(
+        "--workers",
+        type=_positive,
+        default=run_eval.DEFAULT_CALLS,
+        help="most claude calls open at once, across all suites "
+        f"(default {run_eval.DEFAULT_CALLS})",
+    )
+    ap.add_argument(
+        "--tier",
+        choices=("auto", "full"),
+        default="auto",
+        help="auto: the tier the diff needs for each suite; full: the full tier for every suite",
+    )
     ap.add_argument("--no-record", action="store_true", help=argparse.SUPPRESS)
     return ap.parse_args(argv)
+
+
+def smoke_problems(repo: Path, head: str, name: str, suite: er.Suite) -> list[str]:
+    """Smoke cases that aren't in the suite's case file at HEAD, each named."""
+    path = suite.cases or ("eval/scenarios.json" if suite.runner == "scenario" else None)
+    blob = er.read_blob(repo, head, path) if path and suite.smoke else None
+    try:
+        cases = json.loads(blob) if blob is not None else None
+    except ValueError:
+        cases = None
+    if not isinstance(cases, list):
+        return [f"{name}: no case file to take its smoke cases from"] if suite.smoke else []
+    ids = {str(c.get("id")) for c in cases if isinstance(c, dict)}
+    return [
+        f"{name}: smoke case {entry!r} is not in {path}"
+        for entry in suite.smoke
+        if (entry >= len(cases) if isinstance(entry, int) else entry not in ids)
+    ]
+
+
+# Suites whose verdict a grading call decides, on the criteria file's model (#77).
+GRADED = {"scenario", "cold-reader", "doc-reader"}
+CRITERIA_KEYS = (
+    "graderModel", "rubric.pass", "rubric.tries", "scenario.tries", "trigger.recall",
+    "trigger.firstRuns", "trigger.needed", "trigger.maxTurns", "coldReader.tries",
+    "docTrigger.firstRuns", "docTrigger.needed", "docTrigger.ordinaryTurns",
+    "docTrigger.delegatedTurns", "docReader.rightShare", "hooks.tries", "hooks.timingRuns",
+    "hooks.smokeTimingRuns", "hooks.p95LimitMs",
+)  # fmt: skip
+
+
+def grader_for(suite: er.Suite, meta: dict[str, Any]) -> str:
+    """Which model graded a suite: the criteria file's, the default for rubric, or none."""
+    if suite.runner in GRADED:
+        return str(meta["models"]["grader"])
+    return "default" if suite.runner == "rubric" else "none"
+
+
+def _criteria_text(repo: Path, head: str) -> str:
+    blob = er.read_blob(repo, head, run_eval.CRITERIA)
+    if blob is not None:
+        return blob.decode()
+    return (Path(run_eval.__file__).parent / "criteria.json").read_text()
+
+
+def criteria_problems(repo: Path, head: str) -> list[str]:
+    """The keys the harness reads that HEAD's criteria file lacks, so a run can't stop halfway."""
+    try:
+        data = json.loads(_criteria_text(repo, head))
+    except ValueError:
+        return ["valid JSON"]
+    missing = []
+    for key in CRITERIA_KEYS:
+        node = data
+        for part in key.split("."):
+            node = node.get(part) if isinstance(node, dict) else None
+        if node is None:
+            missing.append(key)
+    return missing
+
+
+def grader_model(repo: Path, head: str) -> str:
+    """The grader model HEAD's eval/criteria.json names, or the harness copy's."""
+    return str(json.loads(_criteria_text(repo, head))["graderModel"])
+
+
+def tier_label(tier: str, seconds: float) -> str:
+    return f"{tier}, {seconds:.1f} s"
 
 
 def main(
@@ -200,7 +309,9 @@ def main(
     version: Callable[[], str] = claude_version,
     clock: Callable[[], str] = utc_now,
     which: Callable[[str], str | None] = shutil.which,
+    timer: Callable[[], float] = time.monotonic,
 ) -> int:
+    started = timer()
     args = _parse(argv)
     runners = {**RUNNERS, **(runners or {})}
     try:
@@ -214,9 +325,49 @@ def main(
         unknown = [n for n in names if n not in suites]
         if unknown:
             raise er.GatesError(f"unknown suite: {', '.join(unknown)}")
+        bad = criteria_problems(repo, head)
+        if bad:
+            raise run_eval.Refusal(f"{run_eval.CRITERIA} is missing {', '.join(bad)}")
+        # A version-gated suite, such as a hook suite, also runs when Claude Code changed
+        # since its record, which CI can't see (#77's cost cuts). With --suite, only the
+        # named suites are checked; without claude on PATH, none are (it's refused below).
+        installed = version() if which("claude") else None
+        newer = []
+        candidates = names if args.suite else sorted(er.gates_at(repo, head))
+        for n in candidates:
+            ran = (er.read_record(repo, n, head) or {}).get("claudeVersion")
+            gated = suites[n].version_gated and installed is not None
+            if gated and ran is not None and ran != installed:
+                print(f"{n}: Claude Code is {installed}, its record ran on {ran}; running it")
+                newer.append(n)
+        names = sorted(set(names) | set(newer))
         if not names:
             print("no eval suites required")
             return 0
+        needed = {
+            n: ("full", "Claude Code changed")
+            if n in newer
+            else er.needed_tier(repo, n, base, head)
+            for n in names
+        }
+        if not args.suite and args.tier != "full":
+            # A record that still verifies needs no run, such as one whose inputs only
+            # moved to equivalent paths (#77's cost cuts).
+            valid = [
+                n for n in names
+                if n not in newer
+                and not er.check_record(repo, n, suites[n], head, base, needed[n][1])
+            ]  # fmt: skip
+            for n in valid:
+                print(f"{n}: record still valid, nothing to run")
+            names = [n for n in names if n not in valid]
+            if not names:
+                return 0
+        tiers = {n: "full" if args.tier == "full" else needed[n][0] for n in names}
+        smoke = [n for n in names if tiers[n] == "smoke"]
+        bad = [p for n in smoke for p in smoke_problems(repo, head, n, suites[n])]
+        if bad:
+            raise run_eval.Refusal("; ".join(bad))
         if which("claude") is None:
             raise run_eval.Refusal("claude is not on PATH")
         live = run_eval.live_home()
@@ -227,18 +378,36 @@ def main(
         print(f"eval: {e}", file=sys.stderr)
         return 2
 
-    meta = {
+    meta: dict[str, Any] = {
         "ranAt": clock(),
-        "claudeVersion": version(),
-        "models": {"arm": args.model or "default", "grader": "default"},
+        "claudeVersion": installed or version(),
+        "models": {"arm": args.model or "default", "grader": grader_model(repo, head)},
     }
+    run_eval.set_call_limit(args.workers)
+    # Cleared here only: after an interrupt it stays set, so no queued call starts.
+    run_eval.reset_stop()
     trees = Path(tempfile.mkdtemp(prefix="eval-trees.", dir=root))
-    sections, code = [], 0
+    sections: dict[str, str] = {}
+    code = 0
     try:
         extract(repo, head, trees / "head", ["config", "eval"])
         has_base = extract(repo, base, trees / "base", ["config"])
-        for name in names:
+
+        # The full scenario run covers only the scenarios the change can affect (#77).
+        selected: dict[str, tuple[str, ...] | None] = {}
+        notes: dict[str, str] = {}
+        for n in names:
+            if suites[n].runner == "scenario" and tiers[n] == "full" and args.tier != "full":
+                picked, unloaded = er.scenario_selection(repo, n, suites[n], base, head)
+                selected[n] = None if picked is None else tuple(picked)
+                if unloaded:
+                    notes[n] = f"- no scenario loads {', '.join(unloaded)}\n"
+
+        def one(name: str) -> tuple[dict[str, Any], float, bool]:
             suite = suites[name]
+            if selected.get(name) == ():
+                moved = er.resolve_commit(repo, "HEAD") != head
+                return {"pass": True, "cases": [], "selectedCases": []}, 0.0, moved
             ctx = run_eval.Context(
                 live=live,
                 root=root,
@@ -248,35 +417,69 @@ def main(
                 out=repo / "eval" / "out" / name,
                 head_tree=trees / "head",
                 base_tree=trees / "base" if has_base else None,
+                tier=tiers[name],
+                smoke=suite.smoke,
+                cases=selected.get(name),
             )
+            begun = timer()
+            result = runners[suite.runner](ctx, suite)
+            moved = er.resolve_commit(repo, "HEAD") != head
+            return result, timer() - begun, moved
+
+        with ThreadPoolExecutor(len(names)) as pool:
+            futures = {pool.submit(one, name): name for name in names}
             try:
-                result = runners[suite.runner](ctx, suite)
-            except run_eval.IsolationError as e:
-                sections.append(f"### {name}: isolation failed, no record\n\n{e}\n")
-                code = max(code, 1)
-                continue
-            if er.resolve_commit(repo, "HEAD") != head:
-                sections.append(f"### {name}: HEAD moved during the run, no record written\n")
-                code = max(code, 1)
-                continue
-            if not args.no_record:
-                record = er.build_record(repo, name, suite, head, base, result, meta)
-                path = repo / er.RECORDS_DIR / f"{name}.json"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(er.dump_record(record))
-            sections.append(summary(name, result))
-            if not result.get("pass"):
-                code = max(code, 1)
+                for future in as_completed(futures):
+                    name = futures[future]
+                    try:
+                        result, seconds, moved = future.result()
+                    except run_eval.IsolationError as e:
+                        sections[name] = f"### {name}: isolation failed, no record\n\n{e}\n"
+                        code = max(code, 1)
+                        continue
+                    if moved:
+                        sections[name] = f"### {name}: HEAD moved during the run, no record\n"
+                        code = max(code, 1)
+                        continue
+                    if not args.no_record:
+                        models = {**meta["models"], "grader": grader_for(suites[name], meta)}
+                        record = er.build_record(
+                            repo, name, suites[name], head, base, result,
+                            {**meta, "models": models},
+                            tier=tiers[name], duration=seconds,
+                            smoke_cases=list(suites[name].smoke),
+                        )  # fmt: skip
+                        path = repo / er.RECORDS_DIR / f"{name}.json"
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_text(er.dump_record(record))
+                    label = tier_label(tiers[name], seconds)
+                    sections[name] = summary(name, result, label) + notes.get(name, "")
+                    if not result.get("pass"):
+                        code = max(code, 1)
+            except BaseException:
+                run_eval.stop_all()
+                for f in futures:
+                    f.cancel()
+                raise
     except run_eval.Refusal as e:
         print(f"eval: {e}", file=sys.stderr)
         code = 2
     except KeyboardInterrupt:
-        print("eval: interrupted; no record was written for the suite that was running")
+        print("eval: interrupted; no record was written for the suites still running")
         code = 130
     finally:
         shutil.rmtree(trees, ignore_errors=True)
-    print("\n".join(sections), end="")
+    print("\n".join(sections[n] for n in names if n in sections), end="")
+    if code in (0, 1):
+        print(budget_line(timer() - started, set(tiers.values())))
     return code
+
+
+def budget_line(seconds: float, tiers: set[str]) -> str:
+    """The run's wall time against its tier's budget: smoke when every suite ran smoke."""
+    budget = SMOKE_BUDGET if tiers == {"smoke"} else FULL_BUDGET
+    over = " over budget" if seconds > budget else ""
+    return f"\nelapsed: {seconds:.1f} s (budget {budget} s){over}"
 
 
 if __name__ == "__main__":

@@ -1,4 +1,10 @@
 {
+  "equivalentPaths": [
+    [
+      "config/skills/",
+      "config/vendored-skills/"
+    ]
+  ],
   "suites": {
     "scenario": {
       "runner": "scenario",
@@ -8,17 +14,23 @@
         "config/hooks/skill_overlay.py",
         "config/hooks/lifecycle_default.py",
         "eval/scenarios.json",
-        "eval/clauses.json"
+        "eval/clauses.json",
+        "eval/criteria.json"
       ],
       "harness": [
         "eval/run_eval.py"
       ],
-      "compareBase": true
+      "compareBase": true,
+      "smoke": [
+        "S-01",
+        "S-02"
+      ]
     },
     "rubric": {
       "runner": "rubric",
       "paths": [
-        "config/CLAUDE.global.md"
+        "config/CLAUDE.global.md",
+        "eval/criteria.json"
       ],
       "harness": [
         "eval/run_eval.py"
@@ -27,7 +39,8 @@
     "hook-overlay": {
       "runner": "hook-overlay",
       "paths": [
-        "config/hooks/skill_overlay.py"
+        "config/hooks/skill_overlay.py",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -40,13 +53,16 @@
         }
       ],
       "harness": [
-        "eval/hook_harness.py"
-      ]
+        "eval/hook_harness.py",
+        "eval/run_eval.py"
+      ],
+      "versionGated": true
     },
     "hook-merge": {
       "runner": "hook-merge",
       "paths": [
-        "config/hooks/merge_confirm.py"
+        "config/hooks/merge_confirm.py",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -55,13 +71,16 @@
         }
       ],
       "harness": [
-        "eval/hook_harness.py"
-      ]
+        "eval/hook_harness.py",
+        "eval/run_eval.py"
+      ],
+      "versionGated": true
     },
     "hook-session-start": {
       "runner": "hook-session-start",
       "paths": [
-        "config/hooks/lifecycle_default.py"
+        "config/hooks/lifecycle_default.py",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -77,7 +96,8 @@
         "eval/session_harness.py",
         "eval/hook_harness.py",
         "eval/run_eval.py"
-      ]
+      ],
+      "versionGated": true
     },
     "lifecycle-trigger": {
       "runner": "script",
@@ -159,7 +179,9 @@
       "cases": "config/skills/plain-prose/evals/trigger-evals.json",
       "paths": [
         "config/skills/plain-prose/evals/trigger-evals.json",
-        "config/skills/*/SKILL.md"
+        "config/skills/*/SKILL.md",
+        "config/vendored-skills/*/SKILL.md",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -170,6 +192,10 @@
       "harness": [
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        1,
+        15
       ]
     },
     "plain-prose-behaviour": {
@@ -179,7 +205,8 @@
       "paths": [
         "config/skills/plain-prose/evals/behaviour-evals.json",
         "config/skills/plain-prose/scripts/**",
-        "config/skills/plain-prose/references/**"
+        "config/skills/plain-prose/references/**",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -190,6 +217,9 @@
       "harness": [
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        "rewrite-review-note"
       ]
     },
     "writing-docs-trigger": {
@@ -201,7 +231,9 @@
       ],
       "paths": [
         "config/skills/writing-docs/evals/trigger-evals.json",
-        "config/skills/*/SKILL.md"
+        "config/skills/*/SKILL.md",
+        "config/vendored-skills/*/SKILL.md",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -217,6 +249,10 @@
         "eval/doc_evals.py",
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        0,
+        21
       ]
     },
     "writing-docs-behaviour": {
@@ -229,7 +265,8 @@
       "paths": [
         "config/skills/writing-docs/evals/behaviour-evals.json",
         "config/skills/writing-docs/scripts/**",
-        "config/skills/writing-docs/references/**"
+        "config/skills/writing-docs/references/**",
+        "eval/criteria.json"
       ],
       "selectors": [
         {
@@ -241,6 +278,9 @@
         "eval/doc_evals.py",
         "eval/skill_evals.py",
         "eval/run_eval.py"
+      ],
+      "smoke": [
+        "rewrite-how-to"
       ]
     }
   }

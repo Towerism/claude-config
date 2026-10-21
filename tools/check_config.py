@@ -46,6 +46,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOK_FILE = REPO_ROOT / "config" / "hooks" / "skill_overlay.py"
 LOCK_VERSION = 2
 SYNCED_PREFIX = "anthropic-skills:"
+# Repo skills, by tree: the skills maintained here, then the upstream copies (#75).
+SKILL_TREES = ("config/skills", "config/vendored-skills")
 PATH_RULE_DIRS = ("tools", "config", "eval")
 PATH_RULE_SKIP = {".venv", "__pycache__", ".pytest_cache"}
 # Built from parts so this file doesn't trip the rule it defines.
@@ -229,7 +231,25 @@ class Profile:
         return self.root / "config" / "skill-overlays"
 
     def skill_path(self, name: str) -> Path:
-        return self.root / "config" / "skills" / name
+        """The skill's directory: the maintained tree first, then the vendored one.
+
+        A directory counts only with a SKILL.md, so one a move left behind with
+        git-ignored files in it doesn't hide the skill. A skill in neither tree
+        gets its maintained-tree path, so messages about a missing skill name
+        the place a new skill would go.
+        """
+        for tree in SKILL_TREES:
+            if (self.root / tree / name / "SKILL.md").is_file():
+                return self.root / tree / name
+        return self.root / SKILL_TREES[0] / name
+
+    def skill_conflicts(self) -> list[str]:
+        """Profile skills found in both trees, each as "name: path and path"."""
+        return [
+            f"{s}: {' and '.join(f'{t}/{s}' for t in SKILL_TREES)}"
+            for s in sorted(self.skills)
+            if all((self.root / t / s / "SKILL.md").is_file() for t in SKILL_TREES)
+        ]
 
 
 def load_profile(path: Path) -> Profile:
@@ -329,6 +349,7 @@ def profile_problems(profile: Profile, scope: Scope) -> list[dict[str, str]]:
         for s in profile.skills
         if not (profile.skill_path(s) / "SKILL.md").is_file()
     ]
+    problems += [{"kind": "skill-in-both-trees", "item": c} for c in profile.skill_conflicts()]
     problems += [
         {"kind": "hook", "item": h}
         for h in profile.hooks

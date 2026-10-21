@@ -230,9 +230,25 @@ def test_a_tree_skill_the_live_home_also_has_is_still_taken_from_the_tree(env):
     (ctx.head_tree / "config" / "skill-overlays" / f"{SKILL}.md").write_text(
         "Read `references/only-in-tree.md`.\n"
     )
-    (ctx.head_tree / "config" / "skills" / SKILL / "references" / "only-in-tree.md").write_text("")
+    skill = ctx.head_tree / "config" / "vendored-skills" / SKILL
+    (skill / "references" / "only-in-tree.md").write_text("")
     text = re_.overlay_text(ctx, ctx.head_tree, SKILL)
     assert text is not None and text.startswith(f"Skill overlay for {SKILL}:")
+    assert "missing:" not in text
+
+
+def test_an_overlay_for_a_skill_maintained_here_resolves_from_the_tree(env):
+    ctx = context(env, FakeClaude(), [])
+    own = ctx.head_tree / "config" / "skills" / "own-skill"
+    (own / "references").mkdir(parents=True)
+    (own / "SKILL.md").write_text("---\nname: own-skill\n---\n")
+    (own / "references" / "b.md").write_text("b\n")
+    (ctx.head_tree / "config" / "skill-overlays" / "own-skill.md").write_text(
+        "Read `references/b.md`.\n"
+    )
+    text = re_.overlay_text(ctx, ctx.head_tree, "own-skill")
+    assert text is not None and text.startswith("Skill overlay for own-skill:")
+    assert "/skills/own-skill/references/b.md" in text
     assert "missing:" not in text
 
 
@@ -390,7 +406,7 @@ def test_a_timeout_is_an_answer_marked_as_an_error(env):
     assert leftovers(env["root"]) == []
 
 
-def test_the_model_flag_reaches_the_arms_but_not_the_grader(env):
+def test_the_model_flag_reaches_the_arms_and_the_grader_keeps_the_criteria_model(env):
     fake = FakeClaude()
     ctx = context(env, fake, [scenario("S-01")])
     ctx.model = "sonnet"
@@ -398,7 +414,7 @@ def test_the_model_flag_reaches_the_arms_but_not_the_grader(env):
     arm_calls = [c for c in fake.calls if c["stdin"].endswith("prompt S-01")]
     grader_calls = [c for c in fake.calls if c["stdin"].startswith("You are grading")]
     assert all(c["cmd"][-2:] == ["--model", "sonnet"] for c in arm_calls)
-    assert all("--model" not in c["cmd"] for c in grader_calls)
+    assert all(c["cmd"][-2:] == ["--model", "sonnet"] for c in grader_calls)
 
 
 def test_the_default_runner_returns_the_exit_code_and_output(tmp_path):

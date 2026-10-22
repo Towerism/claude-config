@@ -49,15 +49,17 @@ A preference or fact that outlives this task (how the user likes to work, a poin
 
 ## 3. Write the note
 
-Where it goes:
+Where it goes. Use only `a-z`, `0-9` and `-` in the slug and the directory part of the name.
 
 ```bash
 dir="${XDG_STATE_HOME:-$HOME/.local/state}/claude-config/handoffs"
+if git -C "$(dirname "$dir")" rev-parse --is-inside-work-tree >/dev/null 2>&1; then echo "inside a work tree"; fi
 install -d -m 700 "$dir"
-git -C "$dir" rev-parse --is-inside-work-tree   # must fail; if it succeeds, don't write there
-f="$dir/$(date -u +%Y%m%dT%H%M%SZ)-$(basename "$PWD")-<short-slug>.md"
-(umask 077; set -C; : > "$f")                    # set -C refuses to overwrite an existing note
+f="$dir/$(date -u +%Y%m%dT%H%M%SZ)-<directory>-<short-slug>.md"
+(umask 077; set -C; : > "$f")        # set -C refuses to overwrite an existing note
 ```
+
+If the check prints "inside a work tree", don't write there; use the chat fallback below. If creating `$f` fails because it exists, add `-2`, `-3` and so on to the slug. Fill the empty file with `cat >> "$f" <<'EOF'`, not with the Write tool, which refuses to overwrite a file it hasn't read and would skip the guard.
 
 If the directory can't be created or written, or it lies inside a git work tree, print the note in the chat instead and say what happened. A sandbox may prompt for the write; that is expected. Print the full path of the note.
 
@@ -65,7 +67,7 @@ Use these sections, in this order. Write "None" for an empty one.
 
 1. **Goal.** What the user asked for, in their own words, quoted, and the reason if they gave one.
 2. **State.** Done, in progress, next: one line each. A done item names its evidence (a commit, a file, a result) or says there is none. Each uncommitted file gets a line saying what the change is for. Flag any file that exists only in a place that may be deleted, such as a temporary or job directory, and say where.
-3. **Decisions and approvals.** Each decision the user made, with their quoted words. Each approval names what was approved (a commit SHA or the spec's last-edit state), where it is recorded (an issue label, a spec's Status line) and who recorded it. An approval the user gave in chat that nobody has recorded is listed as "unrecorded", with their words. Never mark anything approved on your own authority.
+3. **Decisions and approvals.** Each decision the user made, with their quoted words. Each approval names what was approved (a commit SHA or the spec's last-edit state), where it is recorded (an issue label, a spec's Status line) and who recorded it. An approval the user gave in chat that nobody has recorded is listed as "unrecorded", with their words. Never mark anything approved on your own authority, and a label that Claude set is not the user's words.
 4. **Repo state.** The facts from step 1, one block per repo or worktree, with its path.
 5. **Open questions.** What waits on the user or someone else, as specific questions.
 6. **Tried and ruled out.** Each approach that failed or was rejected, with the reason, so the new session doesn't repeat it.
@@ -94,7 +96,7 @@ Also print the command that opens the session in the right place, such as `cd <d
 
 Reread the note as a cold reader. Confirm that every path and branch it names exists, every issue or PR number resolves, and the "next" item can be started without this conversation. Fix what fails.
 
-If the user asks, or the note records an approval, also start a fresh subagent given only the note, and ask it for the next step, the open questions and what must not be redone. Fix the note where its answers differ from yours.
+If the user asks, or the note records an approval or lists an unrecorded one, also start a fresh subagent given only the note, and ask it for the next step, the open questions and what must not be redone. Fix the note where its answers differ from yours.
 
 Then report: the note's path, the start command and prompt, anything still running, and the facts left unknown.
 

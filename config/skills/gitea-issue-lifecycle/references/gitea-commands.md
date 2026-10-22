@@ -1,8 +1,8 @@
 # Gitea calls used by this skill
 
-**These calls are unverified.** They come from Gitea's web API, not from a run against a live server or a real `tea`. Three behaviours are assumed until the owner confirms them on a real server: `tea api` exits non-zero on a non-2xx answer, a timeline entry has the shape in the table below, and `-d @file` sends the file as the request body. Until then, read each answer's fields and treat an error `message` or a missing field as a failed step. If a flag below is rejected, run `tea api --help` and report the difference.
+**The Gitea answers are unverified.** They come from Gitea's web API, not from a run against a real Gitea server. Checked on 2026-10-22 with `tea` 0.16.0 against a local stand-in server (not Gitea): `--login`, `-X`, `-d @file` and the `/api/v1/` prefix work as written, a body holding quotes and `$(...)` arrives intact, and **`tea api` exits 0 even when the server answers 404 or 403**. `-i` prints the HTTP status line to stderr, so add it to every call and treat a status outside 2xx as a failed step; also treat an error `message` or a missing field in the answer as a failure. Still unchecked on a real server: the timeline entry shape in the table below, label ids, and the merge body. If a flag is rejected, run `tea api --help` and report the difference.
 
-Every call is `tea api --login <login> -X <METHOD> <endpoint> [-d @<file>]`. `tea api` adds the server's `/api/v1` prefix, so endpoints have no leading slash. `<login>` is the entry in `tea login list` whose server host matches the remote's host. Bodies always go through files, never through command-line strings, so issue text is never interpolated into a shell command.
+Every call is `tea api --login <login> -i -X <METHOD> <endpoint> [-d @<file>]`; the table omits `-i` for width. `tea api` adds the server's `/api/v1` prefix, so endpoints have no leading slash. `<login>` is the entry in `tea login list` whose server host matches the remote's host. Bodies always go through files, never through command-line strings, so issue text is never interpolated into a shell command.
 
 | Operation | Call | Check in the answer |
 |---|---|---|

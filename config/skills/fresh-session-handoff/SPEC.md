@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-21
-**Status:** Draft. The adversarial pass is done (see `REVIEW-NOTE.md`) and changed the spec, so it waits for the owner's explicit approval; nothing is built until the owner approves.
+**Status:** Approved by the owner on 2026-10-21 ("approve"), for the spec as of commit ba413a1: after the adversarial pass (see `REVIEW-NOTE.md`) and the owner's choices on D-1 (name), D-2 (directory) and D-3 (documented dry run, no model evals). Any later change returns it to draft.
 **Issue:** [#83](https://github.com/Towerism/claude-config/issues/83)
 **Reviewers:** `adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`), then the owner
 **Approval mode:** manual review with an adversarial pass, chosen by the owner on 2026-10-21

@@ -1,4 +1,4 @@
-# Review note: the `session-handoff` spec
+# Review note: the `fresh-session-handoff` spec
 
 This note records the single adversarial review of `SPEC.md` for issue [#83](https://github.com/Towerism/claude-config/issues/83), run on 2026-10-21 by a fresh `general-purpose` agent using `adversarial-reviewer` and the owner's overlay for it. The approval mode is manual review with an adversarial pass, so the spec stays a draft until the owner approves it in their own words.
 
@@ -45,3 +45,7 @@ This note records the single adversarial review of `SPEC.md` for issue [#83](htt
 | AC-16, OS-3 | Trigger prompts and follow-up suite | W-5 |
 | Skills table | `senior-architect`; `tdd-guide` exception | W-6, N-7 |
 | FR-5, FR-7, FR-8, FR-10, NFR-P2, NFR-R1, NFR-S1, EC-3 | Timeout, file purposes, modes, best-effort secrets, work-tree check, sandbox | N-1 to N-6 |
+
+## Changes after the review, made on the owner's decision
+
+On 2026-10-21 the owner chose the name `fresh-session-handoff` (D-1) and the state directory `${XDG_STATE_HOME:-~/.local/state}/claude-config/handoffs/` (D-2). Neither came from the review. The spec and this note use the new name throughout, and FR-8 and NFR-S1 point at the new directory through D-2. D-3 is still open.

@@ -1,4 +1,4 @@
-# Spec: the `session-handoff` skill
+# Spec: the `fresh-session-handoff` skill
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-21
@@ -18,13 +18,13 @@ Claude Code's built-in `/compact` shrinks a conversation in place, but the owner
 
 Two risks shape the design. First, a summary written from memory drifts from the truth, so facts about the repo and the tracker are read from the repo and the tracker, not recalled. Second, a handoff could pass on an approval the owner never gave, such as a spec marked approved by a model's note. The global CLAUDE.md says only the owner's explicit words approve, so the note records approvals with their quoted words and says where they're recorded, and the new session checks them there.
 
-The skill's name is open in the issue. This spec proposes `session-handoff` and lists the choice as decision D-1 for the owner.
+The skill's name was open in the issue. The owner chose `fresh-session-handoff` on 2026-10-21 (D-1).
 
-### Decisions the owner confirms when approving
+### Decisions
 
-- **D-1, the name.** Proposed: `session-handoff`. Alternatives: `handoff`, `fresh-session-handoff`.
-- **D-2, where the note is saved.** Proposed: a state directory outside any repo, `${XDG_STATE_HOME:-~/.local/state}/claude-handoffs/`, so it survives a deleted worktree or a cleaned job directory and never lands in a public repo. Alternative: a file in the working tree, ignored by git.
-- **D-3, model evals.** Proposed: none in this PR (OS-3), with a dry-run check instead (AC-8). Alternative: add trigger and behaviour suites like `writing-docs` has, which costs model runs on every future change to the skill.
+- **D-1, the name. Decided:** `fresh-session-handoff`, by the owner on 2026-10-21.
+- **D-2, where the note is saved. Decided:** a state directory outside any repo, `${XDG_STATE_HOME:-~/.local/state}/claude-config/handoffs/`, by the owner on 2026-10-21. It sits beside the Jira skill's `jira-specs/` directory in the same `claude-config` state directory ([ADR-0011](../../../docs/adr/0011-tracker-agnostic-lifecycle.md)). A note there survives a deleted worktree or a cleaned job directory and never lands in a public repo.
+- **D-3, model evals. Still open:** proposed: none in this PR (OS-3), with a dry-run check instead (AC-8). Alternative: add trigger and behaviour suites like `writing-docs` has, which costs model runs on every future change to the skill.
 
 ### Skills used to build this
 
@@ -48,8 +48,8 @@ The skill's name is open in the issue. This spec proposes `session-handoff` and 
 
 ### A. The skill package
 
-- FR-1: The skill MUST live in `config/skills/session-handoff/` with `SKILL.md`, `SPEC.md` and `REVIEW-NOTE.md`, and no other files.
-- FR-2: `SKILL.md` MUST have frontmatter with `name: session-handoff` and a `description` of at most 1,024 characters that:
+- FR-1: The skill MUST live in `config/skills/fresh-session-handoff/` with `SKILL.md`, `SPEC.md` and `REVIEW-NOTE.md`, and no other files.
+- FR-2: `SKILL.md` MUST have frontmatter with `name: fresh-session-handoff` and a `description` of at most 1,024 characters that:
   - says what the skill does: writes a handoff note so the remaining work of a long session continues in a fresh one with the context cleared;
   - names the requests that trigger it, such as "hand this off to a new session", "the context is getting long", "start fresh but keep my progress", "write a handoff" and "save where we are so I can clear";
   - separates itself from neighbours: it isn't for summarising the session to the user, for `/compact`, for a pull request description, or for the lifecycle skills' close-out.
@@ -96,7 +96,7 @@ The skill's name is open in the issue. This spec proposes `session-handoff` and 
 
 ### F. Wiring
 
-- FR-18: `hosts/personal.json` and `hosts/work.json` MUST both list `session-handoff` in `skills`, in alphabetical order, and differ from each other only in `name` and `defaultLifecycle`.
+- FR-18: `hosts/personal.json` and `hosts/work.json` MUST both list `fresh-session-handoff` in `skills`, in alphabetical order, and differ from each other only in `name` and `defaultLifecycle`.
 - FR-19: `docs/architecture/skills.md` MUST gain a row for the skill in its table of skills: "On demand: the owner asks for a handoff to a fresh session", maintained here, no overlay.
 - FR-20: The global CLAUDE.md MUST NOT change. The skill is chosen by its description, as `linux-troubleshooting` is.
 
@@ -130,8 +130,8 @@ The skill's name is open in the issue. This spec proposes `session-handoff` and 
 ### AC-1: The package has its files and frontmatter (FR-1, FR-2, FR-3, NFR-P1)
 
 - **Given** the merged branch
-- **When** the files in `config/skills/session-handoff/` are listed and `SKILL.md` is parsed
-- **Then** only `SKILL.md`, `SPEC.md` and `REVIEW-NOTE.md` exist, the frontmatter name is `session-handoff`, the description is at most 1,024 characters and names the trigger requests and the exclusions, and the body is under 150 lines with the parts of FR-3 in order.
+- **When** the files in `config/skills/fresh-session-handoff/` are listed and `SKILL.md` is parsed
+- **Then** only `SKILL.md`, `SPEC.md` and `REVIEW-NOTE.md` exist, the frontmatter name is `fresh-session-handoff`, the description is at most 1,024 characters and names the trigger requests and the exclusions, and the body is under 150 lines with the parts of FR-3 in order.
 
 ### AC-2: The facts come from the repo (FR-5, FR-6, FR-12)
 

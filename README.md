@@ -62,3 +62,7 @@ Three limits are worth knowing:
 - [docs/architecture/README.md](docs/architecture/README.md): how the repo is laid out, how deploys and rollbacks work, and the threats it guards against.
 - [docs/architecture/plan.md](docs/architecture/plan.md): the 17 build issues, all now closed, and the owner's resolved questions.
 - [docs/adr/](docs/adr/): the architecture decision records. Any change that departs from one needs a new or updated ADR.
+
+## License
+
+The code written for this repo is released under the [MIT license](LICENSE). Files that carry their own license file keep that license. That covers the vendored skills in `config/vendored-skills/`, the vendored files in `config/skills/plain-prose`, the spec validator in `tools/vendor/`, and the settings schema in `schemas/`, which is Apache 2.0.

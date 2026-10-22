@@ -33,7 +33,7 @@ flowchart TD
   HOOK -->|"injects when the skill loads"| PIPE
 ```
 
-Stage 2 and stage 4 are slots, not fixed skills. Stage 2 uses `github-issue-lifecycle` in a repo tracked in GitHub issues and `jira-ticket-lifecycle` in one tracked in Jira. Stage 4 depends on what the change touches: `senior-qa` for code and `api-test-suite-builder` for HTTP routes, both when a change has both. A change to CI workflows, deploy jobs or the scripts they call also gets `ci-cd-pipeline-builder`, on top of the others.
+Stage 2 and stage 4 are slots, not fixed skills. Stage 2 uses `github-issue-lifecycle` in a repo tracked in GitHub issues, `jira-ticket-lifecycle` in one tracked in Jira, and `gitea-issue-lifecycle` in one tracked on a Gitea server. Stage 4 depends on what the change touches: `senior-qa` for code and `api-test-suite-builder` for HTTP routes, both when a change has both. A change to CI workflows, deploy jobs or the scripts they call also gets `ci-cd-pipeline-builder`, on top of the others.
 
 ## Four layers, each holding one kind of rule
 
@@ -103,6 +103,7 @@ The list comes from `skills` in [`hosts/personal.json`](../../hosts/personal.jso
 | `senior-prompt-engineer` | Not named in the CLAUDE.md; loads when its description matches the task | Upstream | No |
 | `linux-troubleshooting` | Not named in the CLAUDE.md; loads when its description matches the task | Here | No |
 | `fresh-session-handoff` | On demand: the owner asks for a handoff to a fresh session | Here | No |
+| `gitea-issue-lifecycle` | 2 Start and 7 close-out, for Gitea issues | Here | No |
 
 ## Changing the skill set
 

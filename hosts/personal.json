@@ -11,6 +11,7 @@
     "ci-cd-pipeline-builder",
     "database-schema-designer",
     "dependency-auditor",
+    "fresh-session-handoff",
     "github-issue-lifecycle",
     "jira-ticket-lifecycle",
     "linux-troubleshooting",

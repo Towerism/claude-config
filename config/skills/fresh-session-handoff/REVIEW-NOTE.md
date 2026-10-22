@@ -48,4 +48,4 @@ This note records the single adversarial review of `SPEC.md` for issue [#83](htt
 
 ## Changes after the review, made on the owner's decision
 
-On 2026-10-21 the owner chose the name `fresh-session-handoff` (D-1) and the state directory `${XDG_STATE_HOME:-~/.local/state}/claude-config/handoffs/` (D-2). Neither came from the review. The spec and this note use the new name throughout, and FR-8 and NFR-S1 point at the new directory through D-2. D-3 is still open.
+On 2026-10-21 the owner chose the name `fresh-session-handoff` (D-1) and the state directory `${XDG_STATE_HOME:-~/.local/state}/claude-config/handoffs/` (D-2). Neither came from the review. The spec and this note use the new name throughout, and FR-8 and NFR-S1 point at the new directory through D-2. On the same day the owner chose a documented dry run instead of model eval suites (D-3), which is what the spec already proposed.

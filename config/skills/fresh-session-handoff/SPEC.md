@@ -24,7 +24,7 @@ The skill's name was open in the issue. The owner chose `fresh-session-handoff` 
 
 - **D-1, the name. Decided:** `fresh-session-handoff`, by the owner on 2026-10-21.
 - **D-2, where the note is saved. Decided:** a state directory outside any repo, `${XDG_STATE_HOME:-~/.local/state}/claude-config/handoffs/`, by the owner on 2026-10-21. It sits beside the Jira skill's `jira-specs/` directory in the same `claude-config` state directory ([ADR-0011](../../../docs/adr/0011-tracker-agnostic-lifecycle.md)). A note there survives a deleted worktree or a cleaned job directory and never lands in a public repo.
-- **D-3, model evals. Still open:** proposed: none in this PR (OS-3), with a dry-run check instead (AC-8). Alternative: add trigger and behaviour suites like `writing-docs` has, which costs model runs on every future change to the skill.
+- **D-3, model evals. Decided:** none in this PR (OS-3); the owner chose "rely on a documented dry run" on 2026-10-21, which is the dry run in the test plan (AC-8). Alternative: add trigger and behaviour suites like `writing-docs` has, which costs model runs on every future change to the skill.
 
 ### Skills used to build this
 

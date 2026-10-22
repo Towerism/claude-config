@@ -12,6 +12,7 @@
     "database-schema-designer",
     "dependency-auditor",
     "fresh-session-handoff",
+    "gitea-issue-lifecycle",
     "github-issue-lifecycle",
     "jira-ticket-lifecycle",
     "linux-troubleshooting",

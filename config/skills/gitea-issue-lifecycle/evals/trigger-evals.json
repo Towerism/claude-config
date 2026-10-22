@@ -1,0 +1,15 @@
+[
+  {"query": "pick up #12 in our Gitea repo, it's the one about the backup retention job", "should_trigger": true},
+  {"query": "start on the issue about the broken CSV export on git.example.org, grab it and set up a branch", "should_trigger": true},
+  {"query": "file an issue on the Gitea instance for the BOM problem we just hit, don't start on it, just log it", "should_trigger": true},
+  {"query": "hotfix the login 500 on prod, the repo is on our self-hosted Gitea", "should_trigger": true},
+  {"query": "I've finished the roster change locally, open the PR on Gitea and link the issue so it closes on merge", "should_trigger": true},
+  {"query": "you're authorized to merge the Gitea PR for #12 once ship-gate passes, then close out the issue", "should_trigger": true},
+  {"query": "https://git.example.org/team/roster/issues/31 can you take this one", "should_trigger": true},
+  {"query": "work on GH-112, the repo is on github.com", "should_trigger": false},
+  {"query": "work on PAY-142 in Jira", "should_trigger": false},
+  {"query": "write a spec for a CSV export feature, just a markdown doc I can share, no repo involved", "should_trigger": false},
+  {"query": "how do I install Gitea on a Raspberry Pi and put it behind nginx?", "should_trigger": false},
+  {"query": "fix the off-by-one in the pagination helper in utils.py and add a test", "should_trigger": false},
+  {"query": "rename the config module to settings across the repo", "should_trigger": false}
+]

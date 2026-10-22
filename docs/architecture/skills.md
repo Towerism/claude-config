@@ -102,6 +102,7 @@ The list comes from `skills` in [`hosts/personal.json`](../../hosts/personal.jso
 | `skill-security-auditor` | Writing skills: third-party skills before install, from the same line | Upstream | No |
 | `senior-prompt-engineer` | Not named in the CLAUDE.md; loads when its description matches the task | Upstream | No |
 | `linux-troubleshooting` | Not named in the CLAUDE.md; loads when its description matches the task | Here | No |
+| `fresh-session-handoff` | On demand: the owner asks for a handoff to a fresh session | Here | No |
 
 ## Changing the skill set
 

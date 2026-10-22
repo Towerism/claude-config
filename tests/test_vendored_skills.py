@@ -20,7 +20,8 @@ MAINTAINED = REPO_ROOT / "config" / "skills"
 UPSTREAM_REPO = "alirezarezvani/claude-skills"
 # The skills maintained in this repo. plain-prose vendors a few files, not its SKILL.md.
 OWN_SKILLS = {
-    "github-issue-lifecycle", "jira-ticket-lifecycle", "linux-troubleshooting",
+    "fresh-session-handoff", "github-issue-lifecycle", "jira-ticket-lifecycle",
+    "linux-troubleshooting",
     "plain-prose", "writing-docs",
 }  # fmt: skip
 # The skills the owner chose to keep when the claude-code-skills plugins were removed.

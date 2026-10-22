@@ -55,7 +55,7 @@ def test_the_personal_profile_renders_every_component() -> None:
         for s in profile["skills"]
     ]
     assert list(ds.paths) == expected
-    assert sorted(trees.values()).count("skills") == 5
+    assert sorted(trees.values()).count("skills") == 6
     assert ds.host == "hosts/personal.json"
 
 

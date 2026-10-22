@@ -9,7 +9,7 @@ Today `config/` holds:
 - nine overlays;
 - three hooks: overlay injection, merge confirmation and the machine's default lifecycle;
 - the `settings.json` keys those hooks and plugins need;
-- five skills maintained here, in `config/skills/`, and 17 copied from upstream, in `config/vendored-skills/`.
+- six skills maintained here, in `config/skills/`, and 17 copied from upstream, in `config/vendored-skills/`.
 
 When the repo was started on 2026-10-16, the configuration imported into it was the global CLAUDE.md (version 2), seven overlays, two hooks, those `settings.json` keys and two custom skills, `github-issue-lifecycle` and `linux-troubleshooting`. The two prose skills were planned on top of that.
 

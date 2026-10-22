@@ -2,7 +2,7 @@
 
 **Author:** Claude (for the owner, Towerism)
 **Date:** 2026-10-22
-**Status:** Draft — the one adversarial pass found no CRITICAL and six WARNINGs, which changed the spec (see `REVIEW-NOTE.md`), so under adversarial approval it waits for the owner's go-ahead. Approval mode: adversarial approval, chosen by the owner on 2026-10-22; a clean pass (no CRITICAL, no change to the spec) approves it.
+**Status:** Approved by the owner on 2026-10-22 ("approve"), for the spec as of commit c2c05eb, after the single adversarial pass (no CRITICAL, six warnings fixed; see `REVIEW-NOTE.md`) and the design choices D-1 to D-3 and FR-17's chat confirmation. Any later change returns it to draft. Approval mode: adversarial approval, chosen by the owner on 2026-10-22.
 **Issue:** [#46](https://github.com/Towerism/claude-config/issues/46)
 **Reviewers:** `adversarial-reviewer` (one pass, see `REVIEW-NOTE.md`)
 **Related specs:** `config/skills/github-issue-lifecycle/SPEC.md`, the skill this one mirrors (cited below as "GitHub spec FR-n")

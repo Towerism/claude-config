@@ -16,6 +16,7 @@ import pytest
 from eval import run_eval as re_
 from eval import skill_evals as se
 from tests.checker_helpers import REPO_ROOT
+from tests.criteria_probe import assert_reads_are_selected, probe_reads
 from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
@@ -530,3 +531,15 @@ def test_a_smoke_trigger_run_fails_when_one_smoke_query_misses(make_ctx):
     ctx = make_ctx(fake, trigger=[trig("a", True), trig("b", False)])
     ctx.tier, ctx.smoke = "smoke", (0, 1)
     assert se.run_trigger(ctx, suite("trigger"))["pass"] is False
+
+
+def test_the_trigger_run_reads_only_criteria_keys_its_selectors_cover(make_ctx, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    run_trigger(make_ctx, [trig("q", True)], {"q": ["top", "top", "none"]})
+    assert_reads_are_selected("plain-prose-trigger", reads)
+
+
+def test_the_cold_reader_run_reads_only_criteria_keys_its_selectors_cover(make_ctx, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    run_reader(make_ctx, [WRITE], {("w", "skill"): [GOOD], ("w", "base"): [BASE]})
+    assert_reads_are_selected("plain-prose-behaviour", reads)

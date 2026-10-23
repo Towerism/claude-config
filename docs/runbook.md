@@ -243,7 +243,7 @@ TMPDIR=/tmp python3 -I tools/cfg/eval.py
 
 - A suite whose committed record still verifies is skipped, with `<suite>: record still valid, nothing to run`. That covers a skill moved between `config/skills/` and `config/vendored-skills/` with no change to its files.
 - An edit to a suite's harness alone (the `eval/*.py` files its gate lists) gets the smoke tier: a few named cases, once each. `tools/cfg/eval.py` and `tools/cfg/eval_records.py` are in no suite's harness, so an edit to them requires no suite; their unit tests cover them.
-- A change to what a suite reads, including a pass bar or the grader model in `eval/criteria.json`, gets the full tier. The full `scenario` run covers only the scenarios the change can affect, and says when a changed overlay is loaded by no scenario.
+- A change to what a suite reads gets the full tier. That includes a pass bar or the grader model in `eval/criteria.json`, but only for the suites that read that key (ADR-0005, amendment for #91 and #92). A skill's body edit requires neither trigger suite; its description does. The full `scenario` run covers only the scenarios the change can affect, and says when a changed overlay is loaded by no scenario.
 - The three hook suites also run in full when your Claude Code version differs from the one their record ran on, with `<suite>: Claude Code is ..., its record ran on ...; running it`. CI can't see your version, so run `eval.py` after a Claude Code update even when `verify` is clean.
 
 All suites run at once, and `--workers N` sets how many `claude` calls may be open at the same time (default 6). Graders, judges and readers use the model `eval/criteria.json` names; the scenario arms use `--model`, or the default, and every other run uses the default.

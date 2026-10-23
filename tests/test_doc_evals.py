@@ -17,6 +17,7 @@ import pytest
 from eval import doc_evals as de
 from eval import run_eval as re_
 from tests.checker_helpers import REPO_ROOT
+from tests.criteria_probe import assert_reads_are_selected, probe_reads
 from tests.eval_fakes import leftovers, make_live_home
 from tools.cfg import eval_records as er
 
@@ -515,3 +516,15 @@ def test_a_smoke_doc_reader_run_covers_only_the_smoke_cases(make_ctx):
     result = de.run_doc_reader(ctx, suite("doc-reader"))
     assert [c["id"] for c in result["cases"]] == ["r"]
     assert len(fake.calls) == 4 and result["pass"] is True
+
+
+def test_the_doc_trigger_run_reads_only_criteria_keys_its_selectors_cover(make_ctx, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    run_trigger(make_ctx, [trig("q", True)], {"q": ["top", "top", "none"]})
+    assert_reads_are_selected("writing-docs-trigger", reads)
+
+
+def test_the_doc_reader_run_reads_only_criteria_keys_its_selectors_cover(make_ctx, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    run_reader(make_ctx, [WRITE], FINE)
+    assert_reads_are_selected("writing-docs-behaviour", reads)

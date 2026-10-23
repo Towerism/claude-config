@@ -288,6 +288,23 @@ def test_capture_lists_the_eval_suites_the_change_needs(
     assert result.suites == ["hook-merge"]
 
 
+def test_capture_lists_a_suite_whose_glob_selector_matches_a_changed_file(tmp_path: Path) -> None:
+    gates = {
+        "suites": {
+            "descs": {
+                "runner": "rubric",
+                "paths": ["eval/cases.json"],
+                "harness": [],
+                "selectors": [{"file": "config/skills/*/SKILL.md", "part": "description"}],
+            }
+        }
+    }
+    write_tree(tmp_path, {"eval/gates.json": json.dumps(gates)})
+    assert capture._suites(tmp_path, ["config/skills/x/SKILL.md"]) == ["descs"]
+    assert capture._suites(tmp_path, ["config/skills/x/references/a.md", "docs/a.md"]) == []
+    assert capture._suites(tmp_path, ["eval/cases.json"]) == ["descs"]
+
+
 def test_a_missing_plain_path_or_a_foreign_link_has_nothing_to_capture(
     repo: Path, home: Path, data: Path, branch: Path
 ) -> None:

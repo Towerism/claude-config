@@ -380,11 +380,13 @@ SCENARIOS = [
     {"id": "S-2", "loadsSkills": ["b"], "prompt": "two"},
     {"id": "S-3", "loadsSkills": [], "prompt": "three"},
 ]
+CRITERIA = {"graderModel": "sonnet", "rubric": {"pass": 80}, "scenario": {"tries": 2}}
 SCENARIO_GATES = {"suites": {"scenario": {
     "runner": "scenario",
     "paths": ["config/CLAUDE.global.md", "config/skill-overlays/**",
-              "config/hooks/skill_overlay.py", "eval/scenarios.json", "eval/clauses.json",
-              "eval/criteria.json"],
+              "config/hooks/skill_overlay.py", "eval/scenarios.json", "eval/clauses.json"],
+    "selectors": [{"file": "eval/criteria.json", "pointer": "/graderModel"},
+                  {"file": "eval/criteria.json", "pointer": "/scenario/tries"}],
     "harness": ["eval/run_eval.py"],
     "compareBase": True,
 }}}  # fmt: skip
@@ -399,6 +401,7 @@ def scen(tmp_path):
         "eval/gates.json": json.dumps(SCENARIO_GATES),
         "eval/scenarios.json": json.dumps(SCENARIOS),
         "eval/clauses.json": "[]\n",
+        "eval/criteria.json": json.dumps(CRITERIA),
         "config/CLAUDE.global.md": "# Global\n",
         "config/skill-overlays/a.md": "overlay a\n",
         "config/skill-overlays/b.md": "overlay b\n",
@@ -436,11 +439,52 @@ def test_a_change_picks_the_scenarios_it_can_affect(scen, change, picked, unload
 @pytest.mark.parametrize(
     "change",
     [{"config/CLAUDE.global.md": "# New\n"}, {"config/hooks/skill_overlay.py": "print(2)\n"},
-     {"eval/clauses.json": "[1]\n"}, {"eval/criteria.json": "{}\n"}],
+     {"eval/clauses.json": "[1]\n"}],
 )  # fmt: skip
 def test_a_change_that_reaches_every_scenario_runs_them_all(scen, change):
     path, base = scen
     commit(path, change)
+    assert selection(path, base) == (None, [])
+
+
+@pytest.mark.parametrize(
+    "criteria",
+    [{**CRITERIA, "graderModel": "haiku"}, {**CRITERIA, "scenario": {"tries": 3}}],
+)
+def test_a_change_to_a_criteria_key_the_suite_reads_runs_every_scenario(scen, criteria):
+    path, base = scen
+    commit(path, {"eval/criteria.json": json.dumps(criteria)})
+    assert selection(path, base) == (None, [])
+
+
+def test_a_change_to_a_criteria_key_the_suite_does_not_read_selects_nothing_by_itself(scen):
+    path, base = scen
+    commit(path, {"eval/criteria.json": json.dumps({**CRITERIA, "rubric": {"pass": 90}})})
+    assert selection(path, base) == ([], [])
+
+
+def test_a_suite_listing_the_whole_criteria_file_as_a_path_still_runs_every_scenario(scen):
+    path, _ = scen
+    gates = json.loads(json.dumps(SCENARIO_GATES))
+    gates["suites"]["scenario"]["paths"].append("eval/criteria.json")
+    del gates["suites"]["scenario"]["selectors"]
+    base = commit(path, {"eval/gates.json": json.dumps(gates)})
+    git(path, "update-ref", "refs/remotes/origin/main", base)
+    commit(path, {"eval/criteria.json": json.dumps({**CRITERIA, "rubric": {"pass": 90}})})
+    assert selection(path, base) == (None, [])
+
+
+def test_dropping_the_criteria_selectors_in_the_same_change_as_a_key_edit_still_runs_everything(
+    scen,
+):
+    # The merge-base's definition still requires the suite for the key edit, so the selection
+    # must read that definition's selectors too, or the record would pass with nothing run.
+    path, base = scen
+    gates = json.loads(json.dumps(SCENARIO_GATES))
+    del gates["suites"]["scenario"]["selectors"]
+    commit(path, {"eval/gates.json": json.dumps(gates)})
+    commit(path, {"eval/criteria.json": json.dumps({**CRITERIA, "scenario": {"tries": 3}})})
+    assert er.required_suites(path, base, git(path, "rev-parse", "HEAD").strip()) == ["scenario"]
     assert selection(path, base) == (None, [])
 
 

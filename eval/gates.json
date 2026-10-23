@@ -14,8 +14,7 @@
         "config/hooks/skill_overlay.py",
         "config/hooks/lifecycle_default.py",
         "eval/scenarios.json",
-        "eval/clauses.json",
-        "eval/criteria.json"
+        "eval/clauses.json"
       ],
       "harness": [
         "eval/run_eval.py"
@@ -24,23 +23,37 @@
       "smoke": [
         "S-01",
         "S-02"
+      ],
+      "selectors": [
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/graderModel"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/scenario/tries"
+        }
       ]
     },
     "rubric": {
       "runner": "rubric",
       "paths": [
-        "config/CLAUDE.global.md",
-        "eval/criteria.json"
+        "config/CLAUDE.global.md"
       ],
       "harness": [
         "eval/run_eval.py"
+      ],
+      "selectors": [
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/rubric"
+        }
       ]
     },
     "hook-overlay": {
       "runner": "hook-overlay",
       "paths": [
-        "config/hooks/skill_overlay.py",
-        "eval/criteria.json"
+        "config/hooks/skill_overlay.py"
       ],
       "selectors": [
         {
@@ -50,6 +63,10 @@
         {
           "file": "config/settings.fragment.json",
           "pointer": "/hooks/UserPromptExpansion"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/hooks"
         }
       ],
       "harness": [
@@ -61,13 +78,16 @@
     "hook-merge": {
       "runner": "hook-merge",
       "paths": [
-        "config/hooks/merge_confirm.py",
-        "eval/criteria.json"
+        "config/hooks/merge_confirm.py"
       ],
       "selectors": [
         {
           "file": "config/settings.fragment.json",
           "pointer": "/hooks/PreToolUse"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/hooks"
         }
       ],
       "harness": [
@@ -79,8 +99,7 @@
     "hook-session-start": {
       "runner": "hook-session-start",
       "paths": [
-        "config/hooks/lifecycle_default.py",
-        "eval/criteria.json"
+        "config/hooks/lifecycle_default.py"
       ],
       "selectors": [
         {
@@ -90,6 +109,10 @@
         {
           "file": "config/settings.fragment.json",
           "pointer": "/hooks/SubagentStart"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/hooks"
         }
       ],
       "harness": [
@@ -178,15 +201,20 @@
       "skill": "plain-prose",
       "cases": "config/skills/plain-prose/evals/trigger-evals.json",
       "paths": [
-        "config/skills/plain-prose/evals/trigger-evals.json",
-        "config/skills/*/SKILL.md",
-        "config/vendored-skills/*/SKILL.md",
-        "eval/criteria.json"
+        "config/skills/plain-prose/evals/trigger-evals.json"
       ],
       "selectors": [
         {
-          "file": "config/skills/plain-prose/SKILL.md",
+          "file": "config/skills/*/SKILL.md",
           "part": "description"
+        },
+        {
+          "file": "config/vendored-skills/*/SKILL.md",
+          "part": "description"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/trigger"
         }
       ],
       "harness": [
@@ -205,13 +233,20 @@
       "paths": [
         "config/skills/plain-prose/evals/behaviour-evals.json",
         "config/skills/plain-prose/scripts/**",
-        "config/skills/plain-prose/references/**",
-        "eval/criteria.json"
+        "config/skills/plain-prose/references/**"
       ],
       "selectors": [
         {
           "file": "config/skills/plain-prose/SKILL.md",
           "part": "body"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/graderModel"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/coldReader"
         }
       ],
       "harness": [
@@ -230,19 +265,24 @@
         "plain-prose"
       ],
       "paths": [
-        "config/skills/writing-docs/evals/trigger-evals.json",
-        "config/skills/*/SKILL.md",
-        "config/vendored-skills/*/SKILL.md",
-        "eval/criteria.json"
+        "config/skills/writing-docs/evals/trigger-evals.json"
       ],
       "selectors": [
         {
-          "file": "config/skills/writing-docs/SKILL.md",
+          "file": "config/skills/*/SKILL.md",
           "part": "description"
         },
         {
-          "file": "config/skills/plain-prose/SKILL.md",
+          "file": "config/vendored-skills/*/SKILL.md",
           "part": "description"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/docTrigger"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/trigger/recall"
         }
       ],
       "harness": [
@@ -265,13 +305,20 @@
       "paths": [
         "config/skills/writing-docs/evals/behaviour-evals.json",
         "config/skills/writing-docs/scripts/**",
-        "config/skills/writing-docs/references/**",
-        "eval/criteria.json"
+        "config/skills/writing-docs/references/**"
       ],
       "selectors": [
         {
           "file": "config/skills/writing-docs/SKILL.md",
           "part": "body"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/graderModel"
+        },
+        {
+          "file": "eval/criteria.json",
+          "pointer": "/docReader"
         }
       ],
       "harness": [

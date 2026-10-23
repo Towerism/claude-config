@@ -6,9 +6,17 @@ while an edit to the harness code alone needs only the smoke tier.
 
 import json
 
+import pytest
+
 from eval import run_eval as re_
 from tests import test_run_eval as run_tests
 from tests.checker_helpers import REPO_ROOT
+from tests.criteria_probe import (
+    assert_reads_are_selected,
+    criteria_pointers,
+    probe_reads,
+    uncovered,
+)
 from tests.eval_fakes import FakeClaude, make_tree, scenario
 from tools.cfg import eval_records as er
 
@@ -30,12 +38,58 @@ def test_the_criteria_file_holds_the_bars_the_harness_used_before():
     assert json.loads((REPO_ROOT / re_.CRITERIA).read_text()) == TODAY
 
 
-def test_every_suite_whose_runner_reads_the_criteria_lists_it_as_an_input():
+EXPECTED_POINTERS = {
+    "scenario": ["/graderModel", "/scenario/tries"],
+    "rubric": ["/rubric"],
+    "hook-overlay": ["/hooks"],
+    "hook-merge": ["/hooks"],
+    "hook-session-start": ["/hooks"],
+    "plain-prose-trigger": ["/trigger"],
+    "plain-prose-behaviour": ["/graderModel", "/coldReader"],
+    "writing-docs-trigger": ["/docTrigger", "/trigger/recall"],
+    "writing-docs-behaviour": ["/graderModel", "/docReader"],
+}
+
+
+def test_every_suite_whose_runner_reads_the_criteria_lists_only_the_keys_it_reads():
     # Script suites run a skill's own eval script, which has its own bars.
     suites = er.parse_gates((REPO_ROOT / er.GATES_PATH).read_text())
     readers = {n for n, s in suites.items() if s.runner != "script"}
-    assert {n for n in readers if re_.CRITERIA not in suites[n].paths} == set()
-    assert all(re_.CRITERIA not in s.paths for s in suites.values() if s.runner == "script")
+    assert readers == set(EXPECTED_POINTERS)
+    assert all(re_.CRITERIA not in s.paths for s in suites.values())
+    assert {n: criteria_pointers(n) for n in readers} == EXPECTED_POINTERS
+
+
+def test_a_runner_that_reads_a_key_the_selectors_leave_out_is_named():
+    assert uncovered(["/hooks"], {"/hooks/tries", "/rubric/pass"}) == ["/rubric/pass"]
+    assert uncovered(["/trigger/recall"], {"/trigger/recall"}) == []
+    assert uncovered(["/trigger"], {"/trigger/recall", "/triggers/x"}) == ["/triggers/x"]
+
+
+def test_the_probe_sees_every_way_of_reading_a_key(env, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    bars = re_.eval_criteria(context(env, FakeClaude()))
+    assert bars["rubric"]["pass"] == 80
+    assert bars["scenario"].get("tries") == 2
+    assert bars["scenario"].get("absent", "none") == "none"
+    assert "tries" in bars["coldReader"]
+    assert dict(bars["hooks"].items())["tries"] == 2
+    assert 500 in bars["hooks"].values()
+    assert reads >= {
+        "/rubric/pass",
+        "/scenario/tries",
+        "/coldReader/tries",
+        "/hooks/tries",
+        "/hooks/p95LimitMs",
+    }
+
+
+def test_the_probe_fails_a_run_whose_suite_does_not_select_what_it_reads():
+    with pytest.raises(AssertionError, match=r"hook-merge reads \['/rubric/pass'\]"):
+        assert_reads_are_selected("hook-merge", {"/hooks/tries", "/rubric/pass"})
+    with pytest.raises(AssertionError, match="proved nothing"):
+        assert_reads_are_selected("rubric", set())
+    assert_reads_are_selected("rubric", {"/rubric/pass", "/rubric/tries"})
 
 
 def context(env, runner, **criteria):
@@ -71,3 +125,15 @@ def test_the_scenario_grader_uses_the_criteria_model_and_the_arms_do_not(env):
     answered = [c for c in fake.calls if c["stdin"].startswith(re_.PREAMBLE)]
     assert graded and all(c["cmd"][c["cmd"].index("--model") + 1] == "sonnet" for c in graded)
     assert answered and all("--model" not in c["cmd"] for c in answered)
+
+
+def test_the_rubric_run_reads_only_keys_its_selectors_cover(env, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    re_.run_rubric(context(env, FakeClaude(rubric_scores=(85,))))
+    assert_reads_are_selected("rubric", reads)
+
+
+def test_the_scenario_run_reads_only_keys_its_selectors_cover(env, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    re_.run_scenario(context(env, FakeClaude()))
+    assert_reads_are_selected("scenario", reads)

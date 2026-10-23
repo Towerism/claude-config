@@ -17,6 +17,12 @@ import pytest
 from eval import hook_harness as hh
 from eval import run_eval as re_
 from tests.checker_helpers import REPO_ROOT
+from tests.criteria_probe import (
+    assert_reads_are_selected,
+    criteria_pointers,
+    probe_reads,
+    uncovered,
+)
 from tests.eval_fakes import leftovers, make_live_home, make_tree
 
 
@@ -421,3 +427,15 @@ def test_a_smoke_merge_check_does_not_rerun_a_failure(ctx):
     result = hh.run_merge(ctx)
     assert result["pass"] is False and result["rerunsUsed"] == 0
     assert len(fake.calls) == 2
+
+
+def test_the_hook_checks_read_only_criteria_keys_their_selectors_cover(ctx, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    ctx.runner = OverlayFake()
+    hh.run_overlay(ctx, timer=fixed_timer(30.0))
+    assert_reads_are_selected("hook-overlay", reads)
+    reads.clear()
+    ctx.runner = MergeFake()
+    hh.run_merge(ctx)
+    # A passing merge check never needs a retry, so it may read no key at all.
+    assert uncovered(criteria_pointers("hook-merge"), reads) == []

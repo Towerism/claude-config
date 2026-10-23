@@ -302,12 +302,49 @@ def _sha(data: bytes | None) -> str | None:
     return None if data is None else hashlib.sha256(data).hexdigest()
 
 
+def expand_selectors(repo: Path, commit: str, suite: Suite) -> list[dict[str, str]]:
+    """The suite's selectors with each glob `file` replaced by every file at `commit` it matches.
+
+    A selector whose `file` has no wildcard stands for itself, present or not. A glob that
+    matches nothing stands for nothing.
+    """
+    files: list[str] | None = None
+    out = []
+    for sel in suite.selectors:
+        if not any(c in sel["file"] for c in "*?["):
+            out.append(sel)
+            continue
+        if files is None:  # one listing per call, and none for a suite with no glob
+            files = list_files(repo, commit)
+        out += [{**sel, "file": p} for p in files if _matches(p, (sel["file"],))]
+    return out
+
+
+UNCHANGED = "unchanged"  # stands for the bytes of a file that is the same at both commits
+
+
+def selector_values(
+    repo: Path, commit: str, suite: Suite, changed: list[str] | None = None
+) -> dict[str, str | None]:
+    """Each concrete selector's key (file#part) and the sha256 of the bytes it picks out.
+
+    With `changed`, the paths that differ between the two commits being compared, a file
+    outside it is the same at both and is not read: its value is UNCHANGED at either commit.
+    Keep `changed` out when the digests are going into a record.
+    """
+    out: dict[str, str | None] = {}
+    for sel in expand_selectors(repo, commit, suite):
+        same = changed is not None and sel["file"] not in changed
+        out[selector_key(sel)] = UNCHANGED if same else _sha(selector_value(repo, commit, sel))
+    return out
+
+
 def is_required(repo: Path, suite: Suite, base: str, head: str, changed: list[str]) -> bool:
     if any(_matches(p, suite.paths + suite.harness) for p in changed):
         return True
-    return any(
-        selector_value(repo, base, s) != selector_value(repo, head, s) for s in suite.selectors
-    )
+    pairs = equivalences_at(repo, base)
+    before, after = (selector_values(repo, c, suite, changed) for c in (base, head))
+    return _input_change(before, after, pairs) is not None
 
 
 def suite_definitions(repo: Path, base: str, head: str) -> dict[str, Suite]:
@@ -330,8 +367,7 @@ def suite_inputs(repo: Path, commit: str, suite: Suite) -> dict[str, str | None]
         for p in list_files(repo, commit)
         if _matches(p, suite.paths)
     }
-    for sel in suite.selectors:
-        inputs[selector_key(sel)] = _sha(selector_value(repo, commit, sel))
+    inputs.update(selector_values(repo, commit, suite))
     return inputs
 
 
@@ -357,13 +393,17 @@ def _input_change(
     base_files: dict[str, str | None],
     head_files: dict[str, str | None],
     pairs: tuple[tuple[str, str], ...],
+    noun: str = "",
 ) -> str | None:
-    """Why the inputs differ beyond declared moves, or None when each one pairs up unchanged."""
+    """Why the inputs differ beyond declared moves, or None when each one pairs up unchanged.
+
+    `noun` goes before the name of an input whose content changed ("the selector ...").
+    """
     unpaired = set(head_files)
     for path, digest in sorted(base_files.items()):
         if path in head_files:
             if head_files[path] != digest:
-                return f"{path} changed"
+                return f"{noun}{path} changed"
             unpaired.discard(path)
             continue
         moved = [q for q in _equivalents(path, pairs) if q in unpaired and q not in base_files]
@@ -391,9 +431,17 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
         return False, "the suite's definition in eval/gates.json changed"
     # A harness edit, eval.py's included, needs only the smoke tier (#77's cost cuts): the
     # harness is unit-tested, and the values that decide a verdict live in an input.
-    for sel in suite.selectors:
-        if selector_value(repo, base, sel) != selector_value(repo, head, sel):
-            return False, f"the selector {selector_key(sel)} changed"
+    # The merge-base's pairs again, so a skill moved between the trees isn't a change.
+    pairs = equivalences_at(repo, base)
+    changed = changed_paths(repo, base, head)
+    reason = _input_change(
+        selector_values(repo, base, suite, changed),
+        selector_values(repo, head, suite, changed),
+        pairs,
+        "the selector ",
+    )
+    if reason is not None:
+        return False, reason
     files = {
         commit: {
             p: _sha(read_blob(repo, commit, p))
@@ -403,7 +451,7 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
         for commit in (base, head)
     }
     # The merge-base's pairs, so a branch can't declare the equivalence it relies on.
-    reason = _input_change(files[base], files[head], equivalences_at(repo, base))
+    reason = _input_change(files[base], files[head], pairs)
     if reason is not None:
         return False, reason
     if not smoke_capable(suite):
@@ -411,9 +459,12 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
     return True, None
 
 
-# Changes that reach every scenario: the global CLAUDE.md, the clause inventory and the
-# criteria file; and any hook in the suite's paths, matched below (#77's cost cuts).
-SCENARIO_WIDE = ("config/CLAUDE.global.md", "eval/clauses.json", "eval/criteria.json")
+# Changes that reach every scenario: the global CLAUDE.md and the clause inventory; any hook
+# in the suite's paths, matched below (#77's cost cuts); and a change to a criteria key the
+# suite reads, which is a selector on the criteria file (#92), or to the whole file when the
+# suite still lists it in `paths`.
+SCENARIO_WIDE = ("config/CLAUDE.global.md", "eval/clauses.json")
+CRITERIA_FILE = "eval/criteria.json"
 OVERLAYS = "config/skill-overlays/"
 SCENARIOS = "eval/scenarios.json"
 
@@ -440,12 +491,22 @@ def scenario_selection(
     changed, removed or renamed (a rename shows as both names), or when its own entry in
     eval/scenarios.json changed or is new.
     """
-    if name not in gates_at(repo, base):
+    before_suite = gates_at(repo, base).get(name)
+    if before_suite is None:
         return None, []
     changed = changed_paths(repo, base, head)
     hooks = [p for p in changed if p.startswith("config/hooks/") and _matches(p, suite.paths)]
     if hooks or any(p in SCENARIO_WIDE for p in changed):
         return None, []
+    # A criteria edit that no selector of the suite covers must not leave the selection empty
+    # while the suite is required, so a whole-file input or a changed key runs everything.
+    # `required_suites` also accepts the merge-base's definition of the suite, so read both.
+    for definition in (before_suite, suite):
+        if CRITERIA_FILE in changed and _matches(CRITERIA_FILE, definition.paths):
+            return None, []
+        criteria = [s for s in definition.selectors if s["file"] == CRITERIA_FILE]
+        if any(selector_value(repo, base, s) != selector_value(repo, head, s) for s in criteria):
+            return None, []
     skills = {
         PurePosixPath(p).stem
         for p in changed
@@ -506,14 +567,12 @@ def _stale_inputs(
 ) -> list[str]:
     """Like _stale, but an input that moved to a declared equivalent path, unchanged, matches.
 
-    Selector entries ("file#part") are compared by key, as before.
+    Selector entries ("file#part") move with their file, so they pair the same way.
     """
     have = got if isinstance(got, dict) else {}
-    unpaired = {k for k in want if "#" not in k}
+    unpaired = set(want)
     stale = []
     for key in sorted(have):
-        if "#" in key:
-            continue
         if key in want:
             unpaired.discard(key)
             if want[key] != have[key]:
@@ -524,8 +583,6 @@ def _stale_inputs(
             unpaired.discard(moved[0])
         else:
             stale.append(key)
-    selectors = {k for k in set(want) | set(have) if "#" in k}
-    stale += [k for k in selectors if want.get(k, MISSING) != have.get(k, MISSING)]
     return [f"{name}: {check}: {key} {why}" for key in sorted(set(stale) | unpaired)]
 
 

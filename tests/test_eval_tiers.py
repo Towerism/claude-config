@@ -474,6 +474,20 @@ def test_a_suite_listing_the_whole_criteria_file_as_a_path_still_runs_every_scen
     assert selection(path, base) == (None, [])
 
 
+def test_dropping_the_criteria_selectors_in_the_same_change_as_a_key_edit_still_runs_everything(
+    scen,
+):
+    # The merge-base's definition still requires the suite for the key edit, so the selection
+    # must read that definition's selectors too, or the record would pass with nothing run.
+    path, base = scen
+    gates = json.loads(json.dumps(SCENARIO_GATES))
+    del gates["suites"]["scenario"]["selectors"]
+    commit(path, {"eval/gates.json": json.dumps(gates)})
+    commit(path, {"eval/criteria.json": json.dumps({**CRITERIA, "scenario": {"tries": 3}})})
+    assert er.required_suites(path, base, git(path, "rev-parse", "HEAD").strip()) == ["scenario"]
+    assert selection(path, base) == (None, [])
+
+
 @pytest.mark.parametrize("text", ["{", '{"a": 1}', "[1, 2]"])
 def test_a_scenarios_file_without_scenarios_runs_everything_so_the_run_fails_loudly(scen, text):
     path, base = scen

@@ -66,6 +66,24 @@ def test_a_runner_that_reads_a_key_the_selectors_leave_out_is_named():
     assert uncovered(["/trigger"], {"/trigger/recall", "/triggers/x"}) == ["/triggers/x"]
 
 
+def test_the_probe_sees_every_way_of_reading_a_key(env, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    bars = re_.eval_criteria(context(env, FakeClaude()))
+    assert bars["rubric"]["pass"] == 80
+    assert bars["scenario"].get("tries") == 2
+    assert bars["scenario"].get("absent", "none") == "none"
+    assert "tries" in bars["coldReader"]
+    assert dict(bars["hooks"].items())["tries"] == 2
+    assert 500 in bars["hooks"].values()
+    assert reads >= {
+        "/rubric/pass",
+        "/scenario/tries",
+        "/coldReader/tries",
+        "/hooks/tries",
+        "/hooks/p95LimitMs",
+    }
+
+
 def test_the_probe_fails_a_run_whose_suite_does_not_select_what_it_reads():
     with pytest.raises(AssertionError, match=r"hook-merge reads \['/rubric/pass'\]"):
         assert_reads_are_selected("hook-merge", {"/hooks/tries", "/rubric/pass"})

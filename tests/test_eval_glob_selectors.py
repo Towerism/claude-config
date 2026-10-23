@@ -209,6 +209,16 @@ def test_two_selectors_on_the_same_file_and_part_count_once(tmp_path):
     ]
 
 
+def test_the_required_check_reads_only_the_skills_that_changed(tmp_path, monkeypatch):
+    repo, base = glob_repo(tmp_path)
+    commit(repo, {f"{SK}/b/SKILL.md": skill("b", "Does b.", "# New body\n")})
+    read = []
+    real = er.read_blob
+    monkeypatch.setattr(er, "read_blob", lambda r, c, p: read.append(p) or real(r, c, p))
+    assert required(repo, base) == []
+    assert {p for p in read if p.endswith("SKILL.md")} == {f"{SK}/b/SKILL.md"}
+
+
 # What a record holds
 
 

@@ -308,29 +308,42 @@ def expand_selectors(repo: Path, commit: str, suite: Suite) -> list[dict[str, st
     A selector whose `file` has no wildcard stands for itself, present or not. A glob that
     matches nothing stands for nothing.
     """
-    files = list_files(repo, commit)
+    files: list[str] | None = None
     out = []
     for sel in suite.selectors:
         if not any(c in sel["file"] for c in "*?["):
             out.append(sel)
-        else:
-            out += [{**sel, "file": p} for p in files if _matches(p, (sel["file"],))]
+            continue
+        if files is None:  # one listing per call, and none for a suite with no glob
+            files = list_files(repo, commit)
+        out += [{**sel, "file": p} for p in files if _matches(p, (sel["file"],))]
     return out
 
 
-def selector_values(repo: Path, commit: str, suite: Suite) -> dict[str, str | None]:
-    """Each concrete selector's key (file#part) and the sha256 of the bytes it picks out."""
-    return {
-        selector_key(sel): _sha(selector_value(repo, commit, sel))
-        for sel in expand_selectors(repo, commit, suite)
-    }
+UNCHANGED = "unchanged"  # stands for the bytes of a file that is the same at both commits
+
+
+def selector_values(
+    repo: Path, commit: str, suite: Suite, changed: list[str] | None = None
+) -> dict[str, str | None]:
+    """Each concrete selector's key (file#part) and the sha256 of the bytes it picks out.
+
+    With `changed`, the paths that differ between the two commits being compared, a file
+    outside it is the same at both and is not read: its value is UNCHANGED at either commit.
+    Keep `changed` out when the digests are going into a record.
+    """
+    out: dict[str, str | None] = {}
+    for sel in expand_selectors(repo, commit, suite):
+        same = changed is not None and sel["file"] not in changed
+        out[selector_key(sel)] = UNCHANGED if same else _sha(selector_value(repo, commit, sel))
+    return out
 
 
 def is_required(repo: Path, suite: Suite, base: str, head: str, changed: list[str]) -> bool:
     if any(_matches(p, suite.paths + suite.harness) for p in changed):
         return True
     pairs = equivalences_at(repo, base)
-    before, after = (selector_values(repo, c, suite) for c in (base, head))
+    before, after = (selector_values(repo, c, suite, changed) for c in (base, head))
     return _input_change(before, after, pairs) is not None
 
 
@@ -420,9 +433,10 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
     # harness is unit-tested, and the values that decide a verdict live in an input.
     # The merge-base's pairs again, so a skill moved between the trees isn't a change.
     pairs = equivalences_at(repo, base)
+    changed = changed_paths(repo, base, head)
     reason = _input_change(
-        selector_values(repo, base, suite),
-        selector_values(repo, head, suite),
+        selector_values(repo, base, suite, changed),
+        selector_values(repo, head, suite, changed),
         pairs,
         "the selector ",
     )
@@ -477,7 +491,8 @@ def scenario_selection(
     changed, removed or renamed (a rename shows as both names), or when its own entry in
     eval/scenarios.json changed or is new.
     """
-    if name not in gates_at(repo, base):
+    before_suite = gates_at(repo, base).get(name)
+    if before_suite is None:
         return None, []
     changed = changed_paths(repo, base, head)
     hooks = [p for p in changed if p.startswith("config/hooks/") and _matches(p, suite.paths)]
@@ -485,11 +500,13 @@ def scenario_selection(
         return None, []
     # A criteria edit that no selector of the suite covers must not leave the selection empty
     # while the suite is required, so a whole-file input or a changed key runs everything.
-    if CRITERIA_FILE in changed and _matches(CRITERIA_FILE, suite.paths):
-        return None, []
-    criteria = [s for s in suite.selectors if s["file"] == CRITERIA_FILE]
-    if any(selector_value(repo, base, s) != selector_value(repo, head, s) for s in criteria):
-        return None, []
+    # `required_suites` also accepts the merge-base's definition of the suite, so read both.
+    for definition in (before_suite, suite):
+        if CRITERIA_FILE in changed and _matches(CRITERIA_FILE, definition.paths):
+            return None, []
+        criteria = [s for s in definition.selectors if s["file"] == CRITERIA_FILE]
+        if any(selector_value(repo, base, s) != selector_value(repo, head, s) for s in criteria):
+            return None, []
     skills = {
         PurePosixPath(p).stem
         for p in changed

@@ -26,6 +26,21 @@ class _Recording(dict):
         self._reads.add(path)
         return value
 
+    # Every other way to read a key goes through __getitem__ or is noted here, so a runner
+    # that switches to .get(), `in` or a loop over .items() is still seen.
+    def get(self, key, default=None):
+        return self[key] if super().__contains__(key) else default
+
+    def __contains__(self, key):
+        self._reads.add(f"{self._path}/{key}")
+        return super().__contains__(key)
+
+    def items(self):
+        return [(key, self[key]) for key in super().keys()]  # noqa: SIM118
+
+    def values(self):
+        return [self[key] for key in super().keys()]  # noqa: SIM118
+
 
 def probe_reads(monkeypatch):
     """Patch the harness's criteria loader; the returned set fills with the keys read."""

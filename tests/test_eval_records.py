@@ -461,13 +461,13 @@ def prose_repo(tmp_path):
         ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("clear", "plain")},
          ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{PROSE}/evals/trigger-evals.json": "[1]\n"}, ["plain-prose-trigger"]),
-        # Since #62 both trigger suites list every repo skill, so any SKILL.md change
-        # can move their results, a body included.
+        # Both trigger suites count every repo skill through its description only (#91), so
+        # a body edit leaves them alone, plain-prose's own included (D-4).
         ({f"{PROSE}/SKILL.md": PROSE_SKILL_MD.replace("# Body", "# New")},
-         ["plain-prose-behaviour", "plain-prose-trigger", "writing-docs-trigger"]),
+         ["plain-prose-behaviour"]),
         ({"config/skills/other-skill/SKILL.md": "---\nname: other-skill\n---\n"},
          ["plain-prose-trigger", "writing-docs-trigger"]),
-        # The vendored skills are listed in every trigger run too (#75).
+        # The vendored skills count in every trigger run too (#75), by description.
         ({"config/vendored-skills/copied/SKILL.md": "---\nname: copied\n---\n"},
          ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{PROSE}/scripts/prose_check.py": "print(2)\n"}, ["plain-prose-behaviour"]),
@@ -485,6 +485,71 @@ def test_a_skill_suite_without_its_skill_or_cases_is_refused(missing):
     del gates["suites"]["plain-prose-trigger"][missing]
     with pytest.raises(er.GatesError, match="needs a skill and a cases file"):
         er.parse_gates(json.dumps(gates))
+
+
+def test_the_trigger_suites_count_skills_by_description_and_no_selector_repeats():
+    suites = er.parse_gates((REPO_ROOT / "eval" / "gates.json").read_text())
+    globs = [
+        {"file": "config/skills/*/SKILL.md", "part": "description"},
+        {"file": "config/vendored-skills/*/SKILL.md", "part": "description"},
+    ]
+    for name in ("plain-prose-trigger", "writing-docs-trigger"):
+        assert not [p for p in suites[name].paths if p.endswith("SKILL.md")]
+        assert [s for s in suites[name].selectors if s.get("part")] == globs
+    for name, suite in suites.items():
+        keys = [er.selector_key(s) for s in suite.selectors]
+        assert len(keys) == len(set(keys)), name
+
+
+@pytest.fixture
+def criteria_repo(tmp_path):
+    repo, _ = make_repo(tmp_path)
+    base = commit(
+        repo,
+        {
+            "eval/gates.json": (REPO_ROOT / "eval" / "gates.json").read_text(),
+            "eval/criteria.json": (REPO_ROOT / "eval" / "criteria.json").read_text(),
+        },
+    )
+    git(repo, "update-ref", "refs/remotes/origin/main", base)
+    return repo, base
+
+
+def with_bar(key, sub, value):
+    bars = json.loads((REPO_ROOT / "eval" / "criteria.json").read_text())
+    bars[key][sub] = value
+    return {"eval/criteria.json": json.dumps(bars)}
+
+
+@pytest.mark.parametrize(
+    ("key", "sub", "suites"),
+    [
+        ("rubric", "pass", ["rubric"]),
+        ("scenario", "tries", ["scenario"]),
+        ("hooks", "p95LimitMs", ["hook-merge", "hook-overlay", "hook-session-start"]),
+        ("trigger", "recall", ["plain-prose-trigger", "writing-docs-trigger"]),
+        ("trigger", "maxTurns", ["plain-prose-trigger"]),
+        ("coldReader", "tries", ["plain-prose-behaviour"]),
+        ("docTrigger", "needed", ["writing-docs-trigger"]),
+        ("docReader", "rightShare", ["writing-docs-behaviour"]),
+    ],
+)
+def test_a_criteria_edit_requires_only_the_suites_that_read_the_key(
+    criteria_repo, key, sub, suites
+):
+    repo, base = criteria_repo
+    commit(repo, with_bar(key, sub, 7))
+    assert required(repo, base) == suites
+
+
+def test_the_grader_model_requires_the_suites_a_grader_decides():
+    suites = er.parse_gates((REPO_ROOT / "eval" / "gates.json").read_text())
+    graded = {
+        name
+        for name, suite in suites.items()
+        if any(s.get("pointer") == "/graderModel" for s in suite.selectors)
+    }
+    assert graded == {"scenario", "plain-prose-behaviour", "writing-docs-behaviour"}
 
 
 def test_the_skill_suites_parse_with_their_skill_and_cases():
@@ -519,7 +584,7 @@ def docs_repo(tmp_path):
          ["plain-prose-trigger", "writing-docs-trigger"]),
         ({f"{DOCS}/evals/trigger-evals.json": "[1]\n"}, ["writing-docs-trigger"]),
         ({f"{DOCS}/SKILL.md": DOCS_SKILL_MD.replace("# Body", "# New")},
-         ["plain-prose-trigger", "writing-docs-behaviour", "writing-docs-trigger"]),
+         ["writing-docs-behaviour"]),
         ({f"{DOCS}/scripts/doc_lint.py": "print(2)\n"}, ["writing-docs-behaviour"]),
         ({f"{DOCS}/references/templates/readme.md": "# TODO: x\n"}, ["writing-docs-behaviour"]),
         ({"eval/doc_evals.py": "print(2)\n"}, ["writing-docs-behaviour", "writing-docs-trigger"]),

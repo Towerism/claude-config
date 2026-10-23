@@ -145,10 +145,8 @@ def test_a_skill_that_moves_between_the_trees_and_changes_its_description_is_a_c
     commit(repo, {f"{SK}/a/SKILL.md": None, f"{VEN}/a/SKILL.md": skill("a", "Does more.")})
     assert required(repo, base) == ["descs"]
     reason = er.smoke_enough(repo, "descs", base, head_of(repo))[1]
-    assert (
-        reason
-        == "config/skills/a/SKILL.md#description moved to config/vendored-skills/a/SKILL.md#description and changed"
-    )
+    old, new = f"{SK}/a/SKILL.md#description", f"{VEN}/a/SKILL.md#description"
+    assert reason == f"{old} moved to {new} and changed"
 
 
 def test_a_record_from_before_a_move_between_the_trees_still_matches(tmp_path):

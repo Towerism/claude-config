@@ -16,6 +16,7 @@ import pytest
 from eval import run_eval as re_
 from eval import session_harness as sh
 from tests.checker_helpers import REPO_ROOT
+from tests.criteria_probe import assert_reads_are_selected, probe_reads
 from tests.eval_fakes import leftovers, make_live_home, make_tree
 
 
@@ -318,3 +319,10 @@ def test_a_smoke_session_check_skips_the_subagent_and_times_five_runs(ctx):
     result = sh.run_session(ctx, timer=lambda hook, xdg, runs: timed.append(runs) or [40.0] * runs)
     assert [c["id"] for c in result["cases"]] == ["main", "control", "p95"]
     assert timed == [5] and result["pass"] is True
+
+
+def test_the_session_check_reads_only_criteria_keys_its_selectors_cover(ctx, monkeypatch):
+    reads = probe_reads(monkeypatch)
+    ctx.runner = SessionFake()
+    sh.run_session(ctx, timer=fixed_timer(40.0))
+    assert_reads_are_selected("hook-session-start", reads)

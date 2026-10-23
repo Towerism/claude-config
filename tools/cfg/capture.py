@@ -193,7 +193,11 @@ def _suites(into: Path, changed: list[str]) -> list[str]:
     out = []
     for name, suite in eval_records.parse_gates(gates.read_text()).items():
         by_path = any(eval_records._matches(p, suite.paths + suite.harness) for p in changed)
-        by_selector = any(s["file"] in changed for s in suite.selectors)
+        # A selector's file may be a glob, and a path can't show which part of it changed,
+        # so a body-only edit lists the suite too: a hint for the owner, not a verdict.
+        by_selector = any(
+            eval_records._matches(p, (s["file"],)) for p in changed for s in suite.selectors
+        )
         if by_path or by_selector:
             out.append(name)
     return sorted(out)

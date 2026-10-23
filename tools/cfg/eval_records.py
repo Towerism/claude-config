@@ -445,9 +445,12 @@ def smoke_enough(repo: Path, name: str, base: str, head: str) -> tuple[bool, str
     return True, None
 
 
-# Changes that reach every scenario: the global CLAUDE.md, the clause inventory and the
-# criteria file; and any hook in the suite's paths, matched below (#77's cost cuts).
-SCENARIO_WIDE = ("config/CLAUDE.global.md", "eval/clauses.json", "eval/criteria.json")
+# Changes that reach every scenario: the global CLAUDE.md and the clause inventory; any hook
+# in the suite's paths, matched below (#77's cost cuts); and a change to a criteria key the
+# suite reads, which is a selector on the criteria file (#92), or to the whole file when the
+# suite still lists it in `paths`.
+SCENARIO_WIDE = ("config/CLAUDE.global.md", "eval/clauses.json")
+CRITERIA_FILE = "eval/criteria.json"
 OVERLAYS = "config/skill-overlays/"
 SCENARIOS = "eval/scenarios.json"
 
@@ -479,6 +482,13 @@ def scenario_selection(
     changed = changed_paths(repo, base, head)
     hooks = [p for p in changed if p.startswith("config/hooks/") and _matches(p, suite.paths)]
     if hooks or any(p in SCENARIO_WIDE for p in changed):
+        return None, []
+    # A criteria edit that no selector of the suite covers must not leave the selection empty
+    # while the suite is required, so a whole-file input or a changed key runs everything.
+    if CRITERIA_FILE in changed and _matches(CRITERIA_FILE, suite.paths):
+        return None, []
+    criteria = [s for s in suite.selectors if s["file"] == CRITERIA_FILE]
+    if any(selector_value(repo, base, s) != selector_value(repo, head, s) for s in criteria):
         return None, []
     skills = {
         PurePosixPath(p).stem

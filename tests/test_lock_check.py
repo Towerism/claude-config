@@ -6,6 +6,7 @@ import json
 import pytest
 
 from tests.checker_helpers import GOOD_GLOBAL_MD, REPO_ROOT, make_repo, make_skill, run_tool
+from tools.cfg import cli
 
 LOCK_SCRIPT = REPO_ROOT / "tools" / "cfg" / "lock.py"
 VENDORED_REL = "skills/senior-qa/scripts/v.py"
@@ -232,3 +233,56 @@ def test_an_entry_with_neither_source_is_a_usage_error(machine):
     record_path.write_text(json.dumps(record))
     r = run_lock(home, repo, "--check")
     assert r.returncode == 2 and "VENDORED.json" in r.stdout
+
+
+# Which Claude home the lock reads
+
+
+@pytest.fixture
+def broken_default_home(tmp_path, monkeypatch):
+    """A HOME whose ~/.claude has an unreadable install record, so reading it exits 2."""
+    fake = tmp_path / "fake-home"
+    (fake / ".claude" / "plugins").mkdir(parents=True)
+    (fake / ".claude" / "plugins" / "installed_plugins.json").write_text("{not json")
+    monkeypatch.setenv("HOME", str(fake))
+    return fake / ".claude"
+
+
+def cfg_lock_check(repo, capsys, *extra):
+    code = cli.main(["lock", "--repo-root", str(repo), "--check", *extra])
+    return code, capsys.readouterr()
+
+
+def test_the_lock_reads_the_home_claude_config_dir_names(
+    machine, broken_default_home, monkeypatch, capsys
+):
+    home, repo = machine
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    alone = run_tool(LOCK_SCRIPT, ["--repo-root", str(repo), "--check"])
+    assert alone.returncode == 0, alone.stdout
+    code, out = cfg_lock_check(repo, capsys)
+    assert code == 0, out.out
+    assert out.err.splitlines()[0] == f"cfg: Claude home {home} (source: CLAUDE_CONFIG_DIR)"
+    assert json.loads(out.out)["ok"] is True
+
+
+@pytest.mark.parametrize("spelling", ["two words", "one word"])
+def test_a_claude_home_flag_wins_over_claude_config_dir(
+    machine, broken_default_home, monkeypatch, capsys, spelling
+):
+    home, repo = machine
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(broken_default_home))
+    flag = ["--claude-home", str(home)] if spelling == "two words" else [f"--claude-home={home}"]
+    alone = run_tool(LOCK_SCRIPT, [*flag, "--repo-root", str(repo), "--check"])
+    assert alone.returncode == 0, alone.stdout
+    code, out = cfg_lock_check(repo, capsys, *flag)
+    assert code == 0, out.out
+    assert out.err.splitlines()[0] == f"cfg: Claude home {home} (source: --claude-home)"
+
+
+def test_without_claude_config_dir_the_lock_reads_dot_claude(machine, broken_default_home, capsys):
+    _, repo = machine
+    assert run_tool(LOCK_SCRIPT, ["--repo-root", str(repo), "--check"]).returncode == 2
+    code, out = cfg_lock_check(repo, capsys)
+    assert code == 2
+    assert str(broken_default_home / "plugins" / "installed_plugins.json") in out.out

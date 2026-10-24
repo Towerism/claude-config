@@ -5,6 +5,7 @@ import json
 import pytest
 
 from tests.checker_helpers import REPO_ROOT, make_overlay, make_skill, run_tool
+from tools.cfg import cli
 
 SCRIPT = REPO_ROOT / "tools" / "check_config.py"
 QA = "engineering-skills:senior-qa"
@@ -298,3 +299,28 @@ def test_ambiguous_short_name_is_unresolved(setup):
     md.write_text(GOOD_MD + "- `senior-qa` is ambiguous here.\n")
     r, rep = check(home, staging, md)
     assert r.returncode == 1 and rep["unresolvedSkills"] == ["senior-qa"]
+
+
+# Which Claude home the checker reads
+
+
+def check_without_home_flag(staging, md, overlays, *extra):
+    args = ["--claude-md", str(md), "--overlays", str(overlays), "--skill-root", str(staging)]
+    r = run_tool(SCRIPT, [*args, "--json", *extra])
+    return r.returncode
+
+
+def test_the_checker_reads_the_home_claude_config_dir_names(setup, tmp_path, monkeypatch, capsys):
+    home, staging, md = setup
+    monkeypatch.setenv("HOME", str(tmp_path / "empty-home"))
+    overlays = home / "skill-overlays"
+    assert check_without_home_flag(staging, md, overlays) == 1
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    assert check_without_home_flag(staging, md, overlays) == 0
+    forwarded = ["--claude-md", str(md), "--overlays", str(overlays), "--skill-root", str(staging)]
+    assert cli.main(["check", *forwarded, "--json"]) == 0
+    first = capsys.readouterr().err.splitlines()[0]
+    assert first == f"cfg: Claude home {home} (source: CLAUDE_CONFIG_DIR)"
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "elsewhere"))
+    assert check_without_home_flag(staging, md, overlays, "--claude-home", str(home)) == 0
+    assert cli.main(["check", *forwarded, "--json", "--claude-home", str(home)]) == 0

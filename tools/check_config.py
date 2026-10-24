@@ -8,6 +8,9 @@ python3 -I tools/check_config.py --host hosts/<name>.json [--claude-home <dir>]
     [--path-rule report|fail] [--json]
 exit 0 = pass, 1 = findings, 2 = usage error
 
+--claude-home defaults to $CLAUDE_CONFIG_DIR when it is set and not empty,
+else ~/.claude.
+
 With --plugin-index, plugin skills resolve from the plugin lock instead of
 the plugin cache, so the check runs where no plugins are installed, such as
 CI. tools/cfg/lock.py writes the lock.
@@ -35,6 +38,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -510,12 +514,22 @@ def check(
     return rep
 
 
+def default_claude_home() -> str:
+    """$CLAUDE_CONFIG_DIR when it is set and not empty, else ~/.claude; expanded and absolute."""
+    raw = os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude"
+    return os.path.abspath(os.path.expanduser(raw))
+
+
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", help="host profile to take the inputs from")
     ap.add_argument("--claude-md")
     ap.add_argument("--overlays")
-    ap.add_argument("--claude-home", default=str(Path.home() / ".claude"))
+    ap.add_argument(
+        "--claude-home",
+        default=default_claude_home(),
+        help="default: $CLAUDE_CONFIG_DIR, else ~/.claude",
+    )
     ap.add_argument("--skill-root", action="append", default=[])
     ap.add_argument("--clauses")
     ap.add_argument("--lifecycle-skill")

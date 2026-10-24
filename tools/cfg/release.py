@@ -4,15 +4,20 @@ A release is a git worktree of the working clone, detached at one commit. Its
 name is the commit id, or `<commit>-<n>` for a later release of the same
 commit, so `cfg deploy --discard-live` can deploy the same commit again and
 leave the edited release on disk (ADR-0004). Every git call here passes
---no-optional-locks, so reading a release never rewrites its index.
+--no-optional-locks, so reading a release never rewrites its index. Adding or
+removing a worktree holds a lock in the clone's git directory, because every
+Claude home deploys from the same clone.
 """
 
 from __future__ import annotations
 
 import os
 import subprocess
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
+from tools.cfg import state
 from tools.cfg.errors import CfgError, GitMissing
 
 IGNORED_PARTS = frozenset({"__pycache__", ".pytest_cache"})
@@ -82,6 +87,21 @@ def _common_dir(repo: Path) -> Path:
     return (repo / raw).resolve()
 
 
+@contextmanager
+def clone_lock(clone: Path) -> Iterator[None]:
+    """Hold cfg-worktrees.lock in the clone's git directory while worktrees are added or removed.
+
+    Every Claude home deploys from the same clone, and each home's cfg lock
+    covers only its own state directory. This lock stops two homes from
+    changing the clone's list of worktrees at the same time.
+    """
+    with state.exclusive(
+        _common_dir(clone) / "cfg-worktrees.lock",
+        "another cfg is adding or removing release worktrees in this clone",
+    ):
+        yield
+
+
 def _is_release_of(path: Path, clone: Path, sha: str) -> bool:
     try:
         return release_sha(path) == sha and _common_dir(path) == _common_dir(clone)
@@ -130,7 +150,8 @@ def create(clone: Path, sha: str, data_dir: Path, fresh: bool = False) -> str:
         path = root / name
         if not path.exists():
             root.mkdir(parents=True, exist_ok=True)
-            git(clone, "worktree", "add", "--quiet", "--detach", str(path), full)
+            with clone_lock(clone):
+                git(clone, "worktree", "add", "--quiet", "--detach", str(path), full)
             return name
         if not _is_release_of(path, clone, full):
             raise CfgError(f"{path} exists but isn't a release of {full}; move it aside")
@@ -169,4 +190,5 @@ def current_release(data_dir: Path) -> str | None:
 
 def remove(clone: Path, data_dir: Path, name: str) -> None:
     """Remove release `name` with `git worktree remove`, which refuses one with changes."""
-    git(clone, "worktree", "remove", str(releases_dir(data_dir) / name))
+    with clone_lock(clone):
+        git(clone, "worktree", "remove", str(releases_dir(data_dir) / name))

@@ -9,7 +9,7 @@ import pytest
 
 from tests.cfg_helpers import commit_change, git, make_repo, write_tree
 from tools.cfg import release
-from tools.cfg.errors import CfgError
+from tools.cfg.errors import CfgError, LockBusy
 
 pytestmark = pytest.mark.usefixtures("cfg_isolation")
 
@@ -182,3 +182,41 @@ def test_is_release_is_false_for_a_directory_outside_any_repo(repo: Path, tmp_pa
     plain = tmp_path / "plain"
     plain.mkdir()
     assert not release.is_release(plain, repo)
+
+
+# The clone lock, shared by every Claude home that deploys from this clone
+
+
+def test_the_clone_lock_lives_in_the_clones_git_directory(repo: Path, tmp_path: Path) -> None:
+    linked = tmp_path / "linked"
+    git(repo, "worktree", "add", "-q", "--detach", str(linked), "HEAD")
+    with release.clone_lock(linked):
+        assert (repo / ".git" / "cfg-worktrees.lock").is_file()
+        with pytest.raises(LockBusy, match="adding or removing release worktrees"):
+            with release.clone_lock(repo):
+                pass
+    with release.clone_lock(repo):
+        pass
+
+
+def test_create_and_remove_fail_while_another_home_holds_the_clone_lock(
+    repo: Path, data: Path
+) -> None:
+    lock = repo / ".git" / "cfg-worktrees.lock"
+    with release.clone_lock(repo):
+        with pytest.raises(LockBusy, match=f"it holds {lock}"):
+            release.create(repo, "HEAD", data)
+    assert list((data / "releases").iterdir()) == []
+    name = release.create(repo, "HEAD", data)
+    with release.clone_lock(repo):
+        with pytest.raises(LockBusy):
+            release.remove(repo, data, name)
+    assert (data / "releases" / name).is_dir()
+    release.remove(repo, data, name)
+    assert not (data / "releases" / name).exists()
+
+
+def test_reusing_an_existing_release_needs_no_clone_lock(repo: Path, data: Path) -> None:
+    name = release.create(repo, "HEAD", data)
+    with release.clone_lock(repo):
+        assert release.create(repo, "HEAD", data) == name

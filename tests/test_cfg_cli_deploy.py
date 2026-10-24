@@ -20,7 +20,7 @@ from tests.cfg_helpers import (
     make_live_install,
     push,
 )
-from tools.cfg import capture, cli, deploy, drift, state
+from tools.cfg import capture, cli, deploy, drift, release, state
 from tools.cfg.errors import CfgError
 
 pytestmark = pytest.mark.usefixtures("cfg_isolation")
@@ -445,3 +445,15 @@ def test_a_colliding_state_directory_is_refused_for_the_other_home(
         assert f"cfg: {refusal}" in capsys.readouterr().err
     assert cli.main(["restore", "--repo", str(repo), "--claude-home", str(b)]) == 2
     assert "no deploy backups are recorded" in capsys.readouterr().err
+
+
+def test_a_deploy_for_a_second_home_fails_while_the_clone_lock_is_held(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = make_home(tmp_path / "b")
+    argv = ["deploy", "--host", HOST, "--yes", "--repo", str(repo), "--claude-home", str(home)]
+    with release.clone_lock(repo):
+        assert cli.main(argv) == 2
+    assert "another cfg is adding or removing release worktrees" in capsys.readouterr().err
+    assert not (home / "CLAUDE.md").exists()
+    assert cli.main(argv) == 0

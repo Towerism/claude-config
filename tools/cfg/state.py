@@ -189,17 +189,22 @@ def read_manifest(path: Path) -> list[ManifestEntry]:
 
 
 @contextmanager
-def cfg_lock(data_dir: Path) -> Iterator[None]:
-    """Hold <data_dir>/cfg.lock so two cfg runs never write at the same time."""
-    data_dir.mkdir(parents=True, exist_ok=True)
-    with open(data_dir / "cfg.lock", "a") as f:
+def exclusive(path: Path, busy: str) -> Iterator[None]:
+    """Hold an exclusive lock on `path`, or raise LockBusy at once with `busy` in the message."""
+    with open(path, "a") as f:
         try:
             fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as e:
-            raise LockBusy(
-                f"another cfg is running (it holds {data_dir / 'cfg.lock'}); wait for it to finish"
-            ) from e
+            raise LockBusy(f"{busy} (it holds {path}); wait for it to finish") from e
         try:
             yield
         finally:
             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def cfg_lock(data_dir: Path) -> Iterator[None]:
+    """Hold <data_dir>/cfg.lock so two cfg runs never write at the same time."""
+    data_dir.mkdir(parents=True, exist_ok=True)
+    with exclusive(data_dir / "cfg.lock", "another cfg is running"):
+        yield

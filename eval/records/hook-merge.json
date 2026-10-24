@@ -1,6 +1,6 @@
 {
-  "claudeVersion": "2.1.299 (Claude Code)",
-  "durationSeconds": 111.1,
+  "claudeVersion": "2.1.310 (Claude Code)",
+  "durationSeconds": 35.8,
   "harness": {
     "eval/hook_harness.py": "fdebc55cb5cd0affcfc737f13438792d1aaab7dfa79550f6c8265801b9239c4d",
     "eval/run_eval.py": "361e82a4a48a9662b2cec47cad6a9b24d0e0a3c41838b1c6492a8118f3308014"
@@ -14,7 +14,7 @@
     "arm": "default",
     "grader": "none"
   },
-  "ranAt": "2026-10-21T03:27:00Z",
+  "ranAt": "2026-10-24T21:53:25Z",
   "result": {
     "cases": [
       {

@@ -1027,3 +1027,18 @@ def test_a_rollback_that_fails_after_the_switch_says_so(
     monkeypatch.setattr(deploy.link, "make_link", broken)
     with pytest.raises(deploy.DeployFailed, match="after switching current"):
         deploy.rollback(repo, installed, data)
+
+
+def test_pruning_while_another_home_holds_the_clone_lock_keeps_the_release_and_warns(
+    repo: Path, installed: Path, data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = run(repo, installed, data).release
+    commit_change(repo, "config/skill-overlays/alpha.md", "v1\n")
+    push(repo)
+    second = run(repo, installed, data).release
+    monkeypatch.setattr(deploy, "KEEP_RELEASES", 1)
+    with release.clone_lock(repo):
+        kept, warnings = deploy.prune(repo, data, [first, second], second)
+    assert kept == [first, second]
+    assert "adding or removing release worktrees" in warnings[0]
+    assert (release.releases_dir(data) / first).is_dir()

@@ -22,6 +22,7 @@ from tools.cfg import eval as cfg_eval
 RUNBOOK = Path(__file__).resolve().parent.parent / "docs" / "runbook.md"
 PREFIX = ["python3", "-I", "tools/cfg/cli.py"]
 PRACTICE_HEADING = "Practice on a trial directory"
+SECOND_HOME_HEADING = "A second Claude home"
 
 # A value the parser accepts in each placeholder's position. A placeholder
 # missing here fails the check, so a new one is added here on purpose.
@@ -167,6 +168,23 @@ def practice_problems(markdown: str) -> list[str]:
     return found
 
 
+def second_home_problems(markdown: str) -> list[str]:
+    """`cfg` lines in the second-home section that don't name the home on the command line.
+
+    A command there that relied on CLAUDE_CONFIG_DIR or the ~/.claude default
+    would act on whichever home the reader's shell happens to name.
+    """
+    body = section(markdown, SECOND_HOME_HEADING)
+    if body is None:
+        return [f"no '{SECOND_HOME_HEADING}' section"]
+    found = []
+    for line in code_lines(body):
+        words = cfg_words(PLACEHOLDER.sub("x", line))
+        if words is not None and not {"--claude-home", "--target"} & set(words):
+            found.append(f"no --claude-home or --target: {line.strip()}")
+    return found
+
+
 def fence(*lines: str) -> str:
     return "\n".join(["```", *lines, "```"])
 
@@ -180,6 +198,10 @@ def test_every_cfg_command_in_the_runbook_is_accepted() -> None:
 
 def test_every_practice_command_works_on_a_trial_directory() -> None:
     assert practice_problems(RUNBOOK.read_text(encoding="utf-8")) == []
+
+
+def test_every_second_home_command_names_its_home() -> None:
+    assert second_home_problems(RUNBOOK.read_text(encoding="utf-8")) == []
 
 
 # The checks themselves
@@ -313,3 +335,23 @@ def test_placeholders_in_other_code_lines_are_ignored() -> None:
 def test_a_different_script_with_the_same_prefix_is_not_cfg() -> None:
     text = fence("python3 -I tools/cfg/cli.py.bak --anything", "python3 -I tools/cfg/cli.py status")
     assert problems(text) == []
+
+
+def test_a_second_home_command_that_relies_on_the_environment_is_reported() -> None:
+    text = "\n".join(
+        [
+            f"## {SECOND_HOME_HEADING}",
+            fence(
+                'python3 -I tools/cfg/cli.py status --claude-home "$SECOND"',
+                "python3 -I tools/cfg/cli.py deploy --host <host> --yes",
+                "python3 -I tools/cfg/cli.py plan --host <host> --target <trial>",
+            ),
+        ]
+    )
+    assert second_home_problems(text) == [
+        "no --claude-home or --target: python3 -I tools/cfg/cli.py deploy --host <host> --yes"
+    ]
+
+
+def test_a_runbook_without_the_second_home_section_fails() -> None:
+    assert second_home_problems("# Runbook\n") == [f"no '{SECOND_HOME_HEADING}' section"]

@@ -1,6 +1,6 @@
 # ADR-0001: Deployment model (symlinks into immutable release worktrees, with `settings.json` merged by `cfg`)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-16). Amended 2026-10-24 by #95 (spec approved by the owner): a Claude home other than `~/.claude` keeps its own releases and state in a `homes/<key>/` directory; see [Amendment for #95](#amendment-for-95-2026-10-24).
 
 The repo's files reach the live config (`~/.claude`) as symlinks that point into a read-only snapshot of a deployed commit, called a release worktree. `settings.json` is the exception: Claude Code rewrites that file itself, so `cfg`, the repo's deploy tool, merges the repo's keys into it instead of linking it. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -163,3 +163,18 @@ The tests from `install_v2.py` seed `tests/test_settings_merge.py` and the backu
 - Claude Code changes version. Run `python3 -I eval/symlink_check.py` again before a deploy that depends on these results.
 - A third machine or a second person needs this config. A plugin (option D) then pays for its packaging cost.
 - Claude Code adds a supported way to load user skills or memory from another directory, or a way to include settings from another file.
+
+## Amendment for #95 (2026-10-24)
+
+The owner runs Claude Code with more than one config directory, chosen at launch with `CLAUDE_CONFIG_DIR`. `cfg` now deploys to any of them. It picks the Claude home from `--target`, then `--claude-home`, then a non-empty `CLAUDE_CONFIG_DIR`, then `~/.claude`. The first line it prints on stderr names the home and its source. `deploy --yes` refuses a home that only `CLAUDE_CONFIG_DIR` names, so a bare deploy run in another tool's session can't change that tool's config without a prompt. This holds even when `CLAUDE_CONFIG_DIR` names `~/.claude`: a shell that exports it that way passes `--claude-home ~/.claude` to `deploy --yes`, or runs it without `--yes`.
+
+Releases and state now depend on the home. `~/.claude` keeps `${XDG_DATA_HOME:-~/.local/share}/claude-config/` exactly as above, so the existing deployment needs no change. Any other home uses `homes/<key>/` beneath it, where `<key>` is the first 12 hex characters of the SHA-256 of the home's absolute path, with symlinks left as written:
+
+```text
+claude-config/                ~/.claude: releases/, current, state.json, as above
+claude-config/homes/<key>/    any other home: its own releases/, current and state.json
+```
+
+Each home can therefore be on its own commit with its own host profile. The state file still records `claudeHome`, and every command still refuses a state directory recorded for another home; with per-home directories that happens only when two keys collide. `--target DIR` still uses `DIR-cfg-data`.
+
+All homes deploy from one clone, and each home's `cfg.lock` covers only its own state. So adding or removing a release worktree, including pruning, also holds `cfg-worktrees.lock` in the clone's git directory, and a second `cfg` that finds it held stops with a message. Deploying two homes at the same time is still not supported; the runbook says so.

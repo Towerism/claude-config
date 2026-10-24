@@ -5,6 +5,11 @@ the temporary directory written as {ROOT}. Comparing with recorded bytes,
 rather than with the hooks on origin/main at test time, keeps the test
 meaningful after the merge and in a shallow clone. cfg's deploy smoke test,
 the eval harness and the symlink check all read this output.
+
+One recorded line changed on purpose since then (#95): the message for an
+overlay that can't be loaded used to name ~/.claude whatever home the hook
+read. It now names the home it read, with $HOME written as ~. run_script sets
+HOME to the home's parent, so the test's home shows as ~/claude-home.
 """
 
 import pytest
@@ -72,7 +77,7 @@ OVERLAY_CASES = {
         overlay_output(
             "PostToolUse",
             "Skill overlay for bar could not be loaded (user skill directory not found for bar); "
-            "read ~/.claude/skill-overlays/bar.md manually.",
+            "read ~/claude-home/skill-overlays/bar.md manually.",
         ),
     ),
     "skill with no overlay": (

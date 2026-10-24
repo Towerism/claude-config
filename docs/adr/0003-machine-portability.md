@@ -1,6 +1,6 @@
 # ADR-0003: Machine portability (runtime resolution first, one substitution variable, per-host component profiles)
 
-**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Amended 2026-10-20 by #17 (spec approved by the owner): synced skills are per machine; see [Amendment for #17](#amendment-for-17-2026-10-20).
+**Status:** Accepted by the owner on 2026-10-16 (proposed 2026-10-15). Amended 2026-10-20 by #17 (spec approved by the owner): synced skills are per machine; see [Amendment for #17](#amendment-for-17-2026-10-20). Amended 2026-10-24 by #95 (spec approved by the owner): `cfg` and the tools around it honour `CLAUDE_CONFIG_DIR`, as decision 2 already claimed; see [Amendment for #95](#amendment-for-95-2026-10-24).
 
 Code works out its paths when it runs. The only deploy-time substitution is a single placeholder, `{claude_home}`, used in the hook commands of the settings fragment. Each machine has a host profile, a small JSON file that selects which whole files and skills it gets. Terms used here are defined in the [architecture overview](../architecture/README.md#terms).
 
@@ -67,3 +67,9 @@ Two CLAUDE.md variants have no way to include shared rules from a common file. T
 ## Amendment for #17 (2026-10-20)
 
 The skills claude.ai syncs into `~/.claude/skills/synced/` belong to the account a machine signs in with, and the work machine uses a different account from the personal one. So synced skills are a fact of each machine, like its plugin cache: host profiles never list them, and nothing the machines share (the CLAUDE.md, the overlays, the settings fragment, the plugin lock) may name or depend on one. A skill both machines need is installed as a plugin listed in both profiles, or kept as a repo skill. [ADR-0005's amendment](0005-verification-and-ci.md#amendment-for-17-2026-10-20) says how the lock and the checker enforce this.
+
+## Amendment for #95 (2026-10-24)
+
+Decision 2 says `cfg` renders `{claude_home}` to `~/.claude` "by default, or `CLAUDE_CONFIG_DIR` or `--target` if given". Until #95 that held only for `--target`. `cfg` ignored `CLAUDE_CONFIG_DIR`, and so did `tools/check_config.py` and `tools/cfg/lock.py`. The overlay hook used `CLAUDE_HOME` or `~/.claude`.
+
+Now every `cfg` command picks the home from `--target`, then `--claude-home`, then a non-empty `CLAUDE_CONFIG_DIR`, then `~/.claude`. It renders `{claude_home}` to that path. `cfg check` and `cfg lock` pass the same home on as `--claude-home`, and the checker and the lock run on their own default to `CLAUDE_CONFIG_DIR`, else `~/.claude`. The overlay hook reads `CLAUDE_HOME`, then `CLAUDE_CONFIG_DIR`, then `~/.claude`: `CLAUDE_HOME` stays first because `cfg`'s smoke test and the eval harnesses set it, while Claude Code sets only `CLAUDE_CONFIG_DIR`. `cfg eval` keeps its own handling: it builds an isolated config directory for each run. Where each home's deploy state lives is in [ADR-0001's amendment](0001-deployment-model.md#amendment-for-95-2026-10-24).

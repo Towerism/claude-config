@@ -345,3 +345,35 @@ def test_a_deploy_that_only_switches_releases_names_no_backup(
     push(repo)
     assert cfg(repo, target, "deploy", "--host", HOST, "--yes") == 0
     assert "undo: cfg rollback, or" in capsys.readouterr().out
+
+
+def test_deploy_yes_refuses_a_home_named_only_by_the_environment(
+    repo: Path, target: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before = files(target)
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(target))
+    deploy_yes = ["deploy", "--host", HOST, "--yes", "--repo", str(repo)]
+    assert cli.main(deploy_yes) == 2
+    err = capsys.readouterr().err
+    assert err.splitlines()[0] == f"cfg: Claude home {target} (source: CLAUDE_CONFIG_DIR)"
+    assert "--claude-home" in err.splitlines()[1] and "--target" in err.splitlines()[1]
+    assert files(target) == before
+    assert not Path(os.environ["XDG_DATA_HOME"]).exists()
+
+
+def test_deploy_without_yes_on_a_home_from_the_environment_lists_the_changes(
+    repo: Path, target: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(target))
+    assert cli.main(["deploy", "--host", HOST, "--repo", str(repo)]) == 1
+    assert "back up and link CLAUDE.md (match)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("flag", ["--claude-home", "--target"])
+def test_deploy_yes_goes_ahead_when_the_home_is_named_on_the_command_line(
+    repo: Path, target: Path, flag: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(target))
+    argv = ["deploy", "--host", HOST, "--yes", "--repo", str(repo), flag, str(target)]
+    assert cli.main(argv) == 0
+    assert (target / "CLAUDE.md").is_symlink()

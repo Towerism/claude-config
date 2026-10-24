@@ -24,11 +24,15 @@ sits in). The Claude home is --target, else --claude-home, else
 $CLAUDE_CONFIG_DIR when it is set and not empty, else ~/.claude. Each command
 names the home it chose, and why, on the first line of stderr. deploy --yes
 refuses a home that only CLAUDE_CONFIG_DIR names: give --claude-home or
---target, or run it without --yes and confirm. Deploy state lives in
-$XDG_DATA_HOME/claude-config, or ~/.local/share/claude-config when
-XDG_DATA_HOME isn't an absolute path. --target DIR uses DIR as the Claude home
-and DIR-cfg-data for the state, for a trial deploy into a temporary config
-directory.
+--target, or run it without --yes and confirm.
+
+Deploy state for ~/.claude lives in $XDG_DATA_HOME/claude-config, or
+~/.local/share/claude-config when XDG_DATA_HOME isn't an absolute path. Any
+other home keeps its own releases, current link and state file in
+homes/<12 hex characters>/ beneath that, named from a hash of the home's
+path, so several homes can deploy from one clone at different commits.
+--target DIR uses DIR as the Claude home and DIR-cfg-data for the state, for
+a trial deploy into a temporary config directory.
 
 Exit codes: 0 done or nothing to report; 1 something to report, or a deploy that
 stopped with nothing changed; 2 a usage error or a refusal, with the reason on
@@ -39,6 +43,7 @@ started changing, with the restore.sh that undoes it named on stderr.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -61,11 +66,31 @@ FORWARDED = ("check", "lock", "eval")
 DEFAULT_HOME = "~/.claude"
 
 
-def data_dir() -> Path:
-    """Where releases and deploy state live; absolute, with symlinks left as written."""
+def _base_dir() -> Path:
+    """$XDG_DATA_HOME/claude-config, or ~/.local/share/claude-config; absolute, links kept."""
     xdg = os.environ.get("XDG_DATA_HOME", "")
     base = Path(xdg) if os.path.isabs(xdg) else Path.home() / ".local" / "share"
     return Path(os.path.abspath(base / "claude-config"))
+
+
+def home_key(home: Path) -> str:
+    """The first 12 hex characters of the SHA-256 of the home's absolute path."""
+    return hashlib.sha256(os.fsencode(home)).hexdigest()[:12]
+
+
+def data_dir(home: Path | str) -> Path:
+    """Where releases and deploy state live for this Claude home. Creates nothing.
+
+    ~/.claude keeps the base directory itself, where every deploy lived before
+    cfg could manage other homes. Any other home gets homes/<home_key>/ under
+    it. The home is expanded and made absolute first, so a trailing slash or
+    `..` gives the same directory; symlinks are left as written, so a linked
+    home and its target get two directories.
+    """
+    path = _home(str(home))
+    if path == _home(DEFAULT_HOME):
+        return _base_dir()
+    return _base_dir() / "homes" / home_key(path)
 
 
 def _parse(argv: list[str]) -> argparse.Namespace:
@@ -133,7 +158,7 @@ def _where(args: argparse.Namespace) -> tuple[Path, Path, str]:
     """The Claude home, the data directory and the home's source; names the home on stderr."""
     home, source = resolve_home(args.target, args.claude_home, os.environ)
     print(f"cfg: Claude home {home} (source: {source})", file=sys.stderr)
-    data = Path(f"{home}-cfg-data") if source == "--target" else data_dir()
+    data = Path(f"{home}-cfg-data") if source == "--target" else data_dir(home)
     return home, data, source
 
 

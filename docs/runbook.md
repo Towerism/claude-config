@@ -557,6 +557,8 @@ cfg: Claude home /tmp/tmp.lClyvljnb9/second (source: CLAUDE_CONFIG_DIR)
 cfg: deploy --yes won't change a Claude home named only by CLAUDE_CONFIG_DIR (/tmp/tmp.lClyvljnb9/second); name it with --claude-home or --target, or run without --yes and confirm the change list
 ```
 
+The refusal also applies when `CLAUDE_CONFIG_DIR` names `~/.claude` itself. In a shell that exports `CLAUDE_CONFIG_DIR=~/.claude`, run `deploy --yes` with `--claude-home ~/.claude`, or run it without `--yes` and confirm. The deploy state for `~/.claude` stays in `~/.local/share/claude-config/` however the home was named.
+
 `cfg check` and `cfg lock` read the same home: `cfg` passes it on as `--claude-home` unless you give one. `tools/check_config.py` and `tools/cfg/lock.py` run on their own default to `CLAUDE_CONFIG_DIR`, else `~/.claude`.
 
 Each home keeps its own deploy state: its releases, its `current` link and its state file. `~/.claude` keeps `~/.local/share/claude-config/`, as before. Any other home uses `~/.local/share/claude-config/homes/<key>/`, where `<key>` is 12 hex characters taken from a hash of the home's path. So the two homes can be on different commits and use different host profiles. Wherever this runbook names `~/.local/share/claude-config/` for a second home, such as in [When cfg won't run](#when-cfg-wont-run), use that home's `homes/<key>/` directory; `ls ~/.local/share/claude-config/homes/` lists them, and each one's `state.json` names its home under `claudeHome`.

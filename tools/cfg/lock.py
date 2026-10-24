@@ -5,6 +5,7 @@ exit 0 = written, 2 = an input can't be used (nothing is written)
 python3 -I tools/cfg/lock.py --check [--claude-home <dir>] [--repo-root <dir>]
 exit 0 = the committed lock and plugin-vendored files match this machine, 1 = they don't,
 2 = an input can't be used. --check never writes.
+--claude-home defaults to $CLAUDE_CONFIG_DIR when it is set and not empty, else ~/.claude.
 
 The lock lets tools/check_config.py --plugin-index resolve plugin skills
 where no plugins are installed, such as CI (ADR-0005). For each plugin
@@ -288,7 +289,11 @@ def write_atomically(path: Path, text: str) -> None:
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Write the plugin lock.")
-    ap.add_argument("--claude-home", default=str(Path.home() / ".claude"))
+    ap.add_argument(
+        "--claude-home",
+        default=check_config.default_claude_home(),
+        help="default: $CLAUDE_CONFIG_DIR, else ~/.claude",
+    )
     ap.add_argument("--repo-root", default=str(REPO_ROOT))
     ap.add_argument("--out", help=f"where to write the lock (default: <repo-root>/{LOCK_NAME})")
     ap.add_argument("--check", action="store_true", help="compare instead of writing; never writes")

@@ -20,7 +20,8 @@ from tests.cfg_helpers import (
     make_live_install,
     push,
 )
-from tools.cfg import cli, deploy, state
+from tools.cfg import capture, cli, deploy, drift, release, state
+from tools.cfg.errors import CfgError
 
 pytestmark = pytest.mark.usefixtures("cfg_isolation")
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -345,3 +346,136 @@ def test_a_deploy_that_only_switches_releases_names_no_backup(
     push(repo)
     assert cfg(repo, target, "deploy", "--host", HOST, "--yes") == 0
     assert "undo: cfg rollback, or" in capsys.readouterr().out
+
+
+def test_deploy_yes_refuses_a_home_named_only_by_the_environment(
+    repo: Path, target: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before = files(target)
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(target))
+    deploy_yes = ["deploy", "--host", HOST, "--yes", "--repo", str(repo)]
+    assert cli.main(deploy_yes) == 2
+    err = capsys.readouterr().err
+    assert err.splitlines()[0] == f"cfg: Claude home {target} (source: CLAUDE_CONFIG_DIR)"
+    assert "--claude-home" in err.splitlines()[1] and "--target" in err.splitlines()[1]
+    assert files(target) == before
+    assert not Path(os.environ["XDG_DATA_HOME"]).exists()
+
+
+def test_deploy_without_yes_on_a_home_from_the_environment_lists_the_changes(
+    repo: Path, target: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(target))
+    assert cli.main(["deploy", "--host", HOST, "--repo", str(repo)]) == 1
+    assert "back up and link CLAUDE.md (match)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("flag", ["--claude-home", "--target"])
+def test_deploy_yes_goes_ahead_when_the_home_is_named_on_the_command_line(
+    repo: Path, target: Path, flag: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(target))
+    argv = ["deploy", "--host", HOST, "--yes", "--repo", str(repo), flag, str(target)]
+    assert cli.main(argv) == 0
+    assert (target / "CLAUDE.md").is_symlink()
+
+
+# More than one Claude home
+
+
+def test_two_homes_deploy_from_one_clone_at_different_commits(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    main_sha = git(repo, "rev-parse", "HEAD")
+    git(repo, "checkout", "-q", "-b", "side")
+    side_sha = commit_change(repo, "config/CLAUDE.global.md", "# side\n")
+    git(repo, "checkout", "-q", "main")
+    a, b = make_home(tmp_path / "a"), make_home(tmp_path / "b")
+
+    def run(home: Path, *args: str) -> int:
+        return cli.main([*args, "--repo", str(repo), "--claude-home", str(home)])
+
+    assert run(a, "deploy", "--host", HOST, "--yes") == 0
+    assert run(b, "deploy", "--host", HOST, "--ref", side_sha, "--yes") == 0
+    data_a, data_b = cli.data_dir(a), cli.data_dir(b)
+    assert data_a != data_b
+    for home, data, sha in [(a, data_a, main_sha), (b, data_b, side_sha)]:
+        st = state.load(data)
+        assert st is not None and st.sha == sha and st.claude_home == str(home)
+        capsys.readouterr()
+        assert run(home, "status") == 0, capsys.readouterr().out
+    assert run(a, "deploy", "--host", HOST, "--ref", side_sha, "--yes") == 0
+    current_b = os.readlink(data_b / "current")
+    assert run(a, "rollback") == 0
+    st_a = state.load(data_a)
+    assert st_a is not None and st_a.sha == main_sha
+    assert os.readlink(data_b / "current") == current_b
+    assert run(b, "status") == 0
+
+
+def test_a_colliding_state_directory_is_refused_for_the_other_home(
+    repo: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "home_key", lambda home: "0" * 12)
+    a, b = make_home(tmp_path / "a"), make_home(tmp_path / "b")
+    data = cli.data_dir(a)
+    assert data == cli.data_dir(b)
+    fabricated = state.State(
+        host=HOST,
+        claude_home=str(a),
+        sha="0" * 40,
+        release="0" * 40,
+        deployed_at="2026-10-24T12:00:00Z",
+        paths=(),
+        settings={},
+    )
+    state.save(data, fabricated)
+    refusal = f"this data directory was deployed to {a}, not {b}"
+    with pytest.raises(CfgError, match=refusal):
+        drift._require_state(data, b)
+    with pytest.raises(CfgError, match=refusal):
+        deploy.deploy(repo, b, data, HOST, yes=True)
+    with pytest.raises(CfgError, match=refusal):
+        capture.capture(repo, b, data, [], repo, HOST)
+    for args in (["status"], ["deploy", "--host", HOST, "--yes"], ["capture", "--host", HOST]):
+        assert cli.main([*args, "--repo", str(repo), "--claude-home", str(b)]) == 2
+        assert f"cfg: {refusal}" in capsys.readouterr().err
+    assert cli.main(["restore", "--repo", str(repo), "--claude-home", str(b)]) == 2
+    assert "no deploy backups are recorded" in capsys.readouterr().err
+
+
+def test_a_deploy_for_a_second_home_fails_while_the_clone_lock_is_held(
+    repo: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = make_home(tmp_path / "b")
+    argv = ["deploy", "--host", HOST, "--yes", "--repo", str(repo), "--claude-home", str(home)]
+    with release.clone_lock(repo):
+        assert cli.main(argv) == 2
+    assert "another cfg is adding or removing release worktrees" in capsys.readouterr().err
+    assert not (home / "CLAUDE.md").exists()
+    assert cli.main(argv) == 0
+
+
+@pytest.mark.parametrize("spelling", ["~/.claude", "~/.claude/", "absolute"])
+def test_deploy_yes_refuses_claude_config_dir_even_when_it_names_dot_claude(
+    repo: Path, spelling: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = make_home(Path(os.environ["HOME"]))
+    base = Path(os.environ["XDG_DATA_HOME"]) / "claude-config"
+    value = str(home) if spelling == "absolute" else spelling
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", value)
+    assert cli.main(["deploy", "--host", HOST, "--yes", "--repo", str(repo)]) == 2
+    err = capsys.readouterr().err
+    assert err.splitlines()[0] == f"cfg: Claude home {home} (source: CLAUDE_CONFIG_DIR)"
+    assert "--claude-home" in err
+    assert not base.exists() and not (home / "CLAUDE.md").exists()
+    assert (
+        cli.main(["deploy", "--host", HOST, "--yes", "--repo", str(repo), "--claude-home", value])
+        == 0
+    )
+    assert state.load(base) is not None
+    assert not (base / "homes").exists()
+    assert cli.main(["status", "--repo", str(repo)]) == 0

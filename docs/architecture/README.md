@@ -20,7 +20,8 @@ When the repo was started on 2026-10-16, the configuration imported into it was 
 | live config | The files Claude Code reads at run time, under `~/.claude` |
 | payload | Everything in the repo's `config/` directory: the only files that reach the live config |
 | `cfg` | The repo's command-line tool that checks, deploys, diffs and rolls back the live config |
-| release worktree, `current` | A git worktree checked out at one deployed commit, under `~/.local/share/claude-config/releases/<sha>/`. `current` is a symlink to the release in use. The live config links point through it. |
+| release worktree, `current` | A git worktree checked out at one deployed commit, under `~/.local/share/claude-config/releases/<sha>/`, or under `homes/<key>/releases/<sha>/` there for a Claude home other than `~/.claude`. `current` is a symlink to the release in use. The live config links point through it. |
+| Claude home | The config directory `cfg` works on: `--target`, else `--claude-home`, else `$CLAUDE_CONFIG_DIR` when set, else `~/.claude` ([ADR-0001's amendment for #95](../adr/0001-deployment-model.md#amendment-for-95-2026-10-24)) |
 | first deploy | The first `cfg deploy` on a machine that already has the configuration installed. It stops on any file that differs from the repo until the owner decides about it, then backs the live files up and replaces them with links. It replaced hash-verified adoption on 2026-10-18. |
 | drift | Any difference between the live config and the deployed commit, such as an edit made through a link |
 | overlay | A per-skill policy file that a hook injects into the conversation when that skill loads |
@@ -192,10 +193,14 @@ Outside the repo, every machine also keeps some `cfg` state:
 ```text
 ~/.local/share/claude-config/
 ├── releases/<sha>/   one release worktree per deployed commit (the last 5 are kept, plus any with edits)
-└── current -> releases/<sha>
+├── current -> releases/<sha>
+├── state.json        what the last deploy to ~/.claude put in place
+└── homes/<key>/      the same releases/, current and state.json for each other Claude home
 ~/.claude/CLAUDE.md, skill-overlays, hooks/<file>.py, skills/<name>  → symlinks through current/config/…
 ~/.claude/backups/claude-config/<ts>/  originals moved aside before linking, with a manifest and restore.sh
 ```
+
+`<key>` is the first 12 hex characters of the SHA-256 of the home's absolute path. A second home's links point through its own `homes/<key>/current`, so each home can be on a different commit. Every home deploys from the same clone, so adding or removing a release worktree holds a lock in the clone's git directory.
 
 A copy of `restore.py`, a standalone stdlib script, goes into every backup directory, the same way `install_v2.py` copied itself into its backups. That keeps rollback working when the repo is broken or missing.
 

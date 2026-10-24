@@ -1,8 +1,8 @@
 # claude-config runbook
 
-This runbook is for the owner, or anyone setting up a machine for them. It covers running claude-config day to day: setting up a clone, deploying, handling drift, rolling back and undoing, and adding a second machine. Most of it changes your live Claude Code config in `~/.claude`; each section says when it does. To learn the commands without touching anything live, start with [Practice on a trial directory](#practice-on-a-trial-directory).
+This runbook is for the owner, or anyone setting up a machine for them. It covers running claude-config day to day: setting up a clone, deploying, handling drift, rolling back and undoing, adding a second machine, and deploying a second Claude home. Most of it changes your live Claude Code config in `~/.claude`; each section says when it does. To learn the commands without touching anything live, start with [Practice on a trial directory](#practice-on-a-trial-directory).
 
-**Last verified:** 2026-10-20, against commit `a7e70be` and Claude Code 2.1.304, when [Setting up the work machine](#setting-up-the-work-machine) ran on the work machine's live config. [The first deploy after the vendored skills moved](#the-first-deploy-after-the-vendored-skills-moved-75) was checked the same day on a `--target` trial directory, against #75's branch. The rest was last verified on 2026-10-19, against commit `80285b7` and Claude Code 2.1.299, where every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
+**Last verified:** 2026-10-20, against commit `a7e70be` and Claude Code 2.1.304, when [Setting up the work machine](#setting-up-the-work-machine) ran on the work machine's live config. [The first deploy after the vendored skills moved](#the-first-deploy-after-the-vendored-skills-moved-75) was checked the same day on a `--target` trial directory, against #75's branch. [A second Claude home](#a-second-claude-home) was checked on 2026-10-24 on a temporary home, against #95's branch. The rest was last verified on 2026-10-19, against commit `80285b7` and Claude Code 2.1.299, where every command that changes something was run on a `--target` trial directory, not the live config, except where a section says otherwise.
 
 Why things work this way is in the [architecture overview](architecture/README.md) and the ADRs it links. This page only says what to type and what to expect.
 
@@ -18,12 +18,12 @@ A machine needs git, the GitHub CLI `gh` logged in, Python 3.13 (the version in 
 |---|---|
 | The paths the host profile lists: `CLAUDE.md`, `skill-overlays/`, the hook scripts and the repo's skills | `~/.claude/`, as links into the deployed release |
 | The owned keys in `settings.json`: the plugins it enables, one marketplace and the three hook entries | `~/.claude/settings.json`, merged, never replaced |
-| Deploy state and the release worktrees | `~/.local/share/claude-config/` |
+| Deploy state and the release worktrees | `~/.local/share/claude-config/`, or its `homes/<key>/` for a [second Claude home](#a-second-claude-home) |
 | A backup for each deploy that moved or changed something | `~/.claude/backups/claude-config/<timestamp>/` |
 
 Skills that aren't in the host profile, such as `synced/` or a skill you added by hand, are never read, copied or touched.
 
-Every command takes `--json` for machine-readable output and `--target <dir>` to work on a temporary config directory instead of `~/.claude`. With `--target`, deploy state goes in `<dir>-cfg-data`.
+Every command takes `--json` for machine-readable output and `--target <dir>` to work on a temporary config directory instead of `~/.claude`. With `--target`, deploy state goes in `<dir>-cfg-data`. In a shell where `CLAUDE_CONFIG_DIR` is set, a command without `--target` or `--claude-home` acts on that directory instead of `~/.claude`; see [A second Claude home](#a-second-claude-home).
 
 Exit codes:
 
@@ -537,6 +537,86 @@ Steps 1 to 11 ran on the work machine (#17). These things didn't go as the steps
 - Step 9: `jira-ticket-lifecycle` loaded, named in the prompt. Its `auth` step failed at first: `gh auth status` exits 1 when a stale saved token sits beside a working `GITHUB_TOKEN`. Removing the stale entry with `env -u GITHUB_TOKEN gh auth logout -h github.com -u <login>` fixed it. `claim` skipped assigning, because the ticket was already the owner's, then added the ticket to the active sprint and moved it to in progress. After `sync-spec`, the read-back held `spec:start` and `spec:end` as paragraphs of their own, with the whole spec between them.
 - Step 10: the owner removed the old skill before steps 8 and 9 ran, so its `diff -r` wasn't shown. Its kept copy is in `~/.old-claude/skills/`, not `~/.old-claude/work-skills/`. `status` said `clean`, and the next session named `jira-ticket-lifecycle` as its default.
 - Step 11: `~/.config/claude-config/deny-terms` didn't exist until this step, so until then the hooks on this machine checked no terms. Once the owner wrote it, the scan printed no `deny-term` line and ended with `check-range: terms checked: 5`.
+
+## A second Claude home
+
+Claude Code reads its config from `~/.claude` unless `CLAUDE_CONFIG_DIR` names another directory when it starts. Use this section to deploy the repo's config into such a directory, a second Claude home, on a machine whose `~/.claude` is already deployed. Each step names the home with `--claude-home`, so it never depends on what your shell has set.
+
+### How cfg picks the home
+
+Every `cfg` command picks the home in this order: `--target`, then `--claude-home`, then `CLAUDE_CONFIG_DIR` when it is set and not empty, then `~/.claude`. The first line it prints on stderr names the home and where it came from:
+
+```text
+cfg: Claude home /home/<owner>/.claude (source: default)
+```
+
+So in a shell or Claude Code session started with `CLAUDE_CONFIG_DIR`, every bare command elsewhere in this runbook acts on that directory, not on `~/.claude`. Read that first line before you go on. `deploy --yes` refuses a home that only `CLAUDE_CONFIG_DIR` names, exits 2 and changes nothing:
+
+```text
+cfg: Claude home /tmp/tmp.lClyvljnb9/second (source: CLAUDE_CONFIG_DIR)
+cfg: deploy --yes won't change a Claude home named only by CLAUDE_CONFIG_DIR (/tmp/tmp.lClyvljnb9/second); name it with --claude-home or --target, or run without --yes and confirm the change list
+```
+
+The refusal also applies when `CLAUDE_CONFIG_DIR` names `~/.claude` itself. In a shell that exports `CLAUDE_CONFIG_DIR=~/.claude`, run `deploy --yes` with `--claude-home ~/.claude`, or run it without `--yes` and confirm. The deploy state for `~/.claude` stays in `~/.local/share/claude-config/` however the home was named.
+
+`cfg check` and `cfg lock` read the same home: `cfg` passes it on as `--claude-home` unless you give one. `tools/check_config.py` and `tools/cfg/lock.py` run on their own default to `CLAUDE_CONFIG_DIR`, else `~/.claude`.
+
+Each home keeps its own deploy state: its releases, its `current` link and its state file. `~/.claude` keeps `~/.local/share/claude-config/`, as before. Any other home uses `~/.local/share/claude-config/homes/<key>/`, where `<key>` is 12 hex characters taken from a hash of the home's path. So the two homes can be on different commits and use different host profiles. Wherever this runbook names `~/.local/share/claude-config/` for a second home, such as in [When cfg won't run](#when-cfg-wont-run), use that home's `homes/<key>/` directory; `ls ~/.local/share/claude-config/homes/` lists them, and each one's `state.json` names its home under `claudeHome`.
+
+### Before you deploy a second home
+
+- The home gets the whole host profile, not only the skills. The deploy writes the profile's plugin settings (`enabledPlugins` and the `claude-code-skills` marketplace) into that home's `settings.json`. `status` there compares the plugins installed in that home with `plugins.lock.json` and prints `warning plugin-lock` when they differ, and `cfg lock` and `cfg check` read that home's plugins.
+- If the home's `CLAUDE.md` is another tool's file, `cfg` treats it as drift: `plan` shows `CLAUDE.md differs`, and the deploy stops on it with exit 1 until you decide. `--discard-live CLAUDE.md` moves that file into the backup and links the repo's `CLAUDE.md` in its place, which the other tool may not expect. Don't capture it: that would put the other tool's file in this repo.
+- Never deploy two homes at the same time. Both deploy from the same clone. While one adds or removes a release worktree, the other stops with `another cfg is adding or removing release worktrees in this clone`; wait for the first to finish, then run the second again.
+- A symlinked home counts as a different home from the directory it points at, because `cfg` doesn't resolve links in the home's path. Always spell the home the same way, the way `CLAUDE_CONFIG_DIR` spells it. Deploying both spellings makes two deploy states that both manage one directory.
+- The overlay hook reads `CLAUDE_HOME` before `CLAUDE_CONFIG_DIR`, because `cfg`'s smoke test and the eval harnesses set `CLAUDE_HOME`. A `CLAUDE_HOME` left exported in your shell makes sessions started from it read that home's overlays instead. `cfg` itself ignores `CLAUDE_HOME`. `echo "$CLAUDE_HOME"` should print an empty line.
+
+### Deploy it
+
+1. Install the profile's plugins into the second home, as in steps 3 and 4 of [Setting up a second machine](#setting-up-a-second-machine), with `CLAUDE_CONFIG_DIR` set to that home for the `claude plugin` commands. The deploy's hook test needs them.
+
+2. Name the home once for the commands below:
+
+   ```sh
+   SECOND=<second-home>
+   ```
+
+3. See what would change, then deploy without `--yes` and read the change list:
+
+   ```sh
+   python3 -I tools/cfg/cli.py plan --host <host> --claude-home "$SECOND"
+   python3 -I tools/cfg/cli.py deploy --host <host> --claude-home "$SECOND"
+   ```
+
+   Decide each `differs` path as in [The first deploy on a machine that already has a config](#the-first-deploy-on-a-machine-that-already-has-a-config), with `--claude-home "$SECOND"` on every command.
+
+4. Run the same deploy with `--yes`, then check the result:
+
+   ```sh
+   python3 -I tools/cfg/cli.py deploy --host <host> --claude-home "$SECOND" --yes
+   python3 -I tools/cfg/cli.py status --claude-home "$SECOND"
+   python3 -I tools/cfg/cli.py check --host <host> --claude-home "$SECOND" --plugin-index plugins.lock.json
+   python3 -I tools/cfg/cli.py lock --check --claude-home "$SECOND"
+   ```
+
+   Expect `status: clean` and exit 0, and `"ok": true` from `check`. `lock --check` compares the second home's plugins with `plugins.lock.json`.
+
+5. To roll the second home back, name it the same way. `~/.claude` and its `current` link are left as they were:
+
+   ```sh
+   python3 -I tools/cfg/cli.py rollback --claude-home "$SECOND"
+   ```
+
+### Results on 2026-10-24
+
+The steps above ran on a temporary home with `hosts/personal.json`, from a throwaway clone of #95's branch, with `XDG_DATA_HOME` pointed at a temporary directory so nothing touched the live deploy state. Step 1 wasn't run: the home held only a `plugins` link to `~/.claude/plugins`, as in [Practice on a trial directory](#practice-on-a-trial-directory). What happened:
+
+- `plan` printed `cfg: Claude home /tmp/tmp.lClyvljnb9/second (source: --claude-home)` on stderr, then every path `missing` and every setting `missing-live`, and exited 1.
+- `deploy` without `--yes` ended `nothing was changed; rerun with --yes to go ahead` and exited 1. With `--yes` it printed `deploy 699b012a1e44: deployed`, the links and a `backup:` and `undo:` line, and exited 0. The state went into `homes/4d28669d1eac/` under the temporary data directory, with its own `releases/`, `current`, `state.json` and `cfg.lock`.
+- `status` printed `status: clean (release 699b012a1e44a69b902dc8bfa0f67af64ad051cd)` and one `warning plugin-lock` line, because the machine's `skill-creator` plugin had moved past the lock, and exited 0. `check` printed `"ok": true` and exited 0. `lock --check` named the same `skill-creator` difference and exited 1.
+- With `CLAUDE_CONFIG_DIR` set to the home and no flag, `deploy --yes` printed the refusal shown above and exited 2.
+- A second deploy with `--ref` and then `rollback` printed `rolled back from dbba0abfeeb8d9f605cff2a59d9fedfc60a22485 to 699b012a1e44a69b902dc8bfa0f67af64ad051cd`, and `status` was clean again.
+- A third home whose `CLAUDE.md` held another file stopped with `deploy 699b012a1e44: stopped` and `== conflict: CLAUDE.md`, exit 1, and changed nothing.
 
 ## Changing this machine's default lifecycle
 

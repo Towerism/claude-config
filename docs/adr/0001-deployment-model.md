@@ -166,7 +166,7 @@ The tests from `install_v2.py` seed `tests/test_settings_merge.py` and the backu
 
 ## Amendment for #95 (2026-10-24)
 
-The owner runs Claude Code with more than one config directory, chosen at launch with `CLAUDE_CONFIG_DIR`. `cfg` now deploys to any of them. It picks the Claude home from `--target`, then `--claude-home`, then a non-empty `CLAUDE_CONFIG_DIR`, then `~/.claude`. The first line it prints on stderr names the home and its source. `deploy --yes` refuses a home that only `CLAUDE_CONFIG_DIR` names, so a bare deploy run in another tool's session can't change that tool's config without a prompt.
+The owner runs Claude Code with more than one config directory, chosen at launch with `CLAUDE_CONFIG_DIR`. `cfg` now deploys to any of them. It picks the Claude home from `--target`, then `--claude-home`, then a non-empty `CLAUDE_CONFIG_DIR`, then `~/.claude`. The first line it prints on stderr names the home and its source. `deploy --yes` refuses a home that only `CLAUDE_CONFIG_DIR` names, so a bare deploy run in another tool's session can't change that tool's config without a prompt. This holds even when `CLAUDE_CONFIG_DIR` names `~/.claude`: a shell that exports it that way passes `--claude-home ~/.claude` to `deploy --yes`, or runs it without `--yes`.
 
 Releases and state now depend on the home. `~/.claude` keeps `${XDG_DATA_HOME:-~/.local/share}/claude-config/` exactly as above, so the existing deployment needs no change. Any other home uses `homes/<key>/` beneath it, where `<key>` is the first 12 hex characters of the SHA-256 of the home's absolute path, with symlinks left as written:
 

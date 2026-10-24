@@ -457,3 +457,25 @@ def test_a_deploy_for_a_second_home_fails_while_the_clone_lock_is_held(
     assert "another cfg is adding or removing release worktrees" in capsys.readouterr().err
     assert not (home / "CLAUDE.md").exists()
     assert cli.main(argv) == 0
+
+
+@pytest.mark.parametrize("spelling", ["~/.claude", "~/.claude/", "absolute"])
+def test_deploy_yes_refuses_claude_config_dir_even_when_it_names_dot_claude(
+    repo: Path, spelling: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    home = make_home(Path(os.environ["HOME"]))
+    base = Path(os.environ["XDG_DATA_HOME"]) / "claude-config"
+    value = str(home) if spelling == "absolute" else spelling
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", value)
+    assert cli.main(["deploy", "--host", HOST, "--yes", "--repo", str(repo)]) == 2
+    err = capsys.readouterr().err
+    assert err.splitlines()[0] == f"cfg: Claude home {home} (source: CLAUDE_CONFIG_DIR)"
+    assert "--claude-home" in err
+    assert not base.exists() and not (home / "CLAUDE.md").exists()
+    assert (
+        cli.main(["deploy", "--host", HOST, "--yes", "--repo", str(repo), "--claude-home", value])
+        == 0
+    )
+    assert state.load(base) is not None
+    assert not (base / "homes").exists()
+    assert cli.main(["status", "--repo", str(repo)]) == 0

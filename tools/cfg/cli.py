@@ -16,8 +16,9 @@ writes anything. deploy installs origin/main (or --ref) and stops on every
 conflict until it is captured or passed with --discard-live; rollback switches
 back to the previous release; capture writes live changes into a feature-branch
 worktree; restore runs a backup's own restore.py. check, lock and eval pass
-their arguments unchanged to tools/check_config.py, tools/cfg/lock.py and
-tools/cfg/eval.py.
+their arguments to tools/check_config.py, tools/cfg/lock.py and
+tools/cfg/eval.py; check and lock also get --claude-home with the home chosen
+below, unless their arguments already name one.
 
 Every command takes --claude-home and --repo (default: the clone this file
 sits in). The Claude home is --target, else --claude-home, else
@@ -154,10 +155,14 @@ def resolve_home(
     return _home(DEFAULT_HOME), "default"
 
 
+def _name_home(home: Path, source: str) -> None:
+    print(f"cfg: Claude home {home} (source: {source})", file=sys.stderr)
+
+
 def _where(args: argparse.Namespace) -> tuple[Path, Path, str]:
     """The Claude home, the data directory and the home's source; names the home on stderr."""
     home, source = resolve_home(args.target, args.claude_home, os.environ)
-    print(f"cfg: Claude home {home} (source: {source})", file=sys.stderr)
+    _name_home(home, source)
     data = Path(f"{home}-cfg-data") if source == "--target" else data_dir(home)
     return home, data, source
 
@@ -354,7 +359,23 @@ def _restore(args: argparse.Namespace) -> int:
     return subprocess.run(["python3", "-I", str(script)], check=False).returncode
 
 
+def _given_home(rest: list[str]) -> str | None:
+    """The --claude-home value already in a forwarded command's arguments, if any."""
+    for i, word in enumerate(rest):
+        if word.startswith("--claude-home="):
+            return word.split("=", 1)[1]
+        if word == "--claude-home" and i + 1 < len(rest):
+            return rest[i + 1]
+    return None
+
+
 def _forward(name: str, rest: list[str]) -> int:
+    if name in ("check", "lock"):
+        given = _given_home(rest)
+        home, source = resolve_home(None, given, os.environ)
+        _name_home(home, source)
+        if given is None:
+            rest = ["--claude-home", str(home), *rest]
     if name == "check":
         from tools import check_config
 

@@ -1,9 +1,10 @@
 """Inject the user's per-skill policy ("overlay") when a skill loads.
 
 Events: PostToolUse (matcher Skill) and UserPromptExpansion / UserPromptSubmit
-(user-typed /skill). Reads ~/.claude/skill-overlays/<skill>.md and rewrites
+(user-typed /skill). Reads <home>/skill-overlays/<skill>.md and rewrites
 `references/…`, `scripts/…` style paths to absolute paths under the skill's
-active base directory. Always exits 0; never blocks.
+active base directory. The home is $CLAUDE_HOME, else $CLAUDE_CONFIG_DIR,
+else ~/.claude. Always exits 0; never blocks.
 """
 
 import json
@@ -24,7 +25,23 @@ class OverlayError(Exception):
 
 
 def claude_home() -> Path:
-    return Path(os.environ.get("CLAUDE_HOME") or Path.home() / ".claude")
+    """CLAUDE_HOME, else CLAUDE_CONFIG_DIR, else ~/.claude; ~ expanded and made absolute.
+
+    Claude Code sets only CLAUDE_CONFIG_DIR. CLAUDE_HOME comes first because
+    cfg's deploy smoke test and the eval harnesses set it to point the hook at
+    a temporary home.
+    """
+    raw = os.environ.get("CLAUDE_HOME") or os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude"
+    return Path(os.path.abspath(os.path.expanduser(raw)))
+
+
+def shown(home: Path) -> str:
+    """The home as the owner would type it: inside $HOME it starts with ~."""
+    try:
+        rel = home.relative_to(Path.home())
+    except ValueError:
+        return str(home)
+    return "/".join(("~", *rel.parts))
 
 
 def skill_from_payload(d: dict[str, Any]) -> tuple[Any, Any]:
@@ -127,7 +144,7 @@ def main() -> None:
         emit(
             event,
             f"Skill overlay for {resolved} could not be loaded ({reason}); "
-            f"read ~/.claude/skill-overlays/{resolved}.md manually.",
+            f"read {shown(home)}/skill-overlays/{resolved}.md manually.",
         )
 
 

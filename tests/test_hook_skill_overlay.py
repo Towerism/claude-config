@@ -35,6 +35,7 @@ def home(tmp_path, monkeypatch):
         plugins={"bundle@market": {"qa": ["references/b.md"]}},
     )
     monkeypatch.setenv("CLAUDE_HOME", str(home))
+    monkeypatch.setenv("HOME", str(tmp_path))
     return home
 
 
@@ -101,10 +102,47 @@ def test_a_bare_name_matches_the_one_plugin_overlay_ending_in_it(hook, home, mon
 def test_the_config_directory_defaults_to_dot_claude_in_home(hook, tmp_path, monkeypatch, capsys):
     home = make_home(tmp_path, overlays={"foo": "Hi.\n"}, skills={"foo": []})
     monkeypatch.delenv("CLAUDE_HOME", raising=False)
-    monkeypatch.setattr(pathlib.Path, "home", classmethod(lambda cls: home.parent))
+    monkeypatch.setenv("HOME", str(home.parent))
     home.rename(home.parent / ".claude")
     out, _ = run_main(hook, skill_call("foo"), monkeypatch, capsys)
     assert context_of(out) == "Skill overlay for foo:\nHi.\n"
+
+
+def test_claude_config_dir_names_the_config_directory_when_claude_home_is_unset(
+    hook, home, monkeypatch, capsys
+):
+    monkeypatch.delenv("CLAUDE_HOME")
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    out, _ = run_main(hook, skill_call("foo"), monkeypatch, capsys)
+    assert context_of(out).startswith("Skill overlay for foo:\nUse `")
+
+
+def test_claude_home_wins_over_claude_config_dir(hook, home, tmp_path, monkeypatch, capsys):
+    other = make_home(tmp_path / "other", overlays={"foo": "Other.\n"}, skills={"foo": []})
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    monkeypatch.setenv("CLAUDE_HOME", str(other))
+    out, _ = run_main(hook, skill_call("foo"), monkeypatch, capsys)
+    assert context_of(out) == "Skill overlay for foo:\nOther.\n"
+
+
+@pytest.mark.parametrize("variable", ["CLAUDE_HOME", "CLAUDE_CONFIG_DIR"])
+@pytest.mark.parametrize("value", ["~/claude-home", "claude-home", "./x/../claude-home/"])
+def test_a_tilde_or_relative_config_directory_is_expanded(
+    hook, home, tmp_path, monkeypatch, capsys, variable, value
+):
+    monkeypatch.delenv("CLAUDE_HOME")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv(variable, value)
+    out, _ = run_main(hook, skill_call("foo"), monkeypatch, capsys)
+    assert f"`{home}/skills/foo/references/a.md`" in context_of(out)
+
+
+def test_an_empty_claude_home_falls_through_to_claude_config_dir(home):
+    done = run_script(
+        "skill_overlay", skill_call("foo"), home, CLAUDE_HOME="", CLAUDE_CONFIG_DIR=str(home)
+    )
+    assert done.returncode == 0
+    assert context_of(done.stdout).startswith("Skill overlay for foo:")
 
 
 # When there is nothing to inject
@@ -151,10 +189,10 @@ def test_a_missing_overlay_directory_injects_nothing(hook, tmp_path, monkeypatch
 # When the overlay can't be loaded
 
 
-def failure_text(skill, reason):
+def failure_text(skill, reason, shown="~/claude-home"):
     return (
         f"Skill overlay for {skill} could not be loaded ({reason}); "
-        f"read ~/.claude/skill-overlays/{skill}.md manually."
+        f"read {shown}/skill-overlays/{skill}.md manually."
     )
 
 
@@ -162,6 +200,18 @@ def test_an_overlay_without_its_skill_directory_says_so(hook, home, monkeypatch,
     out, err = run_main(hook, skill_call("orphan"), monkeypatch, capsys)
     assert context_of(out) == failure_text("orphan", "user skill directory not found for orphan")
     assert "Traceback" in err
+
+
+def test_the_message_writes_the_home_directory_as_a_tilde_only_when_it_is_inside_home(
+    hook, home, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.setenv("HOME", str(tmp_path / "elsewhere"))
+    out, _ = run_main(hook, skill_call("orphan"), monkeypatch, capsys)
+    reason = "user skill directory not found for orphan"
+    assert context_of(out) == failure_text("orphan", reason, shown=str(home))
+    monkeypatch.setenv("HOME", str(home))
+    out, _ = run_main(hook, skill_call("orphan"), monkeypatch, capsys)
+    assert context_of(out) == failure_text("orphan", reason, shown="~")
 
 
 def test_an_unreadable_plugin_index_says_so(hook, home, monkeypatch, capsys):

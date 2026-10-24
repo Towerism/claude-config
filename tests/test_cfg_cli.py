@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -335,3 +336,59 @@ def test_plan_with_no_flag_and_no_variable_names_the_default_home(
     default = Path(os.environ["HOME"]) / ".claude"
     first = capsys.readouterr().err.splitlines()[0]
     assert first == f"cfg: Claude home {default} (source: default)"
+
+
+# What check and lock receive
+
+
+@pytest.fixture
+def forwarded(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[str]]:
+    """The argv check_config.main and lock.main are called with, by tool name."""
+    from tools import check_config
+    from tools.cfg import lock
+
+    calls: dict[str, list[str]] = {}
+
+    def recorder(name: str) -> Callable[[list[str]], int]:
+        def main(argv: list[str]) -> int:
+            calls[name] = argv
+            return 0
+
+        return main
+
+    monkeypatch.setattr(check_config, "main", recorder("check"))
+    monkeypatch.setattr(lock, "main", recorder("lock"))
+    return calls
+
+
+@pytest.mark.parametrize("tool", ["check", "lock"])
+def test_check_and_lock_get_the_home_from_claude_config_dir(
+    tool: str, forwarded: dict[str, list[str]], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "second"))
+    assert cli.main([tool, "--json"]) == 0
+    assert forwarded[tool] == ["--claude-home", str(tmp_path / "second"), "--json"]
+
+
+@pytest.mark.parametrize("tool", ["check", "lock"])
+def test_check_and_lock_get_the_default_home_when_nothing_names_one(
+    tool: str, forwarded: dict[str, list[str]]
+) -> None:
+    assert cli.main([tool]) == 0
+    assert forwarded[tool] == ["--claude-home", str(Path(os.environ["HOME"]) / ".claude")]
+
+
+@pytest.mark.parametrize("tool", ["check", "lock"])
+@pytest.mark.parametrize(
+    "given", [["--claude-home", "/given"], ["--claude-home=/given"]], ids=["two words", "one word"]
+)
+def test_a_claude_home_already_in_the_arguments_is_left_alone(
+    tool: str,
+    given: list[str],
+    forwarded: dict[str, list[str]],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "second"))
+    assert cli.main([tool, "--check", *given]) == 0
+    assert forwarded[tool] == ["--check", *given]

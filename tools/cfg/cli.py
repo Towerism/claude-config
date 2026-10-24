@@ -19,11 +19,16 @@ worktree; restore runs a backup's own restore.py. check, lock and eval pass
 their arguments unchanged to tools/check_config.py, tools/cfg/lock.py and
 tools/cfg/eval.py.
 
-Every command takes --claude-home (default ~/.claude) and --repo (default:
-the clone this file sits in). Deploy state lives in $XDG_DATA_HOME/claude-config,
-or ~/.local/share/claude-config when XDG_DATA_HOME isn't an absolute path.
---target DIR uses DIR as the Claude home and DIR-cfg-data for the state, for a
-trial deploy into a temporary config directory.
+Every command takes --claude-home and --repo (default: the clone this file
+sits in). The Claude home is --target, else --claude-home, else
+$CLAUDE_CONFIG_DIR when it is set and not empty, else ~/.claude. Each command
+names the home it chose, and why, on the first line of stderr. deploy --yes
+refuses a home that only CLAUDE_CONFIG_DIR names: give --claude-home or
+--target, or run it without --yes and confirm. Deploy state lives in
+$XDG_DATA_HOME/claude-config, or ~/.local/share/claude-config when
+XDG_DATA_HOME isn't an absolute path. --target DIR uses DIR as the Claude home
+and DIR-cfg-data for the state, for a trial deploy into a temporary config
+directory.
 
 Exit codes: 0 done or nothing to report; 1 something to report, or a deploy that
 stopped with nothing changed; 2 a usage error or a refusal, with the reason on
@@ -37,6 +42,7 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +58,7 @@ from tools.cfg.errors import CfgError  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FORWARDED = ("check", "lock", "eval")
+DEFAULT_HOME = "~/.claude"
 
 
 def data_dir() -> Path:
@@ -63,7 +70,7 @@ def data_dir() -> Path:
 
 def _parse(argv: list[str]) -> argparse.Namespace:
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--claude-home", help="default: ~/.claude")
+    common.add_argument("--claude-home", help="default: $CLAUDE_CONFIG_DIR, else ~/.claude")
     common.add_argument("--target", help="a temporary Claude home; state goes in TARGET-cfg-data")
     common.add_argument("--repo", default=str(REPO_ROOT), help="default: this clone")
     common.add_argument("--json", action="store_true", help="print JSON")
@@ -102,18 +109,36 @@ def _home(raw: str) -> Path:
     return Path(os.path.abspath(os.path.expanduser(raw)))
 
 
-def _where(args: argparse.Namespace) -> tuple[Path, Path]:
-    """The Claude home and the data directory this command works on."""
-    if args.target is not None:
-        if args.claude_home is not None:
+def resolve_home(
+    target: str | None, claude_home: str | None, env: Mapping[str, str]
+) -> tuple[Path, str]:
+    """The Claude home and its source: --target, --claude-home, CLAUDE_CONFIG_DIR or default.
+
+    The first one given wins, in that order; an empty CLAUDE_CONFIG_DIR counts
+    as unset. The path has ~ expanded and is made absolute, with symlinks left
+    as written. Nothing is read from disk and nothing is created.
+    """
+    if target is not None:
+        if claude_home is not None:
             raise CfgError("--target and --claude-home can't be given together")
-        home = _home(args.target)
-        return home, Path(f"{home}-cfg-data")
-    return _home(args.claude_home or "~/.claude"), data_dir()
+        return _home(target), "--target"
+    if claude_home is not None:
+        return _home(claude_home), "--claude-home"
+    if env.get("CLAUDE_CONFIG_DIR"):
+        return _home(env["CLAUDE_CONFIG_DIR"]), "CLAUDE_CONFIG_DIR"
+    return _home(DEFAULT_HOME), "default"
+
+
+def _where(args: argparse.Namespace) -> tuple[Path, Path, str]:
+    """The Claude home, the data directory and the home's source; names the home on stderr."""
+    home, source = resolve_home(args.target, args.claude_home, os.environ)
+    print(f"cfg: Claude home {home} (source: {source})", file=sys.stderr)
+    data = Path(f"{home}-cfg-data") if source == "--target" else data_dir()
+    return home, data, source
 
 
 def _plan(args: argparse.Namespace) -> tuple[int, Any, str]:
-    home, data = _where(args)
+    home, data = args.home, args.data
     result = drift.plan(Path(args.repo), args.ref, args.host, home, data)
     payload = {
         "ref": result.ref,
@@ -147,7 +172,7 @@ def _finding(f: drift.Finding) -> dict[str, Any]:
 
 
 def _status(args: argparse.Namespace) -> tuple[int, Any, str]:
-    home, data = _where(args)
+    home, data = args.home, args.data
     result = drift.status(Path(args.repo), data, home)
     payload = {
         "result": result.result,
@@ -165,7 +190,7 @@ def _status(args: argparse.Namespace) -> tuple[int, Any, str]:
 
 
 def _diff(args: argparse.Namespace) -> tuple[int, Any, str]:
-    home, data = _where(args)
+    home, data = args.home, args.data
     diffs = drift.diff(Path(args.repo), data, home, args.path)
     payload = {"diffs": [{"path": p, "text": t} for p, t in diffs]}
     text = "\n".join(f"== {p}\n{t.rstrip(chr(10))}" for p, t in diffs) or "no differences"
@@ -184,7 +209,7 @@ def ask(lines: list[str]) -> bool:
 
 
 def _deploy(args: argparse.Namespace) -> tuple[int, Any, str]:
-    home, data = _where(args)
+    home, data = args.home, args.data
     confirm = ask if sys.stdin.isatty() and not args.json else None
     result = deploy.deploy(
         Path(args.repo),
@@ -239,7 +264,7 @@ def _deploy(args: argparse.Namespace) -> tuple[int, Any, str]:
 
 
 def _rollback(args: argparse.Namespace) -> tuple[int, Any, str]:
-    home, data = _where(args)
+    home, data = args.home, args.data
     result = deploy.rollback(Path(args.repo), home, data)
     payload = {
         "from": result.left,
@@ -266,7 +291,7 @@ def _rollback(args: argparse.Namespace) -> tuple[int, Any, str]:
 
 
 def _capture(args: argparse.Namespace) -> tuple[int, Any, str]:
-    home, data = _where(args)
+    home, data = args.home, args.data
     into = Path(args.into or args.repo)
     result = capture.capture(Path(args.repo), home, data, args.paths, into, args.host)
     payload = {
@@ -290,7 +315,7 @@ def _capture(args: argparse.Namespace) -> tuple[int, Any, str]:
 
 
 def _restore(args: argparse.Namespace) -> int:
-    home, data = _where(args)
+    data = args.data
     if args.backup is not None:
         backup = Path(args.backup)
     else:
@@ -332,6 +357,13 @@ def main(argv: list[str] | None = None) -> int:
         "capture": _capture,
     }
     try:
+        args.home, args.data, source = _where(args)
+        if args.command == "deploy" and args.yes and source == "CLAUDE_CONFIG_DIR":
+            raise CfgError(
+                f"deploy --yes won't change a Claude home named only by CLAUDE_CONFIG_DIR "
+                f"({args.home}); name it with --claude-home or --target, or run without --yes "
+                "and confirm the change list"
+            )
         if args.command == "restore":
             return _restore(args)
         code, payload, text = commands[args.command](args)

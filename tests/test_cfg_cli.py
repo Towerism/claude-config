@@ -13,6 +13,7 @@ import pytest
 
 from tests.cfg_helpers import deploy_with_library, git, make_home, make_repo
 from tools.cfg import cli
+from tools.cfg.errors import CfgError
 
 pytestmark = pytest.mark.usefixtures("cfg_isolation")
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -203,3 +204,77 @@ def test_no_command_is_a_usage_error(capsys: pytest.CaptureFixture[str]) -> None
     with pytest.raises(SystemExit) as done:
         cli.main([])
     assert done.value.code == 2
+
+
+# Which Claude home a command works on
+
+
+def spelled(home: str, cwd: Path) -> Path:
+    """An expected home as the tests write it: ~/ is HOME and ./ is the working directory."""
+    if home.startswith("~/"):
+        return Path(os.environ["HOME"], home[2:])
+    if home.startswith("./"):
+        return cwd / home[2:]
+    return Path(home)
+
+
+@pytest.mark.parametrize(
+    ("target", "claude_home", "env", "home", "source"),
+    [
+        (None, None, {"CLAUDE_CONFIG_DIR": "/x"}, "/x", "CLAUDE_CONFIG_DIR"),
+        (None, "/y", {"CLAUDE_CONFIG_DIR": "/x"}, "/y", "--claude-home"),
+        ("/t", None, {"CLAUDE_CONFIG_DIR": "/x"}, "/t", "--target"),
+        (None, None, {"CLAUDE_CONFIG_DIR": ""}, "~/.claude", "default"),
+        (None, None, {}, "~/.claude", "default"),
+        (None, None, {"CLAUDE_CONFIG_DIR": "~/other/"}, "~/other", "CLAUDE_CONFIG_DIR"),
+        (None, None, {"CLAUDE_CONFIG_DIR": "rel/../dir"}, "./dir", "CLAUDE_CONFIG_DIR"),
+        (None, "rel", {}, "./rel", "--claude-home"),
+    ],
+    ids=["env", "flag wins", "target wins", "empty", "unset", "tilde", "relative", "flag"],
+)
+def test_the_home_comes_from_target_then_flag_then_the_environment_then_the_default(
+    target: str | None,
+    claude_home: str | None,
+    env: dict[str, str],
+    home: str,
+    source: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert cli.resolve_home(target, claude_home, env) == (spelled(home, tmp_path), source)
+
+
+def test_target_and_claude_home_together_are_refused_by_the_resolver() -> None:
+    with pytest.raises(CfgError, match="--target and --claude-home can't be given together"):
+        cli.resolve_home("/t", "/y", {})
+
+
+def test_resolving_the_home_creates_nothing(tmp_path: Path) -> None:
+    cli.resolve_home(None, None, {"CLAUDE_CONFIG_DIR": str(tmp_path / "new")})
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_plan_names_the_home_and_its_source_on_stderr_and_leaves_stdout_alone(
+    repo: Path, home: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    plan = ["plan", "--host", "hosts/test.json", "--json", "--repo", str(repo)]
+    assert cli.main([*plan, "--claude-home", str(home)]) == 1
+    flagged = capsys.readouterr()
+    assert flagged.err.splitlines()[0] == f"cfg: Claude home {home} (source: --claude-home)"
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(home))
+    assert cli.main(plan) == 1
+    from_env = capsys.readouterr()
+    assert from_env.err.splitlines()[0] == f"cfg: Claude home {home} (source: CLAUDE_CONFIG_DIR)"
+    assert from_env.out == flagged.out
+    json.loads(from_env.out)
+
+
+def test_plan_with_no_flag_and_no_variable_names_the_default_home(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_home(Path(os.environ["HOME"]))
+    cli.main(["plan", "--host", "hosts/test.json", "--repo", str(repo)])
+    default = Path(os.environ["HOME"]) / ".claude"
+    first = capsys.readouterr().err.splitlines()[0]
+    assert first == f"cfg: Claude home {default} (source: default)"

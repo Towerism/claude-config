@@ -31,6 +31,18 @@ _TOKEN_PREFIXES = {
 }
 
 
+@pytest.fixture(autouse=True)
+def no_claude_config_dir(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Hide the shell's CLAUDE_CONFIG_DIR from every test.
+
+    cfg, the config checker, the plugin lock and the overlay hook all read it
+    to find the Claude home. A test that relies on the ~/.claude default would
+    otherwise act on whatever config directory the shell running pytest names.
+    A test that needs the variable sets it itself.
+    """
+    monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
+
+
 def fake_token(kind: str = "ghp") -> str:
     head, sep, tail = _TOKEN_PREFIXES[kind]
     return head + sep + tail
